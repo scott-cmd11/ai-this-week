@@ -10,10 +10,10 @@ export function NotionRenderer({ blocks }: Props) {
 
   return (
     <div className="notion-body">
-      {grouped.map((item, i) => {
+      {grouped.map((item) => {
         if (Array.isArray(item)) {
           return (
-            <ul key={i} className="list-disc pl-6 mb-4 space-y-2">
+            <ul key={item[0].id} className="list-disc pl-6 mb-4 space-y-2">
               {item.map(block => (
                 <li key={block.id} className="text-[19px] text-govuk-black leading-[1.5]">
                   {block.content}
@@ -49,6 +49,7 @@ function Block({ block }: { block: NotionBlock }) {
         </p>
       ) : null
     case 'bookmark':
+      if (!block.href) return null
       return (
         <p className="mb-4">
           <a
@@ -75,7 +76,7 @@ function groupBulletedLists(blocks: NotionBlock[]): (NotionBlock | NotionBlock[]
   let currentList: NotionBlock[] = []
 
   for (const block of blocks) {
-    if (block.type === 'bulleted_list_item' || block.type === 'numbered_list_item') {
+    if (block.type === 'bulleted_list_item') {
       currentList.push(block)
     } else {
       if (currentList.length > 0) {

@@ -66,7 +66,9 @@ describe('NotionRenderer', () => {
       { id: '11', type: 'divider', content: '' },
     ]
     const { container } = render(<NotionRenderer blocks={blocks} />)
-    expect(container.querySelector('hr')).toBeInTheDocument()
+    const hr = container.querySelector('hr')
+    expect(hr).toBeInTheDocument()
+    expect(hr).toHaveAttribute('aria-hidden', 'true')
   })
 
   it('skips empty paragraph blocks', () => {
