@@ -11,6 +11,7 @@ export function Header() {
           AI This Week
         </Link>
         <nav aria-label="Main navigation">
+          {/* Focus override: yellow-bg replaces global ring — black bottom-bar is invisible on dark header */}
           <ul className="flex gap-6 list-none m-0 p-0">
             <li>
               <Link

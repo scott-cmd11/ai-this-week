@@ -10,7 +10,7 @@ export function Footer() {
         <p className="text-[16px] text-govuk-dark-grey">
           Summaries on this site are drafted with AI assistance and reviewed before
           publication.{' '}
-          <Link href="/about" className="text-govuk-blue underline">
+          <Link href="/about" className="text-govuk-blue underline hover:no-underline">
             Learn more
           </Link>
         </p>
