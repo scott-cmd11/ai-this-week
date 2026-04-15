@@ -1,6 +1,13 @@
 import { Client } from '@notionhq/client'
 import type { Issue, NotionBlock, BlockType } from './types'
 
+if (!process.env.NOTION_TOKEN) {
+  throw new Error('Missing environment variable: NOTION_TOKEN')
+}
+if (!process.env.NOTION_DATABASE_ID) {
+  throw new Error('Missing environment variable: NOTION_DATABASE_ID')
+}
+
 const notion = new Client({ auth: process.env.NOTION_TOKEN })
 const DATABASE_ID = process.env.NOTION_DATABASE_ID!
 
