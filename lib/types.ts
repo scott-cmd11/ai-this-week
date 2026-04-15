@@ -4,7 +4,7 @@ export interface Issue {
   issueDate: string      // YYYY-MM-DD, used as URL slug
   issueNumber: number
   published: boolean
-  summary: string
+  summary?: string
   aiAssisted: boolean
   slug: string           // same as issueDate
 }
