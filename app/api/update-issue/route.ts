@@ -7,6 +7,7 @@ import { createRequire } from 'module'
 
 interface SectionSummary {
   url: string
+  title: string | null
   summary: string
 }
 
@@ -51,6 +52,17 @@ const block = {
     type: 'bookmark' as const,
     bookmark: { url, caption: [] as never[] },
   }),
+  linkedTitle: (title: string, url: string) => ({
+    object: 'block' as const,
+    type: 'paragraph' as const,
+    paragraph: {
+      rich_text: [{
+        type: 'text' as const,
+        text: { content: title, link: { url } },
+        annotations: { bold: true, italic: false, strikethrough: false, underline: false, code: false, color: 'default' as const },
+      }],
+    },
+  }),
 }
 
 // ─── URL parsing ────────────────────────────────────────────────────────────────
@@ -65,10 +77,30 @@ function parseUrls(input: string): string[] {
 
 // ─── Article fetching ───────────────────────────────────────────────────────────
 
-async function fetchArticleText(
+interface FetchResult {
+  text: string | null
+  title: string | null
+}
+
+function extractTitle(html: string): string | null {
+  const match = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+  if (!match) return null
+  return match[1]
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\s*[\|\-–—]\s*[^|\-–—]{2,40}$/, '')
+    .trim() || null
+}
+
+async function fetchArticle(
   url: string,
   onPdf?: () => void
-): Promise<string | null> {
+): Promise<FetchResult> {
   try {
     const res = await fetch(url, {
       headers: {
@@ -89,22 +121,24 @@ async function fetchArticleText(
       onPdf?.()
       const buffer = Buffer.from(await res.arrayBuffer())
       try {
-        // pdf-parse is CommonJS — use createRequire to load it in ESM/TS context
         const require = createRequire(import.meta.url)
         const { PDFParse } = require('pdf-parse')
         const parser = new PDFParse({ data: buffer, verbosity: 0 })
         const result = await parser.getText({ maxPages: 5 })
-        return (result.text as string).replace(/\s{2,}/g, ' ').trim().slice(0, 6000)
+        const text = (result.text as string).replace(/\s{2,}/g, ' ').trim().slice(0, 6000)
+        return { text, title: new URL(url).hostname.replace('www.', '') }
       } catch {
-        return null
+        return { text: null, title: null }
       }
     }
 
     const html = await res.text()
+    const title = extractTitle(html)
+
     const mainMatch = html.match(/<(?:article|main)[^>]*>([\s\S]*?)<\/(?:article|main)>/i)
     const source = mainMatch ? mainMatch[1] : html
 
-    const stripped = source
+    const text = source
       .replace(/<script[\s\S]*?<\/script>/gi, '')
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<[^>]+>/g, ' ')
@@ -116,10 +150,11 @@ async function fetchArticleText(
       .replace(/&nbsp;/g, ' ')
       .replace(/\s{2,}/g, ' ')
       .trim()
+      .slice(0, 6000)
 
-    return stripped.slice(0, 6000)
+    return { text, title }
   } catch {
-    return null
+    return { text: null, title: null }
   }
 }
 
@@ -136,14 +171,14 @@ async function summariseUrlWithEvents(
 ): Promise<SectionSummary> {
   emit(JSON.stringify({ type: 'fetch', section, url }))
 
-  const articleText = await fetchArticleText(url, () => {
+  const { text: articleText, title } = await fetchArticle(url, () => {
     emit(JSON.stringify({ type: 'pdf', section, url }))
   })
 
   if (!articleText) {
-    const summary = `[Could not fetch article. Add summary manually.] Source: ${url}`
+    const summary = `[Could not fetch article. Add summary manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, summary }
+    return { url, title, summary }
   }
 
   emit(JSON.stringify({ type: 'summarise', section, url }))
@@ -164,11 +199,11 @@ async function summariseUrlWithEvents(
       response.choices[0]?.message?.content?.trim() ??
       '[Summary unavailable — review and edit before publishing.]'
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, summary }
+    return { url, title, summary }
   } catch {
-    const summary = `[AI summary failed. Add manually.] Source: ${url}`
+    const summary = `[AI summary failed. Add manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, summary }
+    return { url, title, summary }
   }
 }
 
@@ -253,7 +288,7 @@ export async function POST(request: NextRequest) {
         if (request.signal.aborted) { controller.close(); return }
 
         // Build blocks to append — only for sections that have URLs
-        const blocksToAppend: ReturnType<typeof block.h2 | typeof block.paragraph | typeof block.bookmark | typeof block.divider>[] = []
+        const blocksToAppend: ReturnType<typeof block.h2 | typeof block.paragraph | typeof block.bookmark | typeof block.divider | typeof block.linkedTitle>[] = []
 
         for (const key of sectionKeys) {
           const summaries = summaryMap[key]
@@ -261,7 +296,8 @@ export async function POST(request: NextRequest) {
 
           blocksToAppend.push(block.h2(SECTION_HEADINGS[key]))
 
-          for (const { url, summary } of summaries) {
+          for (const { url, title, summary } of summaries) {
+            if (title) blocksToAppend.push(block.linkedTitle(title, url))
             blocksToAppend.push(block.paragraph(summary))
             blocksToAppend.push(block.bookmark(url))
           }

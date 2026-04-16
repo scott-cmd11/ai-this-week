@@ -7,6 +7,7 @@ import { createRequire } from 'module'
 
 interface SectionSummary {
   url: string
+  title: string | null
   summary: string
 }
 
@@ -54,6 +55,17 @@ const block = {
     object: 'block' as const,
     type: 'bookmark' as const,
     bookmark: { url, caption: [] as never[] },
+  }),
+  linkedTitle: (title: string, url: string) => ({
+    object: 'block' as const,
+    type: 'paragraph' as const,
+    paragraph: {
+      rich_text: [{
+        type: 'text' as const,
+        text: { content: title, link: { url } },
+        annotations: { bold: true, italic: false, strikethrough: false, underline: false, code: false, color: 'default' as const },
+      }],
+    },
   }),
 }
 
@@ -104,10 +116,31 @@ function parseUrls(input: string): string[] {
 
 // ─── Article fetching ───────────────────────────────────────────────────────────
 
-async function fetchArticleText(
+interface FetchResult {
+  text: string | null
+  title: string | null
+}
+
+function extractTitle(html: string): string | null {
+  const match = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+  if (!match) return null
+  return match[1]
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+    // Strip common site-name suffixes like " | TechCrunch" or " - The Verge"
+    .replace(/\s*[\|\-–—]\s*[^|\-–—]{2,40}$/, '')
+    .trim() || null
+}
+
+async function fetchArticle(
   url: string,
   onPdf?: () => void
-): Promise<string | null> {
+): Promise<FetchResult> {
   try {
     const res = await fetch(url, {
       headers: {
@@ -128,22 +161,25 @@ async function fetchArticleText(
       onPdf?.()
       const buffer = Buffer.from(await res.arrayBuffer())
       try {
-        // pdf-parse is CommonJS — use createRequire to load it in ESM/TS context
         const require = createRequire(import.meta.url)
         const { PDFParse } = require('pdf-parse')
         const parser = new PDFParse({ data: buffer, verbosity: 0 })
         const result = await parser.getText({ maxPages: 5 })
-        return (result.text as string).replace(/\s{2,}/g, ' ').trim().slice(0, 6000)
+        const text = (result.text as string).replace(/\s{2,}/g, ' ').trim().slice(0, 6000)
+        // Use hostname as title for PDFs since there's no <title> tag
+        return { text, title: new URL(url).hostname.replace('www.', '') }
       } catch {
-        return null
+        return { text: null, title: null }
       }
     }
 
     const html = await res.text()
+    const title = extractTitle(html)
+
     const mainMatch = html.match(/<(?:article|main)[^>]*>([\s\S]*?)<\/(?:article|main)>/i)
     const source = mainMatch ? mainMatch[1] : html
 
-    const stripped = source
+    const text = source
       .replace(/<script[\s\S]*?<\/script>/gi, '')
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<[^>]+>/g, ' ')
@@ -155,10 +191,11 @@ async function fetchArticleText(
       .replace(/&nbsp;/g, ' ')
       .replace(/\s{2,}/g, ' ')
       .trim()
+      .slice(0, 6000)
 
-    return stripped.slice(0, 6000)
+    return { text, title }
   } catch {
-    return null
+    return { text: null, title: null }
   }
 }
 
@@ -175,14 +212,14 @@ async function summariseUrlWithEvents(
 ): Promise<SectionSummary> {
   emit(JSON.stringify({ type: 'fetch', section, url }))
 
-  const articleText = await fetchArticleText(url, () => {
+  const { text: articleText, title } = await fetchArticle(url, () => {
     emit(JSON.stringify({ type: 'pdf', section, url }))
   })
 
   if (!articleText) {
-    const summary = `[Could not fetch article. Add summary manually.] Source: ${url}`
+    const summary = `[Could not fetch article. Add summary manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, summary }
+    return { url, title, summary }
   }
 
   emit(JSON.stringify({ type: 'summarise', section, url }))
@@ -203,11 +240,11 @@ async function summariseUrlWithEvents(
       response.choices[0]?.message?.content?.trim() ??
       '[Summary unavailable — review and edit before publishing.]'
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, summary }
+    return { url, title, summary }
   } catch {
-    const summary = `[AI summary failed. Add manually.] Source: ${url}`
+    const summary = `[AI summary failed. Add manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, summary }
+    return { url, title, summary }
   }
 }
 
@@ -223,7 +260,8 @@ function topStoriesBlocks(summaries: SectionSummary[]) {
   }
 
   const blocks = []
-  for (const { url, summary } of summaries) {
+  for (const { url, title, summary } of summaries) {
+    if (title) blocks.push(block.linkedTitle(title, url))
     blocks.push(block.paragraph(`🔹 ${summary}`))
     blocks.push(block.bookmark(url))
   }
@@ -242,8 +280,12 @@ function singleSectionBlocks(summaries: SectionSummary[], placeholder: string) {
   if (summaries.length === 0) {
     return [block.paragraph(placeholder)]
   }
-  const { url, summary } = summaries[0]
-  return [block.paragraph(summary), block.bookmark(url)]
+  const { url, title, summary } = summaries[0]
+  return [
+    ...(title ? [block.linkedTitle(title, url)] : []),
+    block.paragraph(summary),
+    block.bookmark(url),
+  ]
 }
 
 // ─── Route handler ──────────────────────────────────────────────────────────────
