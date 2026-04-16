@@ -65,7 +65,10 @@ function parseUrls(input: string): string[] {
 
 // ─── Article fetching ───────────────────────────────────────────────────────────
 
-async function fetchArticleText(url: string): Promise<string | null> {
+async function fetchArticleText(
+  url: string,
+  onPdf?: () => void
+): Promise<string | null> {
   try {
     const res = await fetch(url, {
       headers: {
@@ -83,6 +86,7 @@ async function fetchArticleText(url: string): Promise<string | null> {
       url.toLowerCase().endsWith('.pdf')
 
     if (isPdf) {
+      onPdf?.()
       const buffer = Buffer.from(await res.arrayBuffer())
       try {
         // pdf-parse is CommonJS — use createRequire to load it in ESM/TS context
@@ -124,15 +128,25 @@ async function fetchArticleText(url: string): Promise<string | null> {
 const SYSTEM_PROMPT =
   'You write concise, clear 2-3 sentence summaries for an AI newsletter aimed at a professional, non-technical audience. Your tone is informative and neutral — like a quality broadsheet news brief, not hype-driven tech journalism. Rules: 2-3 sentences maximum, no bullet points. Lead with what happened and why it matters. Avoid jargon; if a technical term is essential, briefly explain it. No "In this article..." or "The author argues..." framing. Do not invent facts not present in the article text. End with a period.'
 
-async function summariseUrl(openai: OpenAI, url: string): Promise<SectionSummary> {
-  const articleText = await fetchArticleText(url)
+async function summariseUrlWithEvents(
+  openai: OpenAI,
+  url: string,
+  section: string,
+  emit: (data: string) => void
+): Promise<SectionSummary> {
+  emit(JSON.stringify({ type: 'fetch', section, url }))
+
+  const articleText = await fetchArticleText(url, () => {
+    emit(JSON.stringify({ type: 'pdf', section, url }))
+  })
 
   if (!articleText) {
-    return {
-      url,
-      summary: `[Could not fetch article. Add summary manually.] Source: ${url}`,
-    }
+    const summary = `[Could not fetch article. Add summary manually.] Source: ${url}`
+    emit(JSON.stringify({ type: 'done_url', section, url, summary }))
+    return { url, summary }
   }
+
+  emit(JSON.stringify({ type: 'summarise', section, url }))
 
   try {
     const response = await openai.chat.completions.create({
@@ -149,21 +163,13 @@ async function summariseUrl(openai: OpenAI, url: string): Promise<SectionSummary
     const summary =
       response.choices[0]?.message?.content?.trim() ??
       '[Summary unavailable — review and edit before publishing.]'
+    emit(JSON.stringify({ type: 'done_url', section, url, summary }))
     return { url, summary }
   } catch {
-    return {
-      url,
-      summary: `[AI summary failed. Add manually.] Source: ${url}`,
-    }
+    const summary = `[AI summary failed. Add manually.] Source: ${url}`
+    emit(JSON.stringify({ type: 'done_url', section, url, summary }))
+    return { url, summary }
   }
-}
-
-async function summariseUrls(openai: OpenAI, urls: string[]): Promise<SectionSummary[]> {
-  const results: SectionSummary[] = []
-  for (const url of urls) {
-    results.push(await summariseUrl(openai, url))
-  }
-  return results
 }
 
 // ─── Section heading labels ─────────────────────────────────────────────────────
@@ -179,106 +185,134 @@ const SECTION_HEADINGS: Record<keyof SectionsInput, string> = {
 // ─── Route handler ──────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  try {
-    const adminPassword = process.env.ADMIN_PASSWORD
-    const notionToken = process.env.NOTION_TOKEN
-    const openaiApiKey = process.env.OPENAI_API_KEY
+  const adminPassword = process.env.ADMIN_PASSWORD
+  const notionToken = process.env.NOTION_TOKEN
+  const openaiApiKey = process.env.OPENAI_API_KEY
 
-    if (!adminPassword || !notionToken || !openaiApiKey) {
-      return NextResponse.json(
-        { error: 'Server configuration error: missing environment variables.' },
-        { status: 500 }
-      )
-    }
-
-    let body: RequestBody
-    try {
-      body = await request.json()
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
-    }
-
-    if (!body.password || body.password !== adminPassword) {
-      return NextResponse.json({ error: 'Incorrect password.' }, { status: 401 })
-    }
-
-    if (!body.pageId || typeof body.pageId !== 'string') {
-      return NextResponse.json({ error: 'pageId is required.' }, { status: 400 })
-    }
-
-    const { sections, pageId } = body
-
-    const notion = new Client({ auth: notionToken })
-    const openai = new OpenAI({ apiKey: openaiApiKey })
-
-    // Summarise each non-empty section in parallel
-    const sectionKeys = Object.keys(sections) as Array<keyof SectionsInput>
-    const urlMap: Record<keyof SectionsInput, string[]> = {
-      top: parseUrls(sections.top),
-      bright: parseUrls(sections.bright),
-      tool: parseUrls(sections.tool),
-      learning: parseUrls(sections.learning),
-      deep: parseUrls(sections.deep),
-    }
-
-    const summaryEntries = await Promise.all(
-      sectionKeys.map(async key => {
-        const urls = urlMap[key]
-        if (urls.length === 0) return [key, []] as [keyof SectionsInput, SectionSummary[]]
-        const summaries = await summariseUrls(openai, urls)
-        return [key, summaries] as [keyof SectionsInput, SectionSummary[]]
-      })
+  if (!adminPassword || !notionToken || !openaiApiKey) {
+    return NextResponse.json(
+      { error: 'Server configuration error: missing environment variables.' },
+      { status: 500 }
     )
+  }
 
-    const summaryMap = Object.fromEntries(summaryEntries) as Record<
-      keyof SectionsInput,
-      SectionSummary[]
-    >
+  let body: RequestBody
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
+  }
 
-    // Build blocks to append — only for sections that have URLs
-    const blocksToAppend: ReturnType<typeof block.h2 | typeof block.paragraph | typeof block.bookmark | typeof block.divider>[] = []
+  if (!body.password || body.password !== adminPassword) {
+    return NextResponse.json({ error: 'Incorrect password.' }, { status: 401 })
+  }
 
-    for (const key of sectionKeys) {
-      const summaries = summaryMap[key]
-      if (summaries.length === 0) continue
+  if (!body.pageId || typeof body.pageId !== 'string') {
+    return NextResponse.json({ error: 'pageId is required.' }, { status: 400 })
+  }
 
-      blocksToAppend.push(block.h2(SECTION_HEADINGS[key]))
+  const { sections, pageId } = body
+  const encoder = new TextEncoder()
 
-      for (const { url, summary } of summaries) {
-        blocksToAppend.push(block.paragraph(summary))
-        blocksToAppend.push(block.bookmark(url))
+  const stream = new ReadableStream({
+    async start(controller) {
+      function emit(data: string) {
+        controller.enqueue(encoder.encode(`data: ${data}\n\n`))
       }
 
-      blocksToAppend.push(block.divider())
-    }
+      try {
+        const notion = new Client({ auth: notionToken })
+        const openai = new OpenAI({ apiKey: openaiApiKey })
 
-    if (blocksToAppend.length === 0) {
-      return NextResponse.json(
-        { error: 'No URLs provided in any section.' },
-        { status: 400 }
-      )
-    }
+        const sectionKeys = Object.keys(sections) as Array<keyof SectionsInput>
+        const urlMap: Record<keyof SectionsInput, string[]> = {
+          top: parseUrls(sections.top),
+          bright: parseUrls(sections.bright),
+          tool: parseUrls(sections.tool),
+          learning: parseUrls(sections.learning),
+          deep: parseUrls(sections.deep),
+        }
 
-    // Append in batches of 100 (Notion API limit)
-    const BATCH_SIZE = 100
-    for (let i = 0; i < blocksToAppend.length; i += BATCH_SIZE) {
-      const batch = blocksToAppend.slice(i, i + BATCH_SIZE)
-      await notion.blocks.children.append({
-        block_id: pageId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        children: batch as any,
-      })
-    }
+        const summaryMap: Record<keyof SectionsInput, SectionSummary[]> = {
+          top: [],
+          bright: [],
+          tool: [],
+          learning: [],
+          deep: [],
+        }
 
-    return NextResponse.json(
-      {
-        success: true,
-        appended: summaryMap,
-      },
-      { status: 200 }
-    )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
+        for (const key of sectionKeys) {
+          const urls = urlMap[key]
+          for (const url of urls) {
+            if (request.signal.aborted) { controller.close(); return }
+            const result = await summariseUrlWithEvents(openai, url, SECTION_HEADINGS[key], emit)
+            summaryMap[key].push(result)
+          }
+        }
+
+        if (request.signal.aborted) { controller.close(); return }
+
+        // Build blocks to append — only for sections that have URLs
+        const blocksToAppend: ReturnType<typeof block.h2 | typeof block.paragraph | typeof block.bookmark | typeof block.divider>[] = []
+
+        for (const key of sectionKeys) {
+          const summaries = summaryMap[key]
+          if (summaries.length === 0) continue
+
+          blocksToAppend.push(block.h2(SECTION_HEADINGS[key]))
+
+          for (const { url, summary } of summaries) {
+            blocksToAppend.push(block.paragraph(summary))
+            blocksToAppend.push(block.bookmark(url))
+          }
+
+          blocksToAppend.push(block.divider())
+        }
+
+        if (blocksToAppend.length === 0) {
+          emit(JSON.stringify({ type: 'error', message: 'No URLs provided in any section.' }))
+          controller.close()
+          return
+        }
+
+        emit(JSON.stringify({ type: 'notion', message: 'Appending to Notion page…' }))
+
+        if (request.signal.aborted) { controller.close(); return }
+
+        // Append in batches of 100 (Notion API limit)
+        const BATCH_SIZE = 100
+        for (let i = 0; i < blocksToAppend.length; i += BATCH_SIZE) {
+          const batch = blocksToAppend.slice(i, i + BATCH_SIZE)
+          await notion.blocks.children.append({
+            block_id: pageId,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            children: batch as any,
+          })
+        }
+
+        const notionUrl = `https://notion.so/${pageId.replace(/-/g, '')}`
+
+        emit(
+          JSON.stringify({
+            type: 'complete',
+            notionUrl,
+            summaries: summaryMap,
+          })
+        )
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        emit(JSON.stringify({ type: 'error', message }))
+      } finally {
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  })
 }

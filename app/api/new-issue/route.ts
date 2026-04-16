@@ -23,18 +23,6 @@ interface RequestBody {
   sections: SectionsInput
 }
 
-interface ApiResponse {
-  notionUrl: string
-  issueNumber: number
-  summaries: {
-    top: SectionSummary[]
-    bright: SectionSummary[]
-    tool: SectionSummary[]
-    learning: SectionSummary[]
-    deep: SectionSummary[]
-  }
-}
-
 // ─── Notion block helpers ───────────────────────────────────────────────────────
 
 function richText(content: string) {
@@ -116,7 +104,10 @@ function parseUrls(input: string): string[] {
 
 // ─── Article fetching ───────────────────────────────────────────────────────────
 
-async function fetchArticleText(url: string): Promise<string | null> {
+async function fetchArticleText(
+  url: string,
+  onPdf?: () => void
+): Promise<string | null> {
   try {
     const res = await fetch(url, {
       headers: {
@@ -134,6 +125,7 @@ async function fetchArticleText(url: string): Promise<string | null> {
       url.toLowerCase().endsWith('.pdf')
 
     if (isPdf) {
+      onPdf?.()
       const buffer = Buffer.from(await res.arrayBuffer())
       try {
         // pdf-parse is CommonJS — use createRequire to load it in ESM/TS context
@@ -175,18 +167,25 @@ async function fetchArticleText(url: string): Promise<string | null> {
 const SYSTEM_PROMPT =
   'You write concise, clear 2-3 sentence summaries for an AI newsletter aimed at a professional, non-technical audience. Your tone is informative and neutral — like a quality broadsheet news brief, not hype-driven tech journalism. Rules: 2-3 sentences maximum, no bullet points. Lead with what happened and why it matters. Avoid jargon; if a technical term is essential, briefly explain it. No "In this article..." or "The author argues..." framing. Do not invent facts not present in the article text. End with a period.'
 
-async function summariseUrl(
+async function summariseUrlWithEvents(
   openai: OpenAI,
-  url: string
+  url: string,
+  section: string,
+  emit: (data: string) => void
 ): Promise<SectionSummary> {
-  const articleText = await fetchArticleText(url)
+  emit(JSON.stringify({ type: 'fetch', section, url }))
+
+  const articleText = await fetchArticleText(url, () => {
+    emit(JSON.stringify({ type: 'pdf', section, url }))
+  })
 
   if (!articleText) {
-    return {
-      url,
-      summary: `[Could not fetch article. Add summary manually.] Source: ${url}`,
-    }
+    const summary = `[Could not fetch article. Add summary manually.] Source: ${url}`
+    emit(JSON.stringify({ type: 'done_url', section, url, summary }))
+    return { url, summary }
   }
+
+  emit(JSON.stringify({ type: 'summarise', section, url }))
 
   try {
     const response = await openai.chat.completions.create({
@@ -203,24 +202,13 @@ async function summariseUrl(
     const summary =
       response.choices[0]?.message?.content?.trim() ??
       '[Summary unavailable — review and edit before publishing.]'
+    emit(JSON.stringify({ type: 'done_url', section, url, summary }))
     return { url, summary }
   } catch {
-    return {
-      url,
-      summary: `[AI summary failed. Add manually.] Source: ${url}`,
-    }
+    const summary = `[AI summary failed. Add manually.] Source: ${url}`
+    emit(JSON.stringify({ type: 'done_url', section, url, summary }))
+    return { url, summary }
   }
-}
-
-async function summariseUrls(
-  openai: OpenAI,
-  urls: string[]
-): Promise<SectionSummary[]> {
-  const results: SectionSummary[] = []
-  for (const url of urls) {
-    results.push(await summariseUrl(openai, url))
-  }
-  return results
 }
 
 // ─── Notion block builders ──────────────────────────────────────────────────────
@@ -261,121 +249,161 @@ function singleSectionBlocks(summaries: SectionSummary[], placeholder: string) {
 // ─── Route handler ──────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  try {
-    const adminPassword = process.env.ADMIN_PASSWORD
-    const notionToken = process.env.NOTION_TOKEN
-    const notionDatabaseId = process.env.NOTION_DATABASE_ID
-    const openaiApiKey = process.env.OPENAI_API_KEY
+  const adminPassword = process.env.ADMIN_PASSWORD
+  const notionToken = process.env.NOTION_TOKEN
+  const notionDatabaseId = process.env.NOTION_DATABASE_ID
+  const openaiApiKey = process.env.OPENAI_API_KEY
 
-    if (!adminPassword || !notionToken || !notionDatabaseId || !openaiApiKey) {
-      return NextResponse.json(
-        { error: 'Server configuration error: missing environment variables.' },
-        { status: 500 }
-      )
-    }
-
-    let body: RequestBody
-    try {
-      body = await request.json()
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
-    }
-
-    if (!body.password || body.password !== adminPassword) {
-      return NextResponse.json({ error: 'Incorrect password.' }, { status: 401 })
-    }
-
-    const { sections } = body
-
-    const notion = new Client({ auth: notionToken })
-    const openai = new OpenAI({ apiKey: openaiApiKey })
-
-    const issueDate = nextMonday()
-    const issueNumber = await getNextIssueNumber(notion, notionDatabaseId)
-    const title = `AI This Week — ${formatDate(issueDate)}`
-
-    // Summarise each non-empty section
-    const topUrls = parseUrls(sections.top)
-    const brightUrls = parseUrls(sections.bright)
-    const toolUrls = parseUrls(sections.tool)
-    const learningUrls = parseUrls(sections.learning)
-    const deepUrls = parseUrls(sections.deep)
-
-    const [topSummaries, brightSummaries, toolSummaries, learnSummaries, deepSummaries] =
-      await Promise.all([
-        topUrls.length > 0 ? summariseUrls(openai, topUrls) : Promise.resolve([]),
-        brightUrls.length > 0 ? summariseUrls(openai, brightUrls) : Promise.resolve([]),
-        toolUrls.length > 0 ? summariseUrls(openai, toolUrls) : Promise.resolve([]),
-        learningUrls.length > 0 ? summariseUrls(openai, learningUrls) : Promise.resolve([]),
-        deepUrls.length > 0 ? summariseUrls(openai, deepUrls) : Promise.resolve([]),
-      ])
-
-    // Create Notion page
-    const page = await notion.pages.create({
-      parent: { database_id: notionDatabaseId },
-      properties: {
-        Title: { title: richText(title) },
-        'Issue Date': { date: { start: issueDate } },
-        'Issue Number': { number: issueNumber },
-        Published: { checkbox: false },
-        'AI Assisted': { checkbox: true },
-      },
-      children: [
-        block.paragraph("Hello,\n\nHere's your weekly update on the latest in AI."),
-        block.divider(),
-
-        block.h2('Top Stories'),
-        block.paragraph('⚠️ AI-generated summaries below — review and edit each one before publishing.'),
-        ...topStoriesBlocks(topSummaries),
-        block.divider(),
-
-        block.h2('🌟 Bright Spot of the Week'),
-        ...singleSectionBlocks(
-          brightSummaries,
-          '[AI-generated summary. Review for accuracy and edit before publishing.]'
-        ),
-        block.divider(),
-
-        block.h2('🔧 Tool of the Week'),
-        ...singleSectionBlocks(
-          toolSummaries,
-          '[AI-generated summary. Review for accuracy and edit before publishing.]'
-        ),
-        block.divider(),
-
-        block.h2('💡 Learning'),
-        ...singleSectionBlocks(
-          learnSummaries,
-          '[AI-generated summary. Review for accuracy and edit before publishing.]'
-        ),
-        block.divider(),
-
-        block.h2('📖 Deep Dive'),
-        ...singleSectionBlocks(
-          deepSummaries,
-          '[AI-generated summary. Review for accuracy and edit before publishing.]'
-        ),
-      ],
-    })
-
-    const notionUrl =
-      'url' in page && typeof page.url === 'string' ? page.url : ''
-
-    const result: ApiResponse = {
-      notionUrl,
-      issueNumber,
-      summaries: {
-        top: topSummaries,
-        bright: brightSummaries,
-        tool: toolSummaries,
-        learning: learnSummaries,
-        deep: deepSummaries,
-      },
-    }
-
-    return NextResponse.json(result, { status: 200 })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
+  if (!adminPassword || !notionToken || !notionDatabaseId || !openaiApiKey) {
+    return NextResponse.json(
+      { error: 'Server configuration error: missing environment variables.' },
+      { status: 500 }
+    )
   }
+
+  let body: RequestBody
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
+  }
+
+  if (!body.password || body.password !== adminPassword) {
+    return NextResponse.json({ error: 'Incorrect password.' }, { status: 401 })
+  }
+
+  const { sections } = body
+  const encoder = new TextEncoder()
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      function emit(data: string) {
+        controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+      }
+
+      try {
+        const notion = new Client({ auth: notionToken })
+        const openai = new OpenAI({ apiKey: openaiApiKey })
+
+        const issueDate = nextMonday()
+        const issueNumber = await getNextIssueNumber(notion, notionDatabaseId)
+        const title = `AI This Week — ${formatDate(issueDate)}`
+
+        const topUrls = parseUrls(sections.top)
+        const brightUrls = parseUrls(sections.bright)
+        const toolUrls = parseUrls(sections.tool)
+        const learningUrls = parseUrls(sections.learning)
+        const deepUrls = parseUrls(sections.deep)
+
+        const allSections: Array<{ key: string; label: string; urls: string[] }> = [
+          { key: 'top', label: 'Top Stories', urls: topUrls },
+          { key: 'bright', label: 'Bright Spot', urls: brightUrls },
+          { key: 'tool', label: 'Tool of the Week', urls: toolUrls },
+          { key: 'learning', label: 'Learning', urls: learningUrls },
+          { key: 'deep', label: 'Deep Dive', urls: deepUrls },
+        ]
+
+        const summaryMap: Record<string, SectionSummary[]> = {
+          top: [],
+          bright: [],
+          tool: [],
+          learning: [],
+          deep: [],
+        }
+
+        const totalUrls = allSections.reduce((n, s) => n + s.urls.length, 0)
+
+        if (totalUrls === 0) {
+          emit(JSON.stringify({ type: 'error', message: 'No URLs provided in any section.' }))
+          controller.close()
+          return
+        }
+
+        for (const { key, label, urls } of allSections) {
+          if (request.signal.aborted) { controller.close(); return }
+          for (const url of urls) {
+            if (request.signal.aborted) { controller.close(); return }
+            const result = await summariseUrlWithEvents(openai, url, label, emit)
+            summaryMap[key].push(result)
+          }
+        }
+
+        if (request.signal.aborted) { controller.close(); return }
+
+        emit(JSON.stringify({ type: 'notion', message: 'Creating Notion page…' }))
+
+        const page = await notion.pages.create({
+          parent: { database_id: notionDatabaseId },
+          properties: {
+            Title: { title: richText(title) },
+            'Issue Date': { date: { start: issueDate } },
+            'Issue Number': { number: issueNumber },
+            Published: { checkbox: false },
+            'AI Assisted': { checkbox: true },
+          },
+          children: [
+            block.paragraph("Hello,\n\nHere's your weekly update on the latest in AI."),
+            block.divider(),
+
+            block.h2('Top Stories'),
+            block.paragraph('⚠️ AI-generated summaries below — review and edit each one before publishing.'),
+            ...topStoriesBlocks(summaryMap.top),
+            block.divider(),
+
+            block.h2('🌟 Bright Spot of the Week'),
+            ...singleSectionBlocks(
+              summaryMap.bright,
+              '[AI-generated summary. Review for accuracy and edit before publishing.]'
+            ),
+            block.divider(),
+
+            block.h2('🔧 Tool of the Week'),
+            ...singleSectionBlocks(
+              summaryMap.tool,
+              '[AI-generated summary. Review for accuracy and edit before publishing.]'
+            ),
+            block.divider(),
+
+            block.h2('💡 Learning'),
+            ...singleSectionBlocks(
+              summaryMap.learning,
+              '[AI-generated summary. Review for accuracy and edit before publishing.]'
+            ),
+            block.divider(),
+
+            block.h2('📖 Deep Dive'),
+            ...singleSectionBlocks(
+              summaryMap.deep,
+              '[AI-generated summary. Review for accuracy and edit before publishing.]'
+            ),
+          ],
+        })
+
+        const notionUrl =
+          'url' in page && typeof page.url === 'string' ? page.url : ''
+
+        emit(
+          JSON.stringify({
+            type: 'complete',
+            notionUrl,
+            issueNumber,
+            summaries: summaryMap,
+          })
+        )
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        emit(JSON.stringify({ type: 'error', message }))
+      } finally {
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  })
 }

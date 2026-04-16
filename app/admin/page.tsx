@@ -9,27 +9,14 @@ interface SectionSummary {
   summary: string
 }
 
-interface ApiSuccess {
-  notionUrl: string
-  issueNumber: number
-  summaries: {
-    top: SectionSummary[]
-    bright: SectionSummary[]
-    tool: SectionSummary[]
-    learning: SectionSummary[]
-    deep: SectionSummary[]
-  }
-}
-
-interface ApiError {
-  error: string
-}
-
-type ApiResult = ApiSuccess | ApiError
-
-function isApiError(result: ApiResult): result is ApiError {
-  return 'error' in result
-}
+type ProgressEvent =
+  | { type: 'fetch';      section: string; url: string }
+  | { type: 'pdf';        section: string; url: string }
+  | { type: 'summarise';  section: string; url: string }
+  | { type: 'done_url';   section: string; url: string; summary: string }
+  | { type: 'notion';     message: string }
+  | { type: 'complete';   notionUrl: string; issueNumber?: number; summaries: Record<string, Array<{ url: string; summary: string }>> }
+  | { type: 'error';      message: string }
 
 interface DraftIssue {
   id: string
@@ -38,24 +25,20 @@ interface DraftIssue {
   issueNumber: number
 }
 
-interface UpdateApiSuccess {
-  success: true
-  appended: {
-    top: SectionSummary[]
-    bright: SectionSummary[]
-    tool: SectionSummary[]
-    learning: SectionSummary[]
-    deep: SectionSummary[]
-  }
-}
-
-type UpdateApiResult = UpdateApiSuccess | ApiError
-
-function isUpdateApiError(result: UpdateApiResult): result is ApiError {
-  return 'error' in result
-}
-
 type Mode = 'create' | 'update'
+
+type SectionKey = 'top' | 'bright' | 'tool' | 'learning' | 'deep'
+
+interface CompletedCreate {
+  notionUrl: string
+  issueNumber: number
+  summaries: Record<SectionKey, SectionSummary[]>
+}
+
+interface CompletedUpdate {
+  notionUrl: string
+  summaries: Record<SectionKey, SectionSummary[]>
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -81,8 +64,20 @@ function formatIssueDateLabel(iso: string): string {
   })
 }
 
-function notionUrl(pageId: string): string {
-  return `https://notion.so/${pageId.replace(/-/g, '')}`
+function urlHostname(url: string): string {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return url
+  }
+}
+
+function countUrls(text: string): number {
+  if (!text.trim()) return 0
+  return text
+    .split(/[\s\n]+/)
+    .map(u => u.trim())
+    .filter(u => u.startsWith('http')).length
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────────
@@ -93,27 +88,54 @@ function SectionTextarea({
   onChange,
   disabled,
   placeholder,
+  expanded,
+  onToggle,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   disabled: boolean
   placeholder?: string
+  expanded: boolean
+  onToggle: () => void
 }) {
+  const urlCount = countUrls(value)
+
   return (
     <div className="flex flex-col gap-1">
-      <label className="font-bold text-[17px] text-govuk-black">{label}</label>
-      <textarea
-        rows={4}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        disabled={disabled}
-        placeholder={placeholder ?? 'Paste one URL per line'}
-        className="border-2 border-govuk-black px-3 py-2 text-[17px] text-govuk-black font-mono resize-y w-full focus-visible:outline-none focus-visible:ring-0 focus-visible:border-govuk-blue disabled:bg-govuk-light-grey disabled:cursor-not-allowed"
-      />
-      <p className="text-[15px] text-govuk-dark-grey">
-        One URL per line. Supports articles and PDFs.
-      </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-[17px] text-govuk-black">{label}</span>
+          {urlCount > 0 && (
+            <span className="text-[12px] font-bold text-white bg-govuk-blue px-1.5 py-0.5 rounded-sm">
+              {urlCount} URL{urlCount !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          disabled={disabled}
+          className="text-[14px] text-govuk-blue hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {expanded ? '− Collapse' : '＋ Add URL'}
+        </button>
+      </div>
+      {expanded && (
+        <>
+          <textarea
+            rows={4}
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            disabled={disabled}
+            placeholder={placeholder ?? 'Paste one URL per line'}
+            className="border-2 border-govuk-black px-3 py-2 text-[17px] text-govuk-black font-mono resize-y w-full focus-visible:outline-none focus-visible:ring-0 focus-visible:border-govuk-blue disabled:bg-govuk-light-grey disabled:cursor-not-allowed"
+          />
+          <p className="text-[15px] text-govuk-dark-grey">
+            One URL per line. Supports articles and PDFs.
+          </p>
+        </>
+      )}
     </div>
   )
 }
@@ -146,8 +168,6 @@ function SummaryPreview({
   )
 }
 
-// ─── Mode toggle ─────────────────────────────────────────────────────────────────
-
 function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
   return (
     <div className="flex border-2 border-govuk-black self-start" role="group" aria-label="Admin mode">
@@ -177,6 +197,40 @@ function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => voi
   )
 }
 
+function StatusLog({ items }: { items: string[] }) {
+  const logRef = useRef<HTMLUListElement>(null)
+
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight
+    }
+  }, [items])
+
+  if (items.length === 0) return null
+
+  return (
+    <ul
+      ref={logRef}
+      className="border border-govuk-mid-grey bg-govuk-light-grey max-h-48 overflow-y-auto font-mono text-[13px] text-govuk-black p-2 flex flex-col gap-0.5"
+    >
+      {items.map((item, i) => (
+        <li key={i}>{item}</li>
+      ))}
+    </ul>
+  )
+}
+
+// ─── Default section states ──────────────────────────────────────────────────────
+
+const EMPTY_SECTIONS = { top: '', bright: '', tool: '', learning: '', deep: '' }
+const ALL_COLLAPSED: Record<SectionKey, boolean> = {
+  top: false,
+  bright: false,
+  tool: false,
+  learning: false,
+  deep: false,
+}
+
 // ─── Main component ─────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -190,34 +244,44 @@ export default function AdminPage() {
   const [mode, setMode] = useState<Mode>('create')
 
   // Create form state
-  const [sections, setSections] = useState({
-    top: '',
-    bright: '',
-    tool: '',
-    learning: '',
-    deep: '',
-  })
+  const [sections, setSections] = useState({ ...EMPTY_SECTIONS })
+  const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({ ...ALL_COLLAPSED })
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<ApiSuccess | null>(null)
+  const [createLog, setCreateLog] = useState<string[]>([])
+  const [result, setResult] = useState<CompletedCreate | null>(null)
   const [apiError, setApiError] = useState<string | null>(null)
+  const [createValidationError, setCreateValidationError] = useState<string | null>(null)
 
   // Update form state
   const [draftIssues, setDraftIssues] = useState<DraftIssue[]>([])
   const [draftLoading, setDraftLoading] = useState(false)
   const [draftError, setDraftError] = useState<string | null>(null)
   const [selectedIssueId, setSelectedIssueId] = useState('')
-  const [updateSections, setUpdateSections] = useState({
-    top: '',
-    bright: '',
-    tool: '',
-    learning: '',
-    deep: '',
-  })
+  const [updateSections, setUpdateSections] = useState({ ...EMPTY_SECTIONS })
+  const [updateExpandedSections, setUpdateExpandedSections] = useState<Record<SectionKey, boolean>>({ ...ALL_COLLAPSED })
   const [updateLoading, setUpdateLoading] = useState(false)
-  const [updateResult, setUpdateResult] = useState<UpdateApiSuccess | null>(null)
+  const [updateLog, setUpdateLog] = useState<string[]>([])
+  const [updateResult, setUpdateResult] = useState<CompletedUpdate | null>(null)
   const [updateError, setUpdateError] = useState<string | null>(null)
+  const [updateValidationError, setUpdateValidationError] = useState<string | null>(null)
 
   const passwordRef = useRef<HTMLInputElement>(null)
+
+  // ── Document title ─────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!authed) {
+      document.title = 'Admin sign in — AI This Week'
+    } else if (mode === 'create' && result) {
+      document.title = 'Issue created — Admin — AI This Week'
+    } else if (mode === 'update' && updateResult) {
+      document.title = 'Issue updated — Admin — AI This Week'
+    } else if (mode === 'create') {
+      document.title = 'Create Issue — Admin — AI This Week'
+    } else {
+      document.title = 'Update Issue — Admin — AI This Week'
+    }
+  }, [authed, mode, result, updateResult])
 
   // Check sessionStorage on mount
   useEffect(() => {
@@ -254,6 +318,9 @@ export default function AdminPage() {
       }
 
       // Any response other than 401 means the password was accepted
+      // Drain the stream so we don't leak it
+      try { await res.body?.cancel() } catch { /* ignore */ }
+
       sessionStorage.setItem('adminAuth', password)
       setAuthed(true)
     } catch {
@@ -263,11 +330,20 @@ export default function AdminPage() {
     }
   }
 
+  // ── Sign out ──────────────────────────────────────────────────────────────────
+
+  function handleSignOut() {
+    sessionStorage.removeItem('adminAuth')
+    setPassword('')
+    setAuthed(false)
+    setAuthError('')
+  }
+
   // ── Mode switching ────────────────────────────────────────────────────────────
 
   function handleModeChange(m: Mode) {
     setMode(m)
-    if (m === 'update' && draftIssues.length === 0 && !draftLoading) {
+    if (m === 'update') {
       loadDraftIssues()
     }
   }
@@ -288,9 +364,10 @@ export default function AdminPage() {
       if ('error' in data) {
         setDraftError(data.error as string)
       } else {
-        setDraftIssues(data.issues as DraftIssue[])
-        if ((data.issues as DraftIssue[]).length > 0) {
-          setSelectedIssueId((data.issues as DraftIssue[])[0].id)
+        const issues = data.issues as DraftIssue[]
+        setDraftIssues(issues)
+        if (issues.length > 0) {
+          setSelectedIssueId(prev => prev || issues[0].id)
         }
       }
     } catch {
@@ -300,13 +377,50 @@ export default function AdminPage() {
     }
   }
 
+  // ── Stream reader helper ──────────────────────────────────────────────────────
+
+  async function readStream(
+    res: Response,
+    onEvent: (event: ProgressEvent) => void
+  ): Promise<void> {
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        try {
+          const event = JSON.parse(line.slice(6)) as ProgressEvent
+          onEvent(event)
+        } catch {
+          /* skip malformed */
+        }
+      }
+    }
+  }
+
   // ── Create form handler ───────────────────────────────────────────────────────
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault()
+    setCreateValidationError(null)
+
+    const hasUrls = Object.values(sections).some(v => v.trim().length > 0)
+    if (!hasUrls) {
+      setCreateValidationError('Please paste at least one URL before generating.')
+      return
+    }
+
     setLoading(true)
     setApiError(null)
     setResult(null)
+    setCreateLog([])
 
     try {
       const res = await fetch('/api/new-issue', {
@@ -315,20 +429,43 @@ export default function AdminPage() {
         body: JSON.stringify({ password, sections }),
       })
 
-      const data: ApiResult = await res.json()
-
-      if (isApiError(data)) {
-        if (res.status === 401) {
-          sessionStorage.removeItem('adminAuth')
-          setAuthed(false)
-          setPassword('')
-          setAuthError('Session expired. Please sign in again.')
-          return
-        }
-        setApiError(data.error)
-      } else {
-        setResult(data)
+      if (res.status === 401) {
+        sessionStorage.removeItem('adminAuth')
+        setAuthed(false)
+        setPassword('')
+        setAuthError('Session expired. Please sign in again.')
+        return
       }
+
+      await readStream(res, (event) => {
+        switch (event.type) {
+          case 'fetch':
+            setCreateLog(prev => [...prev, `⏳ Fetching ${urlHostname(event.url)}…`])
+            break
+          case 'pdf':
+            setCreateLog(prev => [...prev, `📄 Extracting PDF text…`])
+            break
+          case 'summarise':
+            setCreateLog(prev => [...prev, `🤖 Summarising…`])
+            break
+          case 'done_url':
+            setCreateLog(prev => [...prev, `✓ Done — ${event.summary.slice(0, 80)}…`])
+            break
+          case 'notion':
+            setCreateLog(prev => [...prev, `✍️ Creating Notion page…`])
+            break
+          case 'complete':
+            setResult({
+              notionUrl: event.notionUrl,
+              issueNumber: event.issueNumber ?? 0,
+              summaries: event.summaries as Record<SectionKey, SectionSummary[]>,
+            })
+            break
+          case 'error':
+            setApiError(event.message)
+            break
+        }
+      })
     } catch {
       setApiError('Network error. Check your connection and try again.')
     } finally {
@@ -340,9 +477,18 @@ export default function AdminPage() {
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault()
+    setUpdateValidationError(null)
+
+    const hasUrls = Object.values(updateSections).some(v => v.trim().length > 0)
+    if (!hasUrls) {
+      setUpdateValidationError('Please paste at least one URL before generating.')
+      return
+    }
+
     setUpdateLoading(true)
     setUpdateError(null)
     setUpdateResult(null)
+    setUpdateLog([])
 
     try {
       const res = await fetch('/api/update-issue', {
@@ -351,20 +497,42 @@ export default function AdminPage() {
         body: JSON.stringify({ password, pageId: selectedIssueId, sections: updateSections }),
       })
 
-      const data: UpdateApiResult = await res.json()
-
-      if (isUpdateApiError(data)) {
-        if (res.status === 401) {
-          sessionStorage.removeItem('adminAuth')
-          setAuthed(false)
-          setPassword('')
-          setAuthError('Session expired. Please sign in again.')
-          return
-        }
-        setUpdateError(data.error)
-      } else {
-        setUpdateResult(data)
+      if (res.status === 401) {
+        sessionStorage.removeItem('adminAuth')
+        setAuthed(false)
+        setPassword('')
+        setAuthError('Session expired. Please sign in again.')
+        return
       }
+
+      await readStream(res, (event) => {
+        switch (event.type) {
+          case 'fetch':
+            setUpdateLog(prev => [...prev, `⏳ Fetching ${urlHostname(event.url)}…`])
+            break
+          case 'pdf':
+            setUpdateLog(prev => [...prev, `📄 Extracting PDF text…`])
+            break
+          case 'summarise':
+            setUpdateLog(prev => [...prev, `🤖 Summarising…`])
+            break
+          case 'done_url':
+            setUpdateLog(prev => [...prev, `✓ Done — ${event.summary.slice(0, 80)}…`])
+            break
+          case 'notion':
+            setUpdateLog(prev => [...prev, `✍️ Appending to Notion page…`])
+            break
+          case 'complete':
+            setUpdateResult({
+              notionUrl: event.notionUrl,
+              summaries: event.summaries as Record<SectionKey, SectionSummary[]>,
+            })
+            break
+          case 'error':
+            setUpdateError(event.message)
+            break
+        }
+      })
     } catch {
       setUpdateError('Network error. Check your connection and try again.')
     } finally {
@@ -375,15 +543,32 @@ export default function AdminPage() {
   // ── Reset handlers ────────────────────────────────────────────────────────────
 
   function handleReset() {
-    setSections({ top: '', bright: '', tool: '', learning: '', deep: '' })
+    setSections({ ...EMPTY_SECTIONS })
+    setExpandedSections({ ...ALL_COLLAPSED })
     setResult(null)
     setApiError(null)
+    setCreateLog([])
+    setCreateValidationError(null)
   }
 
   function handleUpdateAddMore() {
-    setUpdateSections({ top: '', bright: '', tool: '', learning: '', deep: '' })
+    setUpdateSections({ ...EMPTY_SECTIONS })
+    setUpdateExpandedSections({ ...ALL_COLLAPSED })
     setUpdateResult(null)
     setUpdateError(null)
+    setUpdateLog([])
+    setUpdateValidationError(null)
+    loadDraftIssues()
+  }
+
+  // ── Section toggle helpers ────────────────────────────────────────────────────
+
+  function toggleSection(key: SectionKey) {
+    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  function toggleUpdateSection(key: SectionKey) {
+    setUpdateExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
   // ── Render: sign-in ───────────────────────────────────────────────────────────
@@ -429,14 +614,20 @@ export default function AdminPage() {
 
   if (mode === 'create' && result) {
     const hasSummaries =
-      result.summaries.top.length > 0 ||
-      result.summaries.bright.length > 0 ||
-      result.summaries.tool.length > 0 ||
-      result.summaries.learning.length > 0 ||
-      result.summaries.deep.length > 0
+      (result.summaries.top?.length ?? 0) > 0 ||
+      (result.summaries.bright?.length ?? 0) > 0 ||
+      (result.summaries.tool?.length ?? 0) > 0 ||
+      (result.summaries.learning?.length ?? 0) > 0 ||
+      (result.summaries.deep?.length ?? 0) > 0
 
     return (
       <div className="max-w-2xl flex flex-col gap-6">
+        <div className="flex justify-end">
+          <button onClick={handleSignOut} className="text-[14px] text-govuk-dark-grey underline hover:no-underline">
+            Sign out
+          </button>
+        </div>
+
         <div className="bg-green-50 border-l-4 border-green-700 px-5 py-4">
           <p className="font-bold text-[19px] text-green-900">
             Issue #{result.issueNumber} created successfully
@@ -457,11 +648,11 @@ export default function AdminPage() {
             <h2 className="text-[22px] font-bold text-govuk-black border-b-2 border-govuk-black pb-2">
               Generated summaries
             </h2>
-            <SummaryPreview label="Top Stories" summaries={result.summaries.top} />
-            <SummaryPreview label="Bright Spot" summaries={result.summaries.bright} />
-            <SummaryPreview label="Tool of the Week" summaries={result.summaries.tool} />
-            <SummaryPreview label="Learning" summaries={result.summaries.learning} />
-            <SummaryPreview label="Deep Dive" summaries={result.summaries.deep} />
+            <SummaryPreview label="Top Stories" summaries={result.summaries.top ?? []} />
+            <SummaryPreview label="Bright Spot" summaries={result.summaries.bright ?? []} />
+            <SummaryPreview label="Tool of the Week" summaries={result.summaries.tool ?? []} />
+            <SummaryPreview label="Learning" summaries={result.summaries.learning ?? []} />
+            <SummaryPreview label="Deep Dive" summaries={result.summaries.deep ?? []} />
           </div>
         )}
 
@@ -480,14 +671,20 @@ export default function AdminPage() {
   if (mode === 'update' && updateResult) {
     const selectedIssue = draftIssues.find(i => i.id === selectedIssueId)
     const hasSummaries =
-      updateResult.appended.top.length > 0 ||
-      updateResult.appended.bright.length > 0 ||
-      updateResult.appended.tool.length > 0 ||
-      updateResult.appended.learning.length > 0 ||
-      updateResult.appended.deep.length > 0
+      (updateResult.summaries.top?.length ?? 0) > 0 ||
+      (updateResult.summaries.bright?.length ?? 0) > 0 ||
+      (updateResult.summaries.tool?.length ?? 0) > 0 ||
+      (updateResult.summaries.learning?.length ?? 0) > 0 ||
+      (updateResult.summaries.deep?.length ?? 0) > 0
 
     return (
       <div className="max-w-2xl flex flex-col gap-6">
+        <div className="flex justify-end">
+          <button onClick={handleSignOut} className="text-[14px] text-govuk-dark-grey underline hover:no-underline">
+            Sign out
+          </button>
+        </div>
+
         <div className="bg-green-50 border-l-4 border-green-700 px-5 py-4">
           <p className="font-bold text-[19px] text-green-900">
             Added to Issue #{selectedIssue?.issueNumber ?? '—'}
@@ -495,7 +692,7 @@ export default function AdminPage() {
         </div>
 
         <a
-          href={notionUrl(selectedIssueId)}
+          href={updateResult.notionUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 bg-govuk-black text-white font-bold text-[17px] px-5 py-3 self-start hover:bg-govuk-dark-grey no-underline"
@@ -508,11 +705,11 @@ export default function AdminPage() {
             <h2 className="text-[22px] font-bold text-govuk-black border-b-2 border-govuk-black pb-2">
               Appended summaries
             </h2>
-            <SummaryPreview label="Top Stories" summaries={updateResult.appended.top} />
-            <SummaryPreview label="Bright Spot" summaries={updateResult.appended.bright} />
-            <SummaryPreview label="Tool of the Week" summaries={updateResult.appended.tool} />
-            <SummaryPreview label="Learning" summaries={updateResult.appended.learning} />
-            <SummaryPreview label="Deep Dive" summaries={updateResult.appended.deep} />
+            <SummaryPreview label="Top Stories" summaries={updateResult.summaries.top ?? []} />
+            <SummaryPreview label="Bright Spot" summaries={updateResult.summaries.bright ?? []} />
+            <SummaryPreview label="Tool of the Week" summaries={updateResult.summaries.tool ?? []} />
+            <SummaryPreview label="Learning" summaries={updateResult.summaries.learning ?? []} />
+            <SummaryPreview label="Deep Dive" summaries={updateResult.summaries.deep ?? []} />
           </div>
         )}
 
@@ -531,7 +728,15 @@ export default function AdminPage() {
   return (
     <div className="max-w-2xl flex flex-col gap-8">
       <div>
-        <h1 className="text-[32px] font-bold text-govuk-black mb-4">Admin</h1>
+        <div className="flex items-start justify-between mb-4">
+          <h1 className="text-[32px] font-bold text-govuk-black">Admin</h1>
+          <button
+            onClick={handleSignOut}
+            className="text-[14px] text-govuk-dark-grey underline hover:no-underline mt-2"
+          >
+            Sign out
+          </button>
+        </div>
         <ModeToggle mode={mode} onChange={handleModeChange} />
       </div>
 
@@ -554,33 +759,49 @@ export default function AdminPage() {
             <SectionTextarea
               label="Top Stories"
               value={sections.top}
-              onChange={v => setSections(s => ({ ...s, top: v }))}
+              onChange={v => { setSections(s => ({ ...s, top: v })); setCreateValidationError(null) }}
               disabled={loading}
+              expanded={expandedSections.top}
+              onToggle={() => toggleSection('top')}
             />
             <SectionTextarea
               label="Bright Spot"
               value={sections.bright}
-              onChange={v => setSections(s => ({ ...s, bright: v }))}
+              onChange={v => { setSections(s => ({ ...s, bright: v })); setCreateValidationError(null) }}
               disabled={loading}
+              expanded={expandedSections.bright}
+              onToggle={() => toggleSection('bright')}
             />
             <SectionTextarea
               label="Tool of the Week"
               value={sections.tool}
-              onChange={v => setSections(s => ({ ...s, tool: v }))}
+              onChange={v => { setSections(s => ({ ...s, tool: v })); setCreateValidationError(null) }}
               disabled={loading}
+              expanded={expandedSections.tool}
+              onToggle={() => toggleSection('tool')}
             />
             <SectionTextarea
               label="Learning"
               value={sections.learning}
-              onChange={v => setSections(s => ({ ...s, learning: v }))}
+              onChange={v => { setSections(s => ({ ...s, learning: v })); setCreateValidationError(null) }}
               disabled={loading}
+              expanded={expandedSections.learning}
+              onToggle={() => toggleSection('learning')}
             />
             <SectionTextarea
               label="Deep Dive"
               value={sections.deep}
-              onChange={v => setSections(s => ({ ...s, deep: v }))}
+              onChange={v => { setSections(s => ({ ...s, deep: v })); setCreateValidationError(null) }}
               disabled={loading}
+              expanded={expandedSections.deep}
+              onToggle={() => toggleSection('deep')}
             />
+
+            {createValidationError && (
+              <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
+                <p className="text-[15px] text-red-800">{createValidationError}</p>
+              </div>
+            )}
 
             {apiError && (
               <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
@@ -588,6 +809,8 @@ export default function AdminPage() {
                 <p className="text-[15px] text-red-800">{apiError}</p>
               </div>
             )}
+
+            <StatusLog items={createLog} />
 
             <div className="flex items-center gap-4">
               <button
@@ -597,11 +820,6 @@ export default function AdminPage() {
               >
                 {loading ? 'Generating…' : 'Generate Issue'}
               </button>
-              {loading && (
-                <p className="text-[15px] text-govuk-dark-grey animate-pulse">
-                  Generating summaries and creating Notion page…
-                </p>
-              )}
             </div>
           </form>
         </>
@@ -619,9 +837,20 @@ export default function AdminPage() {
           <form onSubmit={handleUpdate} noValidate className="flex flex-col gap-6">
             {/* Draft issue selector */}
             <div className="flex flex-col gap-1">
-              <label htmlFor="draft-issue" className="font-bold text-[17px] text-govuk-black">
-                Select draft issue
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="draft-issue" className="font-bold text-[17px] text-govuk-black">
+                  Select draft issue
+                </label>
+                {!draftLoading && (
+                  <button
+                    type="button"
+                    onClick={loadDraftIssues}
+                    className="text-[14px] text-govuk-blue hover:underline"
+                  >
+                    ↻ Refresh
+                  </button>
+                )}
+              </div>
               {draftLoading ? (
                 <p className="text-[15px] text-govuk-dark-grey animate-pulse">
                   Loading draft issues…
@@ -662,38 +891,54 @@ export default function AdminPage() {
                 <SectionTextarea
                   label="Top Stories"
                   value={updateSections.top}
-                  onChange={v => setUpdateSections(s => ({ ...s, top: v }))}
+                  onChange={v => { setUpdateSections(s => ({ ...s, top: v })); setUpdateValidationError(null) }}
                   disabled={updateLoading}
                   placeholder="Paste one URL per line — will be appended to existing content"
+                  expanded={updateExpandedSections.top}
+                  onToggle={() => toggleUpdateSection('top')}
                 />
                 <SectionTextarea
                   label="Bright Spot"
                   value={updateSections.bright}
-                  onChange={v => setUpdateSections(s => ({ ...s, bright: v }))}
+                  onChange={v => { setUpdateSections(s => ({ ...s, bright: v })); setUpdateValidationError(null) }}
                   disabled={updateLoading}
                   placeholder="Paste one URL per line — will be appended to existing content"
+                  expanded={updateExpandedSections.bright}
+                  onToggle={() => toggleUpdateSection('bright')}
                 />
                 <SectionTextarea
                   label="Tool of the Week"
                   value={updateSections.tool}
-                  onChange={v => setUpdateSections(s => ({ ...s, tool: v }))}
+                  onChange={v => { setUpdateSections(s => ({ ...s, tool: v })); setUpdateValidationError(null) }}
                   disabled={updateLoading}
                   placeholder="Paste one URL per line — will be appended to existing content"
+                  expanded={updateExpandedSections.tool}
+                  onToggle={() => toggleUpdateSection('tool')}
                 />
                 <SectionTextarea
                   label="Learning"
                   value={updateSections.learning}
-                  onChange={v => setUpdateSections(s => ({ ...s, learning: v }))}
+                  onChange={v => { setUpdateSections(s => ({ ...s, learning: v })); setUpdateValidationError(null) }}
                   disabled={updateLoading}
                   placeholder="Paste one URL per line — will be appended to existing content"
+                  expanded={updateExpandedSections.learning}
+                  onToggle={() => toggleUpdateSection('learning')}
                 />
                 <SectionTextarea
                   label="Deep Dive"
                   value={updateSections.deep}
-                  onChange={v => setUpdateSections(s => ({ ...s, deep: v }))}
+                  onChange={v => { setUpdateSections(s => ({ ...s, deep: v })); setUpdateValidationError(null) }}
                   disabled={updateLoading}
                   placeholder="Paste one URL per line — will be appended to existing content"
+                  expanded={updateExpandedSections.deep}
+                  onToggle={() => toggleUpdateSection('deep')}
                 />
+
+                {updateValidationError && (
+                  <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
+                    <p className="text-[15px] text-red-800">{updateValidationError}</p>
+                  </div>
+                )}
 
                 {updateError && (
                   <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
@@ -701,6 +946,8 @@ export default function AdminPage() {
                     <p className="text-[15px] text-red-800">{updateError}</p>
                   </div>
                 )}
+
+                <StatusLog items={updateLog} />
 
                 <div className="flex items-center gap-4">
                   <button
@@ -710,11 +957,6 @@ export default function AdminPage() {
                   >
                     {updateLoading ? 'Adding…' : 'Add to Issue'}
                   </button>
-                  {updateLoading && (
-                    <p className="text-[15px] text-govuk-dark-grey animate-pulse">
-                      Generating summaries and appending to Notion…
-                    </p>
-                  )}
                 </div>
               </>
             )}
