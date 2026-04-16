@@ -8,6 +8,7 @@ import { createRequire } from 'module'
 interface SectionSummary {
   url: string
   title: string | null
+  publishedDate: string | null
   summary: string
 }
 
@@ -80,6 +81,47 @@ function parseUrls(input: string): string[] {
 interface FetchResult {
   text: string | null
   title: string | null
+  publishedDate: string | null
+}
+
+function extractPublishedDate(html: string): string | null {
+  const patterns = [
+    /<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']article:published_time["']/i,
+    /<meta[^>]+itemprop=["']datePublished["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+itemprop=["']datePublished["']/i,
+    /<meta[^>]+name=["']date["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']date["']/i,
+  ]
+  for (const pattern of patterns) {
+    const match = html.match(pattern)
+    if (match?.[1]) {
+      const date = new Date(match[1])
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      }
+    }
+  }
+  const jsonLdMatch = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)
+  if (jsonLdMatch) {
+    for (const b of jsonLdMatch) {
+      try {
+        const content = b.replace(/<script[^>]*>|<\/script>/gi, '')
+        const data = JSON.parse(content)
+        const entries = Array.isArray(data) ? data : [data]
+        for (const entry of entries) {
+          const raw = entry?.datePublished ?? entry?.dateCreated
+          if (raw) {
+            const date = new Date(raw)
+            if (!isNaN(date.getTime())) {
+              return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+            }
+          }
+        }
+      } catch { /* skip */ }
+    }
+  }
+  return null
 }
 
 function extractTitle(html: string): string | null {
@@ -126,14 +168,15 @@ async function fetchArticle(
         const parser = new PDFParse({ data: buffer, verbosity: 0 })
         const result = await parser.getText({ maxPages: 5 })
         const text = (result.text as string).replace(/\s{2,}/g, ' ').trim().slice(0, 6000)
-        return { text, title: new URL(url).hostname.replace('www.', '') }
+        return { text, title: new URL(url).hostname.replace('www.', ''), publishedDate: null }
       } catch {
-        return { text: null, title: null }
+        return { text: null, title: null, publishedDate: null }
       }
     }
 
     const html = await res.text()
     const title = extractTitle(html)
+    const publishedDate = extractPublishedDate(html)
 
     const mainMatch = html.match(/<(?:article|main)[^>]*>([\s\S]*?)<\/(?:article|main)>/i)
     const source = mainMatch ? mainMatch[1] : html
@@ -152,9 +195,9 @@ async function fetchArticle(
       .trim()
       .slice(0, 6000)
 
-    return { text, title }
+    return { text, title, publishedDate }
   } catch {
-    return { text: null, title: null }
+    return { text: null, title: null, publishedDate: null }
   }
 }
 
@@ -171,14 +214,14 @@ async function summariseUrlWithEvents(
 ): Promise<SectionSummary> {
   emit(JSON.stringify({ type: 'fetch', section, url }))
 
-  const { text: articleText, title } = await fetchArticle(url, () => {
+  const { text: articleText, title, publishedDate } = await fetchArticle(url, () => {
     emit(JSON.stringify({ type: 'pdf', section, url }))
   })
 
   if (!articleText) {
     const summary = `[Could not fetch article. Add summary manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, summary }
+    return { url, title, publishedDate, summary }
   }
 
   emit(JSON.stringify({ type: 'summarise', section, url }))
@@ -199,11 +242,11 @@ async function summariseUrlWithEvents(
       response.choices[0]?.message?.content?.trim() ??
       '[Summary unavailable — review and edit before publishing.]'
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, summary }
+    return { url, title, publishedDate, summary }
   } catch {
     const summary = `[AI summary failed. Add manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, summary }
+    return { url, title, publishedDate, summary }
   }
 }
 
@@ -296,8 +339,9 @@ export async function POST(request: NextRequest) {
 
           blocksToAppend.push(block.h2(SECTION_HEADINGS[key]))
 
-          for (const { url, title, summary } of summaries) {
+          for (const { url, title, publishedDate, summary } of summaries) {
             if (title) blocksToAppend.push(block.linkedTitle(title, url))
+            if (publishedDate) blocksToAppend.push(block.paragraph(`Published: ${publishedDate}`))
             blocksToAppend.push(block.paragraph(summary))
             blocksToAppend.push(block.bookmark(url))
           }

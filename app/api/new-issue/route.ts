@@ -8,6 +8,7 @@ import { createRequire } from 'module'
 interface SectionSummary {
   url: string
   title: string | null
+  publishedDate: string | null
   summary: string
 }
 
@@ -119,6 +120,56 @@ function parseUrls(input: string): string[] {
 interface FetchResult {
   text: string | null
   title: string | null
+  publishedDate: string | null  // formatted as "15 Apr 2026", or null if not found
+}
+
+function extractPublishedDate(html: string): string | null {
+  // Try meta tags in order of reliability
+  const patterns = [
+    /<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']article:published_time["']/i,
+    /<meta[^>]+itemprop=["']datePublished["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+itemprop=["']datePublished["']/i,
+    /<meta[^>]+name=["']date["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']date["']/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern)
+    if (match?.[1]) {
+      const date = new Date(match[1])
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-GB', {
+          day: 'numeric', month: 'short', year: 'numeric',
+        })
+      }
+    }
+  }
+
+  // Try JSON-LD structured data
+  const jsonLdMatch = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)
+  if (jsonLdMatch) {
+    for (const block of jsonLdMatch) {
+      try {
+        const content = block.replace(/<script[^>]*>|<\/script>/gi, '')
+        const data = JSON.parse(content)
+        const entries = Array.isArray(data) ? data : [data]
+        for (const entry of entries) {
+          const raw = entry?.datePublished ?? entry?.dateCreated
+          if (raw) {
+            const date = new Date(raw)
+            if (!isNaN(date.getTime())) {
+              return date.toLocaleDateString('en-GB', {
+                day: 'numeric', month: 'short', year: 'numeric',
+              })
+            }
+          }
+        }
+      } catch { /* skip malformed JSON-LD */ }
+    }
+  }
+
+  return null
 }
 
 function extractTitle(html: string): string | null {
@@ -167,14 +218,15 @@ async function fetchArticle(
         const result = await parser.getText({ maxPages: 5 })
         const text = (result.text as string).replace(/\s{2,}/g, ' ').trim().slice(0, 6000)
         // Use hostname as title for PDFs since there's no <title> tag
-        return { text, title: new URL(url).hostname.replace('www.', '') }
+        return { text, title: new URL(url).hostname.replace('www.', ''), publishedDate: null }
       } catch {
-        return { text: null, title: null }
+        return { text: null, title: null, publishedDate: null }
       }
     }
 
     const html = await res.text()
     const title = extractTitle(html)
+    const publishedDate = extractPublishedDate(html)
 
     const mainMatch = html.match(/<(?:article|main)[^>]*>([\s\S]*?)<\/(?:article|main)>/i)
     const source = mainMatch ? mainMatch[1] : html
@@ -193,9 +245,9 @@ async function fetchArticle(
       .trim()
       .slice(0, 6000)
 
-    return { text, title }
+    return { text, title, publishedDate }
   } catch {
-    return { text: null, title: null }
+    return { text: null, title: null, publishedDate: null }
   }
 }
 
@@ -212,14 +264,14 @@ async function summariseUrlWithEvents(
 ): Promise<SectionSummary> {
   emit(JSON.stringify({ type: 'fetch', section, url }))
 
-  const { text: articleText, title } = await fetchArticle(url, () => {
+  const { text: articleText, title, publishedDate } = await fetchArticle(url, () => {
     emit(JSON.stringify({ type: 'pdf', section, url }))
   })
 
   if (!articleText) {
     const summary = `[Could not fetch article. Add summary manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, summary }
+    return { url, title, publishedDate, summary }
   }
 
   emit(JSON.stringify({ type: 'summarise', section, url }))
@@ -240,11 +292,11 @@ async function summariseUrlWithEvents(
       response.choices[0]?.message?.content?.trim() ??
       '[Summary unavailable — review and edit before publishing.]'
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, summary }
+    return { url, title, publishedDate, summary }
   } catch {
     const summary = `[AI summary failed. Add manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, summary }
+    return { url, title, publishedDate, summary }
   }
 }
 
@@ -260,8 +312,9 @@ function topStoriesBlocks(summaries: SectionSummary[]) {
   }
 
   const blocks = []
-  for (const { url, title, summary } of summaries) {
+  for (const { url, title, publishedDate, summary } of summaries) {
     if (title) blocks.push(block.linkedTitle(title, url))
+    if (publishedDate) blocks.push(block.paragraph(`Published: ${publishedDate}`))
     blocks.push(block.paragraph(`🔹 ${summary}`))
     blocks.push(block.bookmark(url))
   }
@@ -280,9 +333,10 @@ function singleSectionBlocks(summaries: SectionSummary[], placeholder: string) {
   if (summaries.length === 0) {
     return [block.paragraph(placeholder)]
   }
-  const { url, title, summary } = summaries[0]
+  const { url, title, publishedDate, summary } = summaries[0]
   return [
     ...(title ? [block.linkedTitle(title, url)] : []),
+    ...(publishedDate ? [block.paragraph(`Published: ${publishedDate}`)] : []),
     block.paragraph(summary),
     block.bookmark(url),
   ]

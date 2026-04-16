@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react'
 interface SectionSummary {
   url: string
   title: string | null
+  publishedDate: string | null
   summary: string
 }
 
@@ -16,7 +17,7 @@ type ProgressEvent =
   | { type: 'summarise';  section: string; url: string }
   | { type: 'done_url';   section: string; url: string; summary: string }
   | { type: 'notion';     message: string }
-  | { type: 'complete';   notionUrl: string; issueNumber?: number; summaries: Record<string, Array<{ url: string; title: string | null; summary: string }>> }
+  | { type: 'complete';   notionUrl: string; issueNumber?: number; summaries: Record<string, Array<{ url: string; title: string | null; publishedDate: string | null; summary: string }>> }
   | { type: 'error';      message: string }
 
 interface DraftIssue {
@@ -152,7 +153,7 @@ function SummaryPreview({
   return (
     <div className="flex flex-col gap-2">
       <h3 className="font-bold text-[16px] text-govuk-black">{label}</h3>
-      {summaries.map(({ url, title, summary }) => (
+      {summaries.map(({ url, title, publishedDate, summary }) => (
         <div key={url} className="border-l-4 border-govuk-mid-grey pl-3 flex flex-col gap-1">
           <a
             href={url}
@@ -162,6 +163,9 @@ function SummaryPreview({
           >
             {title ?? url}
           </a>
+          {publishedDate && (
+            <p className="text-[13px] text-govuk-dark-grey">Published: {publishedDate}</p>
+          )}
           <p className="text-[15px] text-govuk-black">{summary}</p>
           <a
             href={url}
