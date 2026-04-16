@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "new-issue": "node --env-file=.env.local scripts/new-issue.js"
   },
   "dependencies": {
     "@notionhq/client": "^2.3.0",
