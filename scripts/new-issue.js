@@ -103,25 +103,26 @@ async function main() {
       block.divider(),
 
       block.h2('Top Stories'),
-      block.bullet('🔹 [Story title] — [One-sentence summary. Write 2–3 sentences of context and relevance.]'),
-      block.bullet('🔹 [Story title] — [One-sentence summary. Write 2–3 sentences of context and relevance.]'),
-      block.bullet('🔹 [Story title] — [One-sentence summary. Write 2–3 sentences of context and relevance.]'),
+      block.paragraph('⚠️ AI-generated summaries below — review and edit each one before publishing.'),
+      block.bullet('🔹 [Story title] — [AI-generated summary. Review for accuracy and edit before publishing.]'),
+      block.bullet('🔹 [Story title] — [AI-generated summary. Review for accuracy and edit before publishing.]'),
+      block.bullet('🔹 [Story title] — [AI-generated summary. Review for accuracy and edit before publishing.]'),
       block.divider(),
 
       block.h2('🌟 Bright Spot of the Week'),
-      block.paragraph('[Describe a positive development in AI — a new tool, research breakthrough, or inspiring use case.]'),
+      block.paragraph('[AI-generated summary. Review for accuracy and edit before publishing.]'),
       block.divider(),
 
       block.h2('🔧 Tool of the Week'),
-      block.paragraph('[Name and describe a useful AI tool. Include what it does, who it\'s for, and a link.]'),
+      block.paragraph('[AI-generated summary. Review for accuracy and edit before publishing.]'),
       block.divider(),
 
       block.h2('💡 Learning'),
-      block.paragraph('[A course, event, webcast, or resource worth highlighting. Include date/format if applicable.]'),
+      block.paragraph('[AI-generated summary. Review for accuracy and edit before publishing.]'),
       block.divider(),
 
       block.h2('📖 Deep Dive'),
-      block.paragraph('[A longer read or report worth digging into. Summarise the key findings and why they matter.]'),
+      block.paragraph('[AI-generated summary. Review for accuracy and edit before publishing.]'),
     ],
   })
 
