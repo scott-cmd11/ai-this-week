@@ -9,6 +9,7 @@ interface SectionSummary {
   url: string
   title: string | null
   publishedDate: string | null
+  imageUrl: string | null
   summary: string
 }
 
@@ -23,6 +24,7 @@ interface SectionsInput {
 interface RequestBody {
   password: string
   sections: SectionsInput
+  includeImages?: boolean
 }
 
 // ─── Notion block helpers ───────────────────────────────────────────────────────
@@ -67,6 +69,11 @@ const block = {
         annotations: { bold: true, italic: false, strikethrough: false, underline: false, code: false, color: 'default' as const },
       }],
     },
+  }),
+  image: (imageUrl: string) => ({
+    object: 'block' as const,
+    type: 'image' as const,
+    image: { type: 'external' as const, external: { url: imageUrl } },
   }),
 }
 
@@ -120,7 +127,22 @@ function parseUrls(input: string): string[] {
 interface FetchResult {
   text: string | null
   title: string | null
-  publishedDate: string | null  // formatted as "15 Apr 2026", or null if not found
+  publishedDate: string | null
+  imageUrl: string | null
+}
+
+function extractOgImage(html: string): string | null {
+  const patterns = [
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i,
+  ]
+  for (const pattern of patterns) {
+    const match = html.match(pattern)
+    if (match?.[1]?.startsWith('http')) return match[1]
+  }
+  return null
 }
 
 function extractPublishedDate(html: string): string | null {
@@ -218,15 +240,16 @@ async function fetchArticle(
         const result = await parser.getText({ maxPages: 5 })
         const text = (result.text as string).replace(/\s{2,}/g, ' ').trim().slice(0, 6000)
         // Use hostname as title for PDFs since there's no <title> tag
-        return { text, title: new URL(url).hostname.replace('www.', ''), publishedDate: null }
+        return { text, title: new URL(url).hostname.replace('www.', ''), publishedDate: null, imageUrl: null }
       } catch {
-        return { text: null, title: null, publishedDate: null }
+        return { text: null, title: null, publishedDate: null, imageUrl: null }
       }
     }
 
     const html = await res.text()
     const title = extractTitle(html)
     const publishedDate = extractPublishedDate(html)
+    const imageUrl = extractOgImage(html)
 
     const mainMatch = html.match(/<(?:article|main)[^>]*>([\s\S]*?)<\/(?:article|main)>/i)
     const source = mainMatch ? mainMatch[1] : html
@@ -245,9 +268,9 @@ async function fetchArticle(
       .trim()
       .slice(0, 6000)
 
-    return { text, title, publishedDate }
+    return { text, title, publishedDate, imageUrl }
   } catch {
-    return { text: null, title: null, publishedDate: null }
+    return { text: null, title: null, publishedDate: null, imageUrl: null }
   }
 }
 
@@ -264,14 +287,14 @@ async function summariseUrlWithEvents(
 ): Promise<SectionSummary> {
   emit(JSON.stringify({ type: 'fetch', section, url }))
 
-  const { text: articleText, title, publishedDate } = await fetchArticle(url, () => {
+  const { text: articleText, title, publishedDate, imageUrl } = await fetchArticle(url, () => {
     emit(JSON.stringify({ type: 'pdf', section, url }))
   })
 
   if (!articleText) {
     const summary = `[Could not fetch article. Add summary manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, publishedDate, summary }
+    return { url, title, publishedDate, imageUrl, summary }
   }
 
   emit(JSON.stringify({ type: 'summarise', section, url }))
@@ -292,17 +315,17 @@ async function summariseUrlWithEvents(
       response.choices[0]?.message?.content?.trim() ??
       '[Summary unavailable — review and edit before publishing.]'
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, publishedDate, summary }
+    return { url, title, publishedDate, imageUrl, summary }
   } catch {
     const summary = `[AI summary failed. Add manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, publishedDate, summary }
+    return { url, title, publishedDate, imageUrl, summary }
   }
 }
 
 // ─── Notion block builders ──────────────────────────────────────────────────────
 
-function topStoriesBlocks(summaries: SectionSummary[]) {
+function topStoriesBlocks(summaries: SectionSummary[], includeImages: boolean) {
   if (summaries.length === 0) {
     return [
       block.bullet('🔹 [Story title] — [AI-generated summary. Review for accuracy and edit before publishing.]'),
@@ -312,7 +335,8 @@ function topStoriesBlocks(summaries: SectionSummary[]) {
   }
 
   const blocks = []
-  for (const { url, title, publishedDate, summary } of summaries) {
+  for (const { url, title, publishedDate, imageUrl, summary } of summaries) {
+    if (includeImages && imageUrl) blocks.push(block.image(imageUrl))
     if (title) blocks.push(block.linkedTitle(title, url))
     if (publishedDate) blocks.push(block.paragraph(`Published: ${publishedDate}`))
     blocks.push(block.paragraph(`🔹 ${summary}`))
@@ -329,12 +353,13 @@ function topStoriesBlocks(summaries: SectionSummary[]) {
   return blocks
 }
 
-function singleSectionBlocks(summaries: SectionSummary[], placeholder: string) {
+function singleSectionBlocks(summaries: SectionSummary[], placeholder: string, includeImages: boolean) {
   if (summaries.length === 0) {
     return [block.paragraph(placeholder)]
   }
-  const { url, title, publishedDate, summary } = summaries[0]
+  const { url, title, publishedDate, imageUrl, summary } = summaries[0]
   return [
+    ...(includeImages && imageUrl ? [block.image(imageUrl)] : []),
     ...(title ? [block.linkedTitle(title, url)] : []),
     ...(publishedDate ? [block.paragraph(`Published: ${publishedDate}`)] : []),
     block.paragraph(summary),
@@ -368,7 +393,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Incorrect password.' }, { status: 401 })
   }
 
-  const { sections } = body
+  const { sections, includeImages = false } = body
   const encoder = new TextEncoder()
 
   const stream = new ReadableStream({
@@ -443,34 +468,38 @@ export async function POST(request: NextRequest) {
 
             block.h2('Top Stories'),
             block.paragraph('⚠️ AI-generated summaries below — review and edit each one before publishing.'),
-            ...topStoriesBlocks(summaryMap.top),
+            ...topStoriesBlocks(summaryMap.top, includeImages),
             block.divider(),
 
             block.h2('🌟 Bright Spot of the Week'),
             ...singleSectionBlocks(
               summaryMap.bright,
-              '[AI-generated summary. Review for accuracy and edit before publishing.]'
+              '[AI-generated summary. Review for accuracy and edit before publishing.]',
+              includeImages
             ),
             block.divider(),
 
             block.h2('🔧 Tool of the Week'),
             ...singleSectionBlocks(
               summaryMap.tool,
-              '[AI-generated summary. Review for accuracy and edit before publishing.]'
+              '[AI-generated summary. Review for accuracy and edit before publishing.]',
+              includeImages
             ),
             block.divider(),
 
             block.h2('💡 Learning'),
             ...singleSectionBlocks(
               summaryMap.learning,
-              '[AI-generated summary. Review for accuracy and edit before publishing.]'
+              '[AI-generated summary. Review for accuracy and edit before publishing.]',
+              includeImages
             ),
             block.divider(),
 
             block.h2('📖 Deep Dive'),
             ...singleSectionBlocks(
               summaryMap.deep,
-              '[AI-generated summary. Review for accuracy and edit before publishing.]'
+              '[AI-generated summary. Review for accuracy and edit before publishing.]',
+              includeImages
             ),
           ],
         })

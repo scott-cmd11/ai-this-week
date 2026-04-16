@@ -9,6 +9,7 @@ interface SectionSummary {
   url: string
   title: string | null
   publishedDate: string | null
+  imageUrl: string | null
   summary: string
 }
 
@@ -24,6 +25,7 @@ interface RequestBody {
   password: string
   pageId: string
   sections: SectionsInput
+  includeImages?: boolean
 }
 
 // ─── Notion block helpers ───────────────────────────────────────────────────────
@@ -64,6 +66,11 @@ const block = {
       }],
     },
   }),
+  image: (imageUrl: string) => ({
+    object: 'block' as const,
+    type: 'image' as const,
+    image: { type: 'external' as const, external: { url: imageUrl } },
+  }),
 }
 
 // ─── URL parsing ────────────────────────────────────────────────────────────────
@@ -82,6 +89,21 @@ interface FetchResult {
   text: string | null
   title: string | null
   publishedDate: string | null
+  imageUrl: string | null
+}
+
+function extractOgImage(html: string): string | null {
+  const patterns = [
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i,
+  ]
+  for (const pattern of patterns) {
+    const match = html.match(pattern)
+    if (match?.[1]?.startsWith('http')) return match[1]
+  }
+  return null
 }
 
 function extractPublishedDate(html: string): string | null {
@@ -168,15 +190,16 @@ async function fetchArticle(
         const parser = new PDFParse({ data: buffer, verbosity: 0 })
         const result = await parser.getText({ maxPages: 5 })
         const text = (result.text as string).replace(/\s{2,}/g, ' ').trim().slice(0, 6000)
-        return { text, title: new URL(url).hostname.replace('www.', ''), publishedDate: null }
+        return { text, title: new URL(url).hostname.replace('www.', ''), publishedDate: null, imageUrl: null }
       } catch {
-        return { text: null, title: null, publishedDate: null }
+        return { text: null, title: null, publishedDate: null, imageUrl: null }
       }
     }
 
     const html = await res.text()
     const title = extractTitle(html)
     const publishedDate = extractPublishedDate(html)
+    const imageUrl = extractOgImage(html)
 
     const mainMatch = html.match(/<(?:article|main)[^>]*>([\s\S]*?)<\/(?:article|main)>/i)
     const source = mainMatch ? mainMatch[1] : html
@@ -195,9 +218,9 @@ async function fetchArticle(
       .trim()
       .slice(0, 6000)
 
-    return { text, title, publishedDate }
+    return { text, title, publishedDate, imageUrl }
   } catch {
-    return { text: null, title: null, publishedDate: null }
+    return { text: null, title: null, publishedDate: null, imageUrl: null }
   }
 }
 
@@ -214,14 +237,14 @@ async function summariseUrlWithEvents(
 ): Promise<SectionSummary> {
   emit(JSON.stringify({ type: 'fetch', section, url }))
 
-  const { text: articleText, title, publishedDate } = await fetchArticle(url, () => {
+  const { text: articleText, title, publishedDate, imageUrl } = await fetchArticle(url, () => {
     emit(JSON.stringify({ type: 'pdf', section, url }))
   })
 
   if (!articleText) {
     const summary = `[Could not fetch article. Add summary manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, publishedDate, summary }
+    return { url, title, publishedDate, imageUrl, summary }
   }
 
   emit(JSON.stringify({ type: 'summarise', section, url }))
@@ -242,11 +265,11 @@ async function summariseUrlWithEvents(
       response.choices[0]?.message?.content?.trim() ??
       '[Summary unavailable — review and edit before publishing.]'
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, publishedDate, summary }
+    return { url, title, publishedDate, imageUrl, summary }
   } catch {
     const summary = `[AI summary failed. Add manually.]`
     emit(JSON.stringify({ type: 'done_url', section, url, summary }))
-    return { url, title, publishedDate, summary }
+    return { url, title, publishedDate, imageUrl, summary }
   }
 }
 
@@ -289,7 +312,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'pageId is required.' }, { status: 400 })
   }
 
-  const { sections, pageId } = body
+  const { sections, pageId, includeImages = false } = body
   const encoder = new TextEncoder()
 
   const stream = new ReadableStream({
@@ -331,7 +354,7 @@ export async function POST(request: NextRequest) {
         if (request.signal.aborted) { controller.close(); return }
 
         // Build blocks to append — only for sections that have URLs
-        const blocksToAppend: ReturnType<typeof block.h2 | typeof block.paragraph | typeof block.bookmark | typeof block.divider | typeof block.linkedTitle>[] = []
+        const blocksToAppend: ReturnType<typeof block.h2 | typeof block.paragraph | typeof block.bookmark | typeof block.divider | typeof block.linkedTitle | typeof block.image>[] = []
 
         for (const key of sectionKeys) {
           const summaries = summaryMap[key]
@@ -339,7 +362,8 @@ export async function POST(request: NextRequest) {
 
           blocksToAppend.push(block.h2(SECTION_HEADINGS[key]))
 
-          for (const { url, title, publishedDate, summary } of summaries) {
+          for (const { url, title, publishedDate, imageUrl, summary } of summaries) {
+            if (includeImages && imageUrl) blocksToAppend.push(block.image(imageUrl))
             if (title) blocksToAppend.push(block.linkedTitle(title, url))
             if (publishedDate) blocksToAppend.push(block.paragraph(`Published: ${publishedDate}`))
             blocksToAppend.push(block.paragraph(summary))

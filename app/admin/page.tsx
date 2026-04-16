@@ -8,6 +8,7 @@ interface SectionSummary {
   url: string
   title: string | null
   publishedDate: string | null
+  imageUrl: string | null
   summary: string
 }
 
@@ -17,7 +18,7 @@ type ProgressEvent =
   | { type: 'summarise';  section: string; url: string }
   | { type: 'done_url';   section: string; url: string; summary: string }
   | { type: 'notion';     message: string }
-  | { type: 'complete';   notionUrl: string; issueNumber?: number; summaries: Record<string, Array<{ url: string; title: string | null; publishedDate: string | null; summary: string }>> }
+  | { type: 'complete';   notionUrl: string; issueNumber?: number; summaries: Record<string, Array<{ url: string; title: string | null; publishedDate: string | null; imageUrl: string | null; summary: string }>> }
   | { type: 'error';      message: string }
 
 interface DraftIssue {
@@ -153,8 +154,12 @@ function SummaryPreview({
   return (
     <div className="flex flex-col gap-2">
       <h3 className="font-bold text-[16px] text-govuk-black">{label}</h3>
-      {summaries.map(({ url, title, publishedDate, summary }) => (
+      {summaries.map(({ url, title, publishedDate, imageUrl, summary }) => (
         <div key={url} className="border-l-4 border-govuk-mid-grey pl-3 flex flex-col gap-1">
+          {imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imageUrl} alt={title ?? ''} className="w-full max-h-40 object-cover rounded mb-1" />
+          )}
           <a
             href={url}
             target="_blank"
@@ -259,6 +264,7 @@ export default function AdminPage() {
   // Create form state
   const [sections, setSections] = useState({ ...EMPTY_SECTIONS })
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({ ...ALL_COLLAPSED })
+  const [includeImages, setIncludeImages] = useState(false)
   const [loading, setLoading] = useState(false)
   const [createLog, setCreateLog] = useState<string[]>([])
   const [result, setResult] = useState<CompletedCreate | null>(null)
@@ -272,6 +278,7 @@ export default function AdminPage() {
   const [selectedIssueId, setSelectedIssueId] = useState('')
   const [updateSections, setUpdateSections] = useState({ ...EMPTY_SECTIONS })
   const [updateExpandedSections, setUpdateExpandedSections] = useState<Record<SectionKey, boolean>>({ ...ALL_COLLAPSED })
+  const [updateIncludeImages, setUpdateIncludeImages] = useState(false)
   const [updateLoading, setUpdateLoading] = useState(false)
   const [updateLog, setUpdateLog] = useState<string[]>([])
   const [updateResult, setUpdateResult] = useState<CompletedUpdate | null>(null)
@@ -439,7 +446,7 @@ export default function AdminPage() {
       const res = await fetch('/api/new-issue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, sections }),
+        body: JSON.stringify({ password, sections, includeImages }),
       })
 
       if (res.status === 401) {
@@ -507,7 +514,7 @@ export default function AdminPage() {
       const res = await fetch('/api/update-issue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, pageId: selectedIssueId, sections: updateSections }),
+        body: JSON.stringify({ password, pageId: selectedIssueId, sections: updateSections, includeImages: updateIncludeImages }),
       })
 
       if (res.status === 401) {
@@ -768,6 +775,17 @@ export default function AdminPage() {
             </p>
           </div>
 
+          <label className="flex items-center gap-3 cursor-pointer self-start">
+            <input
+              type="checkbox"
+              checked={includeImages}
+              onChange={e => setIncludeImages(e.target.checked)}
+              className="w-5 h-5 border-2 border-govuk-black accent-govuk-black cursor-pointer"
+            />
+            <span className="text-[17px] text-govuk-black font-bold">Include images</span>
+            <span className="text-[15px] text-govuk-dark-grey">(uses og:image from each article)</span>
+          </label>
+
           <form onSubmit={handleGenerate} noValidate className="flex flex-col gap-6">
             <SectionTextarea
               label="Top Stories"
@@ -846,6 +864,17 @@ export default function AdminPage() {
               Summaries are AI-generated. Always review before publishing.
             </p>
           </div>
+
+          <label className="flex items-center gap-3 cursor-pointer self-start">
+            <input
+              type="checkbox"
+              checked={updateIncludeImages}
+              onChange={e => setUpdateIncludeImages(e.target.checked)}
+              className="w-5 h-5 border-2 border-govuk-black accent-govuk-black cursor-pointer"
+            />
+            <span className="text-[17px] text-govuk-black font-bold">Include images</span>
+            <span className="text-[15px] text-govuk-dark-grey">(uses og:image from each article)</span>
+          </label>
 
           <form onSubmit={handleUpdate} noValidate className="flex flex-col gap-6">
             {/* Draft issue selector */}
