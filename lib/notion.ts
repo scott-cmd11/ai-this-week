@@ -1,6 +1,35 @@
 import { Client } from '@notionhq/client'
 import type { Issue, NotionBlock, BlockType, RichTextSegment } from './types'
 
+// ─── Section types ────────────────────────────────────────────────────────────
+
+export type SectionSlug = 'top' | 'bright' | 'tool' | 'learning' | 'deep'
+
+export interface SectionMeta {
+  slug: SectionSlug
+  label: string
+  keyword: string   // matched (case-insensitive, contains) against h2 content
+  emoji: string
+}
+
+export const SECTIONS: SectionMeta[] = [
+  { slug: 'top',      label: 'Top Stories',           keyword: 'Top Stories',   emoji: '📰' },
+  { slug: 'bright',   label: 'Bright Spot of the Week', keyword: 'Bright Spot', emoji: '🌟' },
+  { slug: 'tool',     label: 'Tool of the Week',      keyword: 'Tool of the Week', emoji: '🔧' },
+  { slug: 'learning', label: 'Learning',               keyword: 'Learning',      emoji: '💡' },
+  { slug: 'deep',     label: 'Deep Dive',              keyword: 'Deep Dive',     emoji: '📖' },
+]
+
+export interface SectionArticle {
+  issueNumber: number
+  issueDate: string
+  issueTitle: string
+  issueSlug: string
+  articleTitle: string | null
+  articleUrl: string | null
+  summary: string | null
+}
+
 if (!process.env.NOTION_TOKEN) {
   throw new Error('Missing environment variable: NOTION_TOKEN')
 }
@@ -58,6 +87,80 @@ export async function getAdjacentIssues(date: string): Promise<{ prev: Issue | n
     next: idx > 0 ? issues[idx - 1] : null,
     prev: idx < issues.length - 1 ? issues[idx + 1] : null,
   }
+}
+
+export async function getArticlesBySection(keyword: string): Promise<SectionArticle[]> {
+  const issues = await getPublishedIssues()
+  // Fetch all issue blocks in parallel — fine for newsletter-scale (< 100 issues)
+  const allBlocks = await Promise.all(
+    issues.map(issue => getIssueBlocks(issue.id).then(blocks => ({ issue, blocks })))
+  )
+  return allBlocks.flatMap(({ issue, blocks }) =>
+    parseSectionArticles(blocks, issue, keyword)
+  )
+}
+
+function parseSectionArticles(
+  blocks: NotionBlock[],
+  issue: Issue,
+  keyword: string
+): SectionArticle[] {
+  // Find the h2 heading that contains the keyword
+  const h2Idx = blocks.findIndex(
+    b => b.type === 'heading_2' && b.content.toLowerCase().includes(keyword.toLowerCase())
+  )
+  if (h2Idx === -1) return []
+
+  // Collect blocks up to the next h2 or divider
+  const section: NotionBlock[] = []
+  for (let i = h2Idx + 1; i < blocks.length; i++) {
+    if (blocks[i].type === 'heading_2' || blocks[i].type === 'divider') break
+    section.push(blocks[i])
+  }
+
+  // Parse articles: a linked-title paragraph followed by an optional summary paragraph
+  const articles: SectionArticle[] = []
+  let i = 0
+  while (i < section.length) {
+    const block = section[i]
+    // Linked-title: paragraph where at least one rich-text segment has an href
+    const isLinkedTitle =
+      block.type === 'paragraph' &&
+      block.richText?.some(seg => seg.href)
+
+    if (isLinkedTitle) {
+      const articleTitle = block.content || null
+      const articleUrl = block.richText?.find(seg => seg.href)?.href ?? null
+
+      // Peek ahead for a summary (skip Published: lines, images, bookmarks)
+      let summary: string | null = null
+      for (let j = i + 1; j < section.length; j++) {
+        const next = section[j]
+        if (next.type === 'paragraph' && next.content && !next.content.startsWith('Published:')) {
+          // Make sure it's not another linked title
+          if (!next.richText?.some(seg => seg.href)) {
+            summary = next.content
+            i = j // advance past the summary
+          }
+          break
+        }
+        // Stop if we hit another potential title
+        if (next.type === 'paragraph' && next.richText?.some(seg => seg.href)) break
+      }
+
+      articles.push({
+        issueNumber: issue.issueNumber,
+        issueDate: issue.issueDate,
+        issueTitle: issue.title,
+        issueSlug: issue.slug,
+        articleTitle,
+        articleUrl,
+        summary,
+      })
+    }
+    i++
+  }
+  return articles
 }
 
 // ─── Mappers (exported for testing) ──────────────────────────────────────────

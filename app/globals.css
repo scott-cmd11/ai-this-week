@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode — set class="dark" on <html> to activate */
+@custom-variant dark (&:is(.dark *));
+
 @theme {
   --color-govuk-black: #0b0c0c;
   --color-govuk-blue: #1d70b8;
@@ -7,6 +10,16 @@
   --color-govuk-light-grey: #f3f2f1;
   --color-govuk-mid-grey: #b1b4b6;
   --color-govuk-dark-grey: #505a5f;
+  /* Dark-mode surface — not exposed as a Tailwind colour, used directly below */
+}
+
+/* ── Dark mode overrides ─────────────────────────────────────── */
+/* Override @theme variables so all utilities update automatically */
+html.dark {
+  --color-govuk-light-grey: #1d2021;   /* surfaces: light bg → dark bg */
+  --color-govuk-mid-grey: #3d4145;     /* borders → darker */
+  --color-govuk-dark-grey: #b1b4b6;   /* muted text → lighter */
+  --color-govuk-blue: #5694ca;        /* links → lighter blue (WCAG AA on dark) */
 }
 
 /* ── Skip link ───────────────────────────────────────────────── */
@@ -41,4 +54,9 @@ body {
   line-height: 1.5;
   color: #0b0c0c;
   background: #ffffff;
+}
+
+html.dark body {
+  color: #f3f2f1;
+  background: #0b0c0c;
 }

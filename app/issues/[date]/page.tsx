@@ -7,6 +7,7 @@ import { MetadataStrip } from '@/components/MetadataStrip'
 import { AIDisclosureBadge } from '@/components/AIDisclosureBadge'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { TableOfContents } from '@/components/TableOfContents'
+import { ReadingProgress } from '@/components/ReadingProgress'
 import { estimateReadingTime } from '@/lib/reading-time'
 
 export const revalidate = 300
@@ -48,6 +49,7 @@ export default async function IssuePage({ params }: Props) {
 
   return (
     <>
+      <ReadingProgress />
       {/* Two-column layout: article + sticky TOC on wide screens */}
       <div className="xl:flex xl:gap-16 xl:items-start">
         <article aria-label={issue.title} className="min-w-0 flex-1">

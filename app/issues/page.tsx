@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { getPublishedIssues } from '@/lib/notion'
-import { IssueCard } from '@/components/IssueCard'
+import { IssueSearch } from '@/components/IssueSearch'
 
 export const revalidate = 300
 
@@ -17,17 +17,7 @@ export default async function IssuesPage() {
       <h1 className="text-[48px] font-bold text-govuk-black leading-tight mb-10">
         All Issues
       </h1>
-      {issues.length === 0 ? (
-        <p className="text-[19px] text-govuk-black">No issues published yet.</p>
-      ) : (
-        <ul className="space-y-8 list-none p-0" aria-label="All newsletter issues">
-          {issues.map(issue => (
-            <li key={issue.id}>
-              <IssueCard issue={issue} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <IssueSearch issues={issues} />
     </>
   )
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import './globals.css'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -23,6 +24,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        {/* Runs before hydration to prevent flash of wrong theme */}
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
