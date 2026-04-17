@@ -1,5 +1,5 @@
 import { Client } from '@notionhq/client'
-import type { Issue, NotionBlock, BlockType } from './types'
+import type { Issue, NotionBlock, BlockType, RichTextSegment } from './types'
 
 if (!process.env.NOTION_TOKEN) {
   throw new Error('Missing environment variable: NOTION_TOKEN')
@@ -49,6 +49,17 @@ export async function getIssueBlocks(pageId: string): Promise<NotionBlock[]> {
   return response.results.map(mapBlockToNotionBlock)
 }
 
+export async function getAdjacentIssues(date: string): Promise<{ prev: Issue | null; next: Issue | null }> {
+  const issues = await getPublishedIssues() // already sorted descending by date
+  const idx = issues.findIndex(i => i.issueDate === date)
+  if (idx === -1) return { prev: null, next: null }
+  // "next" = more recent = lower index; "prev" = older = higher index
+  return {
+    next: idx > 0 ? issues[idx - 1] : null,
+    prev: idx < issues.length - 1 ? issues[idx + 1] : null,
+  }
+}
+
 // ─── Mappers (exported for testing) ──────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,17 +87,56 @@ export function mapBlockToNotionBlock(block: any): NotionBlock {
   const richTextToString = (richText: any[]): string =>
     (richText ?? []).map((t: any) => t.plain_text).join('')
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const richTextToSegments = (richText: any[]): RichTextSegment[] =>
+    (richText ?? []).map((t: any) => ({
+      text: t.plain_text ?? '',
+      bold: t.annotations?.bold ?? false,
+      href: t.text?.link?.url ?? null,
+    }))
+
+  const slugify = (text: string) =>
+    text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+
   switch (type) {
-    case 'paragraph':
-      return { id: block.id, type: 'paragraph', content: richTextToString(content.rich_text) }
-    case 'heading_2':
-      return { id: block.id, type: 'heading_2', content: richTextToString(content.rich_text) }
+    case 'paragraph': {
+      const rt = content.rich_text ?? []
+      return {
+        id: block.id,
+        type: 'paragraph',
+        content: richTextToString(rt),
+        richText: richTextToSegments(rt),
+      }
+    }
+    case 'heading_2': {
+      const text = richTextToString(content.rich_text)
+      return {
+        id: block.id,
+        type: 'heading_2',
+        content: text,
+        headingId: slugify(text),
+      }
+    }
     case 'heading_3':
       return { id: block.id, type: 'heading_3', content: richTextToString(content.rich_text) }
-    case 'bulleted_list_item':
-      return { id: block.id, type: 'bulleted_list_item', content: richTextToString(content.rich_text) }
-    case 'numbered_list_item':
-      return { id: block.id, type: 'numbered_list_item', content: richTextToString(content.rich_text) }
+    case 'bulleted_list_item': {
+      const rt = content.rich_text ?? []
+      return {
+        id: block.id,
+        type: 'bulleted_list_item',
+        content: richTextToString(rt),
+        richText: richTextToSegments(rt),
+      }
+    }
+    case 'numbered_list_item': {
+      const rt = content.rich_text ?? []
+      return {
+        id: block.id,
+        type: 'numbered_list_item',
+        content: richTextToString(rt),
+        richText: richTextToSegments(rt),
+      }
+    }
     case 'bookmark':
       return {
         id: block.id,
@@ -96,6 +146,11 @@ export function mapBlockToNotionBlock(block: any): NotionBlock {
       }
     case 'divider':
       return { id: block.id, type: 'divider', content: '' }
+    case 'image': {
+      const url = content?.external?.url ?? content?.file?.url ?? ''
+      const caption = richTextToString(content?.caption ?? [])
+      return { id: block.id, type: 'image', content: caption || url, href: url }
+    }
     default:
       return { id: block.id, type: 'paragraph', content: richTextToString(content?.rich_text ?? []) }
   }

@@ -17,10 +17,20 @@ export type BlockType =
   | 'numbered_list_item'
   | 'bookmark'
   | 'divider'
+  | 'image'
+
+/** A single segment of rich text — may be plain, bold, linked, or both */
+export interface RichTextSegment {
+  text: string
+  bold?: boolean
+  href?: string | null
+}
 
 export interface NotionBlock {
   id: string
   type: BlockType
-  content: string
-  href?: string          // Only present on bookmark blocks
+  content: string                  // plain-text fallback / heading text
+  richText?: RichTextSegment[]     // populated for paragraphs with formatting or links
+  href?: string                    // bookmark URL or image URL
+  headingId?: string               // slug anchor for h2 headings (table of contents)
 }
