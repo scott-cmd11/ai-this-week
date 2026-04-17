@@ -1,16 +1,28 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { getIssueByDate, getIssueBlocks, getPublishedIssues, getAdjacentIssues } from '@/lib/notion'
+import {
+  getIssueByDate,
+  getIssueBlocks,
+  getPublishedIssues,
+  getAdjacentIssues,
+  getRelatedIssues,
+} from '@/lib/notion'
 import { NotionRenderer } from '@/lib/notion-renderer'
 import { MetadataStrip } from '@/components/MetadataStrip'
 import { AIDisclosureBadge } from '@/components/AIDisclosureBadge'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
+import { CopyMarkdownButton } from '@/components/CopyMarkdownButton'
 import { TableOfContents } from '@/components/TableOfContents'
 import { ReadingProgress } from '@/components/ReadingProgress'
+import { ArticleJsonLd } from '@/components/ArticleJsonLd'
+import { IssueCard } from '@/components/IssueCard'
 import { estimateReadingTime } from '@/lib/reading-time'
+import { blocksToMarkdown } from '@/lib/to-markdown'
 
 export const revalidate = 300
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ai-this-week.vercel.app'
 
 interface Props {
   params: Promise<{ date: string }>
@@ -33,14 +45,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function IssuePage({ params }: Props) {
   const { date } = await params
-  const [issue, adjacent] = await Promise.all([
+  const [issue, adjacent, related] = await Promise.all([
     getIssueByDate(date),
     getAdjacentIssues(date),
+    getRelatedIssues(date, 3),
   ])
   if (!issue) notFound()
 
   const blocks = await getIssueBlocks(issue.id)
   const readingTime = estimateReadingTime(blocks)
+  const markdown = blocksToMarkdown(issue.title, blocks)
 
   // Extract h2 headings for table of contents
   const tocEntries = blocks
@@ -49,7 +63,9 @@ export default async function IssuePage({ params }: Props) {
 
   return (
     <>
+      <ArticleJsonLd issue={issue} baseUrl={BASE_URL} />
       <ReadingProgress />
+
       {/* Two-column layout: article + sticky TOC on wide screens */}
       <div className="xl:flex xl:gap-16 xl:items-start">
         <article aria-label={issue.title} className="min-w-0 flex-1">
@@ -67,9 +83,10 @@ export default async function IssuePage({ params }: Props) {
             {issue.title}
           </h1>
 
-          {/* Share */}
-          <div className="mb-8">
+          {/* Share row */}
+          <div className="flex flex-wrap gap-3 mb-8">
             <CopyLinkButton />
+            <CopyMarkdownButton markdown={markdown} />
           </div>
 
           <NotionRenderer blocks={blocks} />
@@ -106,6 +123,20 @@ export default async function IssuePage({ params }: Props) {
               )}
             </div>
           </nav>
+
+          {/* Related issues */}
+          {related.length > 0 && (
+            <section aria-label="More issues" className="mt-16">
+              <h2 className="text-[22px] font-bold text-govuk-black mb-6">More issues</h2>
+              <ul className="space-y-8 list-none p-0">
+                {related.map(other => (
+                  <li key={other.id}>
+                    <IssueCard issue={other} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </article>
 
         {/* Sticky table of contents (xl screens only, hidden when < 3 headings) */}

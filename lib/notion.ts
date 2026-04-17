@@ -1,5 +1,5 @@
 import { Client } from '@notionhq/client'
-import type { Issue, NotionBlock, BlockType, RichTextSegment } from './types'
+import type { Issue, NotionBlock, RichTextSegment } from './types'
 
 // ─── Section types ────────────────────────────────────────────────────────────
 
@@ -87,6 +87,23 @@ export async function getAdjacentIssues(date: string): Promise<{ prev: Issue | n
     next: idx > 0 ? issues[idx - 1] : null,
     prev: idx < issues.length - 1 ? issues[idx + 1] : null,
   }
+}
+
+/**
+ * Returns up to `limit` issues for a "related" block — excludes the current
+ * issue and its immediate prev/next (already shown in nav) so readers discover
+ * something beyond adjacent weeks.
+ */
+export async function getRelatedIssues(date: string, limit = 3): Promise<Issue[]> {
+  const issues = await getPublishedIssues()
+  const idx = issues.findIndex(i => i.issueDate === date)
+  if (idx === -1) return issues.slice(0, limit)
+
+  const prevIdx = idx + 1
+  const nextIdx = idx - 1
+  const excluded = new Set([idx, prevIdx, nextIdx])
+
+  return issues.filter((_, i) => !excluded.has(i)).slice(0, limit)
 }
 
 export async function getArticlesBySection(keyword: string): Promise<SectionArticle[]> {
@@ -186,17 +203,17 @@ export function mapBlockToNotionBlock(block: any): NotionBlock {
   const type: string = block.type
   const content = block[type]
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const richTextToString = (richText: any[]): string =>
     (richText ?? []).map((t: any) => t.plain_text).join('')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const richTextToSegments = (richText: any[]): RichTextSegment[] =>
     (richText ?? []).map((t: any) => ({
       text: t.plain_text ?? '',
       bold: t.annotations?.bold ?? false,
       href: t.text?.link?.url ?? null,
     }))
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   const slugify = (text: string) =>
     text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')

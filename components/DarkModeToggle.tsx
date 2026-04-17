@@ -21,7 +21,10 @@ export function DarkModeToggle() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // Canonical hydration-safe pattern for reading browser state on mount.
+    // Safe here because we defer visible render until mounted (see return below).
     const t = getInitialTheme()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(t)
     applyTheme(t)
     setMounted(true)

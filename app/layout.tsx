@@ -4,7 +4,7 @@ import './globals.css'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aithisweek.com'
+const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ai-this-week.vercel.app'
 
 export const metadata: Metadata = {
   title: 'AI This Week',

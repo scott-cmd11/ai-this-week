@@ -1,6 +1,6 @@
 import { getPublishedIssues } from '@/lib/notion'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aithisweek.com'
+const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ai-this-week.vercel.app'
 
 function escapeXml(str: string): string {
   return str
