@@ -1,0 +1,42 @@
+name: Daily AI Briefing
+
+on:
+  schedule:
+    # 8am CDT / 9am CST Winnipeg time
+    # Cron is in UTC, so 0 14 = 8am CDT (UTC-5), 0 13 = 9am CST (UTC-6)
+    # During CDT (March-October): 0 14 * * *
+    # During CST (November-February): 0 15 * * *
+    # Using 0 14 to cover most of the year (CDT majority)
+    - cron: '0 14 * * *'
+  workflow_dispatch:  # Allow manual trigger for testing
+
+jobs:
+  generate-briefing:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      
+      - name: Generate and send briefing
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_CREDENTIALS: ${{ secrets.GMAIL_CREDENTIALS }}
+        run: python scripts/generate-ai-briefing.py
+      
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: briefing-logs
+          path: briefing-debug.log

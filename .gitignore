@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local claude code settings (per-developer)
+.claude/settings.local.json
+
+# superpowers brainstorm scratch state
+.superpowers/
