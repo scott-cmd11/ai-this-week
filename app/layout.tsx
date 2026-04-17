@@ -3,9 +3,16 @@ import './globals.css'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aithisweek.com'
+
 export const metadata: Metadata = {
   title: 'AI This Week',
   description: 'A weekly update on the latest in artificial intelligence.',
+  alternates: {
+    types: {
+      'application/rss+xml': `${SITE_URL}/feed.xml`,
+    },
+  },
 }
 
 export default function RootLayout({
