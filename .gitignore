@@ -46,3 +46,5 @@ next-env.d.ts
 
 # superpowers brainstorm scratch state
 .superpowers/
+briefing-output.html
+briefing-debug.log

@@ -2,76 +2,188 @@
 """
 Daily AI Adoption Briefing Generator
 
-Generates a fresh briefing of Canadian AI developments across 5 domains
-and creates a Gmail draft for immediate review.
+Uses OpenAI's Responses API with the hosted `web_search` tool to find fresh
+Canadian AI developments across 5 domains, then drafts a formatted Gmail
+draft for review.
 
-Requires:
-- ANTHROPIC_API_KEY environment variable
-- GMAIL_CREDENTIALS environment variable (JSON string with type, project_id, private_key_id, private_key, client_email, client_id, auth_uri, token_uri, auth_provider_x509_cert_url, client_x509_cert_url)
+Required env vars:
+    OPENAI_API_KEY      — OpenAI key with access to Responses + web_search
+    GMAIL_CREDENTIALS   — (optional) service-account JSON string with
+                          gmail.compose + gmail.readonly scopes. If unset,
+                          the script writes briefing-output.html and skips
+                          the Gmail draft.
+
+Local test:
+    export OPENAI_API_KEY=sk-...
+    python scripts/generate-ai-briefing.py
 """
 
 import os
 import json
 import logging
+import re
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Optional
 import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# Set up logging
+
+def _load_dotenv_local() -> None:
+    """Minimal .env.local loader so local runs don't need `export`.
+
+    Matches Next.js convention: keys already in the real environment win,
+    so CI (which sets env via `env:` block) is never overridden.
+    """
+    path = Path(__file__).resolve().parent.parent / '.env.local'
+    if not path.exists():
+        return
+    for raw in path.read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        key, _, value = line.partition('=')
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_dotenv_local()
+
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler('briefing-debug.log'),
-        logging.StreamHandler()
-    ]
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger(__name__)
 
-def get_anthropic_client():
-    """Initialize Anthropic client."""
+# Model choice. gpt-5 is the current tier; gpt-4o is a drop-in fallback.
+MODEL = os.environ.get('OPENAI_MODEL', 'gpt-5')
+
+
+def get_openai_client():
+    """Initialize OpenAI client. Raises if OPENAI_API_KEY is missing."""
     try:
-        from anthropic import Anthropic
-        api_key = os.environ.get('ANTHROPIC_API_KEY')
-        if not api_key:
-            raise ValueError("ANTHROPIC_API_KEY not set")
-        return Anthropic(api_key=api_key)
+        from openai import OpenAI
     except ImportError:
-        logger.error("anthropic package not installed. Run: pip install anthropic")
+        logger.error("openai package not installed. Run: pip install openai")
         raise
 
+    api_key = os.environ.get('OPENAI_API_KEY')
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not set")
+    return OpenAI(api_key=api_key)
+
+
 def get_gmail_service():
-    """Initialize Gmail API service using stored credentials."""
+    """Initialize Gmail API service using service-account credentials.
+
+    Returns None if credentials aren't set — the caller should handle that
+    gracefully and just skip draft creation.
+    """
+    creds_json = os.environ.get('GMAIL_CREDENTIALS')
+    if not creds_json:
+        logger.warning("GMAIL_CREDENTIALS not set — will skip Gmail draft creation")
+        return None
+
     try:
         from google.oauth2.service_account import Credentials
         from googleapiclient.discovery import build
-        
-        creds_json = os.environ.get('GMAIL_CREDENTIALS')
-        if not creds_json:
-            logger.warning("GMAIL_CREDENTIALS not set - will skip Gmail draft creation")
-            return None
-        
-        creds_dict = json.loads(creds_json)
-        credentials = Credentials.from_service_account_info(creds_dict, scopes=[
-            'https://www.googleapis.com/auth/gmail.compose',
-            'https://www.googleapis.com/auth/gmail.readonly'
-        ])
-        
-        return build('gmail', 'v1', credentials=credentials)
     except ImportError:
-        logger.warning("google-auth and google-api-client packages not installed")
+        logger.warning("google-auth/google-api-client not installed — skipping Gmail")
         return None
+
+    try:
+        creds_dict = json.loads(creds_json)
     except json.JSONDecodeError as e:
         logger.error(f"Invalid GMAIL_CREDENTIALS JSON: {e}")
         return None
 
+    credentials = Credentials.from_service_account_info(
+        creds_dict,
+        scopes=[
+            'https://www.googleapis.com/auth/gmail.compose',
+            'https://www.googleapis.com/auth/gmail.readonly',
+        ],
+    )
+    return build('gmail', 'v1', credentials=credentials)
+
+
+def search_and_extract_findings(client, domain: str, finding_count: int) -> list:
+    """Use OpenAI Responses API with web_search to find fresh findings.
+
+    Returns a list of dicts, each with keys: title, body, source, source_label.
+    Returns empty list on any parsing or API failure (logged).
+    """
+    today = datetime.now().strftime('%B %d, %Y')
+    yesterday = (datetime.now() - timedelta(days=1)).strftime('%B %d, %Y')
+
+    prompt = (
+        f"Find the {finding_count} most significant Canadian AI developments from "
+        f"{yesterday} and {today} related to: {domain}.\n\n"
+        f"Use web search to find genuinely recent news — not older coverage.\n\n"
+        f"Return ONLY a valid JSON array. Each element must have these keys:\n"
+        f'  - "title": one specific sentence\n'
+        f'  - "body": 2-3 sentences explaining significance\n'
+        f'  - "source": the article URL\n'
+        f'  - "source_label": publication/website name\n\n'
+        f"No markdown, no code fences, no prose before or after. Just the JSON array."
+    )
+
+    try:
+        response = client.responses.create(
+            model=MODEL,
+            input=prompt,
+            tools=[{"type": "web_search"}],
+        )
+    except Exception as e:
+        logger.error(f"Responses API error for {domain}: {e}")
+        return []
+
+    text = (response.output_text or '').strip()
+    logger.info(f"Got {len(text)} chars for {domain}")
+
+    findings = _parse_json_array(text)
+    if findings is None:
+        logger.warning(f"Could not parse JSON for {domain}. Raw (first 200): {text[:200]}")
+        return []
+    return findings[:finding_count]
+
+
+def _parse_json_array(text: str) -> Optional[list]:
+    """Extract a JSON array from model output, tolerating code fences or prose."""
+    # Strip common code fences
+    fenced = re.search(r'```(?:json)?\s*(\[.*?\])\s*```', text, re.DOTALL)
+    candidate = fenced.group(1) if fenced else text
+
+    try:
+        parsed = json.loads(candidate)
+        return parsed if isinstance(parsed, list) else None
+    except json.JSONDecodeError:
+        pass
+
+    # Last resort: greedy match of first [ ... ] span
+    bracket = re.search(r'\[.*\]', text, re.DOTALL)
+    if bracket:
+        try:
+            parsed = json.loads(bracket.group())
+            return parsed if isinstance(parsed, list) else None
+        except json.JSONDecodeError:
+            return None
+    return None
+
+
 def generate_briefing_html(findings_by_domain: dict) -> str:
-    """Generate HTML briefing from findings."""
+    """Generate HTML briefing from findings keyed by domain label."""
     today = datetime.now().strftime('%B %d, %Y')
     yesterday = (datetime.now() - timedelta(days=1)).strftime('%B %d')
-    
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -160,8 +272,7 @@ def generate_briefing_html(findings_by_domain: dict) -> str:
         <h1>AI Adoption Briefing</h1>
         <div class="subtitle">Canadian AI developments, {yesterday} – {today}</div>
 """
-    
-    # Add findings by domain
+
     domain_configs = [
         ("Government & Policy", "Government & Policy AI"),
         ("Industry & Enterprise", "Industry & Enterprise AI"),
@@ -169,19 +280,20 @@ def generate_briefing_html(findings_by_domain: dict) -> str:
         ("Regulation & Ethics", "Regulation & Ethics AI"),
         ("Technology & Infrastructure", "Technology & Infrastructure AI"),
     ]
-    
+
     for domain_label, domain_key in domain_configs:
         findings = findings_by_domain.get(domain_key, [])
-        if findings:
-            html += f'        <h2 class="flagged">{domain_label}</h2>\n'
-            for finding in findings:
-                html += f"""        <div class="finding">
+        if not findings:
+            continue
+        html += f'        <h2 class="flagged">{domain_label}</h2>\n'
+        for finding in findings:
+            html += f"""        <div class="finding">
             <div class="finding-title">{finding.get('title', 'Untitled')}</div>
             <div class="finding-body">{finding.get('body', '')}</div>
             <div class="finding-source"><a href="{finding.get('source', '#')}">{finding.get('source_label', 'Source')}</a></div>
         </div>
 """
-    
+
     html += f"""        <div class="footer">
             <p>Compiled {today} • Covers 24-hour window</p>
             <p>This briefing synthesizes publicly available Canadian AI developments. All sources are linked.</p>
@@ -190,106 +302,42 @@ def generate_briefing_html(findings_by_domain: dict) -> str:
 </body>
 </html>
 """
-    
     return html
 
-def search_and_extract_findings(client, domain: str, finding_count: int) -> list:
-    """Use Claude to search web and extract findings for a domain."""
-    prompt = f"""Search for the {finding_count} most significant Canadian AI developments in the last 24 hours related to: {domain}
-
-Use current knowledge (April 2026) and web search to find genuinely fresh findings from April 14-15, 2026 (yesterday and today).
-
-For each finding, provide:
-1. Title (one sentence, specific)
-2. Body (2-3 sentences explaining significance)
-3. Source URL (actual link if available)
-4. Source label (publication/website name)
-
-Format as JSON array with objects containing: title, body, source, source_label
-
-Return ONLY valid JSON, no other text."""
-
-    try:
-        message = client.messages.create(
-            model="claude-opus-4-6",
-            max_tokens=2000,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
-        
-        response_text = message.content[0].text
-        logger.info(f"Got response for {domain}: {len(response_text)} chars")
-        
-        # Extract JSON from response
-        try:
-            # Try parsing the entire response as JSON
-            findings = json.loads(response_text)
-            if isinstance(findings, list):
-                return findings[:finding_count]  # Limit to requested count
-        except json.JSONDecodeError:
-            # Try to extract JSON from response text
-            import re
-            json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
-            if json_match:
-                try:
-                    findings = json.loads(json_match.group())
-                    if isinstance(findings, list):
-                        return findings[:finding_count]
-                except json.JSONDecodeError:
-                    pass
-        
-        logger.warning(f"Could not parse JSON for {domain}. Raw response: {response_text[:200]}")
-        return []
-        
-    except Exception as e:
-        logger.error(f"Error searching for {domain}: {e}")
-        return []
 
 def create_gmail_draft(service, subject: str, html_content: str) -> Optional[str]:
-    """Create a Gmail draft with the briefing."""
+    """Create a Gmail draft with the briefing. Returns draft ID or None."""
     if not service:
-        logger.info("Gmail service not available - skipping draft creation")
+        logger.info("Gmail service not available — skipping draft creation")
         return None
-    
+
     try:
-        # Create email message
         message = MIMEMultipart('alternative')
         message['subject'] = subject
-        
-        # Attach HTML part
-        html_part = MIMEText(html_content, 'html')
-        message.attach(html_part)
-        
-        # Create draft
+        message.attach(MIMEText(html_content, 'html'))
+
         body = {
             'message': {
-                'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()
-            }
+                'raw': base64.urlsafe_b64encode(message.as_bytes()).decode(),
+            },
         }
-        
         draft = service.users().drafts().create(userId='me', body=body).execute()
         draft_id = draft['id']
         logger.info(f"Created Gmail draft: {draft_id}")
         return draft_id
-        
     except Exception as e:
         logger.error(f"Error creating Gmail draft: {e}")
         return None
 
+
 def main():
-    """Main function."""
     logger.info("=== Starting daily briefing generation ===")
-    
+    logger.info(f"Using model: {MODEL}")
+
     try:
-        # Initialize clients
-        client = get_anthropic_client()
+        client = get_openai_client()
         gmail_service = get_gmail_service()
-        
-        # Define domains and finding counts
+
         domains = {
             "Government & Policy AI": 3,
             "Industry & Enterprise AI": 2,
@@ -297,42 +345,37 @@ def main():
             "Regulation & Ethics AI": 2,
             "Technology & Infrastructure AI": 2,
         }
-        
-        # Generate findings for each domain
-        logger.info("Generating findings for each domain...")
-        findings_by_domain = {}
-        
+
+        findings_by_domain: dict = {}
         for domain, count in domains.items():
             logger.info(f"Searching for {count} findings in {domain}...")
             findings = search_and_extract_findings(client, domain, count)
             findings_by_domain[domain] = findings
             logger.info(f"Found {len(findings)} findings for {domain}")
-        
-        # Generate HTML
+
         logger.info("Generating HTML briefing...")
         html_content = generate_briefing_html(findings_by_domain)
-        
-        # Save HTML locally for reference
+
         with open('briefing-output.html', 'w') as f:
             f.write(html_content)
         logger.info("Saved HTML to briefing-output.html")
-        
-        # Create Gmail draft
+
         today = datetime.now().strftime('%B %d, %Y')
         subject = f"AI Adoption Briefing – {today}"
         draft_id = create_gmail_draft(gmail_service, subject, html_content)
-        
+
         if draft_id:
             logger.info(f"✓ Briefing draft created: {draft_id}")
         else:
             logger.warning("Gmail draft not created (credentials may not be configured)")
-        
+
         logger.info("=== Briefing generation complete ===")
         return 0
-        
+
     except Exception as e:
         logger.error(f"Fatal error: {e}", exc_info=True)
         return 1
+
 
 if __name__ == "__main__":
     exit(main())
