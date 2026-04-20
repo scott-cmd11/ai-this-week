@@ -105,7 +105,9 @@ async function fetchViaJina(url: string): Promise<FetchResult> {
     const titleMatch = raw.match(/^Title:\s*(.+)$/m)
     const title = titleMatch?.[1]?.trim() ?? null
     const text = raw.replace(/^(Title|URL Source|Published Time):.*$/gm, '').trim().slice(0, 6000)
-    return { text: text || null, title, publishedDate: null, imageUrl: null }
+    // Treat access-denied / bot-challenge responses as failures
+    const isBlocked = !text || text.length < 200 || /access denied|you don't have permission|enable javascript/i.test(text.slice(0, 300))
+    return { text: isBlocked ? null : text, title, publishedDate: null, imageUrl: null }
   } catch {
     return { text: null, title: null, publishedDate: null, imageUrl: null }
   }
