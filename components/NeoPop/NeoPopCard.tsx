@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 interface Props {
   href?: string
   children: ReactNode
-  bg?: 'white' | 'yellow' | 'pink' | 'cream'
+  bg?: 'white' | 'yellow' | 'red' | 'cream'
   /** When true, shrinks the shadow on hover for a press-down feel. Default true when href is set. */
   interactive?: boolean
 }
@@ -12,7 +12,7 @@ interface Props {
 const bgClasses = {
   white: 'bg-neopop-white',
   yellow: 'bg-neopop-yellow',
-  pink: 'bg-neopop-pink',
+  red: 'bg-neopop-red text-neopop-white',
   cream: 'bg-neopop-cream',
 } as const
 

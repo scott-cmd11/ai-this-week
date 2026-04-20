@@ -28,7 +28,7 @@ const baseClasses = [
 ].join(' ')
 
 const variantClasses: Record<Variant, string> = {
-  primary: 'bg-neopop-blue text-neopop-white',
+  primary: 'bg-neopop-red text-neopop-white hover:bg-neopop-red-dark',
   secondary: 'bg-neopop-yellow text-neopop-black',
 }
 

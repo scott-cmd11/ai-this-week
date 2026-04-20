@@ -22,12 +22,13 @@ export default async function NeoPopHomePage() {
 
   return (
     <>
-      {/* Hero — yellow accent card, sharp edges, bold uppercase */}
+      {/* Hero — yellow accent card with a Canada-red rule under the headline */}
       <section aria-label="About this newsletter" className="mb-12">
         <NeoPopCard bg="yellow">
-          <h1 className="text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
+          <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
             AI news for people who aren&apos;t AI people.
           </h1>
+          <div className="w-20 h-[6px] bg-neopop-red mb-5" aria-hidden="true" />
           <p className="text-[22px] leading-[1.4] max-w-2xl font-medium">
             Every week, the most important stories in artificial intelligence — written for
             professional, non-technical readers. No hype, no jargon. Just what matters, in
@@ -39,7 +40,7 @@ export default async function NeoPopHomePage() {
       {/* Latest issue — headline treatment */}
       {latest && (
         <section aria-label="Latest issue" className="mb-14">
-          <p className="text-[14px] font-black uppercase tracking-[0.15em] mb-4 inline-block bg-neopop-black text-neopop-white px-3 py-1">
+          <p className="text-[14px] font-black uppercase tracking-[0.15em] mb-4 inline-block bg-neopop-red text-neopop-white px-3 py-1">
             Latest issue
           </p>
           <NeoPopCard bg="white">

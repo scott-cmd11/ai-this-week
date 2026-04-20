@@ -12,13 +12,13 @@
   --color-govuk-dark-grey: #505a5f;
   /* Dark-mode surface — not exposed as a Tailwind colour, used directly below */
 
-  /* NeoPop prototype tokens (used only on /neopop route) */
+  /* NeoPop prototype tokens (used only on /neopop route) — Canadian palette */
   --color-neopop-black: #0c0c0c;
   --color-neopop-white: #ffffff;
-  --color-neopop-blue: #1d4ed8;
-  --color-neopop-yellow: #ffdd00;
-  --color-neopop-pink: #ec4899;
-  --color-neopop-cream: #fefae0;
+  --color-neopop-red: #d52b1e;         /* Canada flag red, 1965 spec */
+  --color-neopop-red-dark: #a52015;    /* Pressed/hover state for red CTAs */
+  --color-neopop-yellow: #ffdd00;      /* Prairie wheat / accent */
+  --color-neopop-cream: #f5f1e8;       /* Slightly warmer off-white background */
 
   /* Hard-offset shadows — no blur. Used via shadow-[var(--shadow-neopop)] */
   --shadow-neopop: 8px 8px 0 0 #0c0c0c;
