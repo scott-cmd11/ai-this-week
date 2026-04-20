@@ -24,7 +24,7 @@ export default async function HomePage() {
     <>
       {/* Hero */}
       <section aria-label="About this newsletter" className="border-b-4 border-govuk-black pb-10 mb-10">
-        <h1 className="text-[48px] font-bold text-govuk-black leading-tight mb-4">
+        <h1 className="text-[48px] font-bold text-govuk-black dark:text-white leading-tight mb-4">
           AI news for people who aren&apos;t AI people.
         </h1>
         <p className="text-[22px] text-govuk-dark-grey leading-[1.5] max-w-2xl">
@@ -46,7 +46,7 @@ export default async function HomePage() {
               <span aria-hidden="true">·</span>
               <time dateTime={latest.issueDate}>{formatDate(latest.issueDate)}</time>
             </div>
-            <h2 className="text-[32px] font-bold text-govuk-black leading-tight mb-3">
+            <h2 className="text-[32px] font-bold text-govuk-black dark:text-white leading-tight mb-3">
               <Link
                 href={`/issues/${latest.slug}`}
                 className="text-govuk-blue underline hover:text-govuk-black"
@@ -55,7 +55,7 @@ export default async function HomePage() {
               </Link>
             </h2>
             {latest.summary && (
-              <p className="text-[19px] text-govuk-black leading-[1.5] mb-4 max-w-2xl">
+              <p className="text-[19px] text-govuk-black dark:text-white leading-[1.5] mb-4 max-w-2xl">
                 {latest.summary}
               </p>
             )}
@@ -72,7 +72,7 @@ export default async function HomePage() {
       {/* Archive */}
       {past.length > 0 && (
         <section aria-label="Past issues">
-          <h2 className="text-[27px] font-bold text-govuk-black mb-6">Past issues</h2>
+          <h2 className="text-[27px] font-bold text-govuk-black dark:text-white mb-6">Past issues</h2>
           <ul className="space-y-8 list-none p-0">
             {past.map(issue => (
               <li key={issue.id}>

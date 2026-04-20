@@ -79,7 +79,7 @@ export default async function IssuePage({ params }: Props) {
 
           {issue.aiAssisted && <AIDisclosureBadge />}
 
-          <h1 className="text-[48px] font-bold text-govuk-black leading-tight mb-6 mt-2">
+          <h1 className="text-[48px] font-bold text-govuk-black dark:text-white leading-tight mb-6 mt-2">
             {issue.title}
           </h1>
 
@@ -127,7 +127,7 @@ export default async function IssuePage({ params }: Props) {
           {/* Related issues */}
           {related.length > 0 && (
             <section aria-label="More issues" className="mt-16">
-              <h2 className="text-[22px] font-bold text-govuk-black mb-6">More issues</h2>
+              <h2 className="text-[22px] font-bold text-govuk-black dark:text-white mb-6">More issues</h2>
               <ul className="space-y-8 list-none p-0">
                 {related.map(other => (
                   <li key={other.id}>

@@ -10,10 +10,10 @@ export const metadata: Metadata = {
 export default function SectionsPage() {
   return (
     <>
-      <h1 className="text-[48px] font-bold text-govuk-black leading-tight mb-4">
+      <h1 className="text-[48px] font-bold text-govuk-black dark:text-white leading-tight mb-4">
         Browse by section
       </h1>
-      <p className="text-[19px] text-govuk-dark-grey mb-10 max-w-xl">
+      <p className="text-[19px] text-govuk-dark-grey dark:text-govuk-light-grey mb-10 max-w-xl">
         Every issue is organised into sections. Browse all picks from a single section across
         every edition.
       </p>

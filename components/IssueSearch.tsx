@@ -26,7 +26,7 @@ export function IssueSearch({ issues }: Props) {
     <div>
       {/* Search input */}
       <div className="mb-8">
-        <label htmlFor={inputId} className="block text-[17px] font-bold text-govuk-black mb-2">
+        <label htmlFor={inputId} className="block text-[17px] font-bold text-govuk-black dark:text-white mb-2">
           Search issues
         </label>
         <input
@@ -59,7 +59,7 @@ export function IssueSearch({ issues }: Props) {
       </ul>
 
       {filtered.length === 0 && !query.trim() && (
-        <p className="text-[19px] text-govuk-black">No issues published yet.</p>
+        <p className="text-[19px] text-govuk-black dark:text-white">No issues published yet.</p>
       )}
     </div>
   )

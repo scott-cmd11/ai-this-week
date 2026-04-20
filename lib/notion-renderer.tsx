@@ -15,7 +15,7 @@ export function NotionRenderer({ blocks }: Props) {
           return (
             <ul key={item[0].id} className="list-disc pl-6 mb-4 space-y-2">
               {item.map(block => (
-                <li key={block.id} className="text-[19px] text-govuk-black leading-[1.5]">
+                <li key={block.id} className="text-[19px] text-govuk-black dark:text-white leading-[1.5]">
                   <RichText segments={block.richText} fallback={block.content} />
                 </li>
               ))}
@@ -62,20 +62,20 @@ function Block({ block }: { block: NotionBlock }) {
       return (
         <h2
           id={block.headingId}
-          className="text-[27px] font-bold text-govuk-black mt-8 mb-4 leading-tight"
+          className="text-[27px] font-bold text-govuk-black dark:text-white mt-8 mb-4 leading-tight"
         >
           {block.content}
         </h2>
       )
     case 'heading_3':
       return (
-        <h3 className="text-[24px] font-bold text-govuk-black mt-6 mb-3 leading-tight">
+        <h3 className="text-[24px] font-bold text-govuk-black dark:text-white mt-6 mb-3 leading-tight">
           {block.content}
         </h3>
       )
     case 'paragraph':
       return block.content ? (
-        <p className="text-[19px] text-govuk-black leading-[1.5] mb-4">
+        <p className="text-[19px] text-govuk-black dark:text-white leading-[1.5] mb-4">
           <RichText segments={block.richText} fallback={block.content} />
         </p>
       ) : null

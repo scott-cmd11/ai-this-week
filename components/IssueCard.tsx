@@ -22,7 +22,7 @@ export function IssueCard({ issue }: Props) {
         <span aria-hidden="true">·</span>
         <time dateTime={issue.issueDate}>{formatDate(issue.issueDate)}</time>
       </div>
-      <h2 className="text-[24px] font-bold text-govuk-black mb-2 leading-tight">
+      <h2 className="text-[24px] font-bold text-govuk-black dark:text-white mb-2 leading-tight">
         <Link
           href={`/issues/${issue.slug}`}
           className="text-govuk-blue underline hover:text-govuk-black"
@@ -31,7 +31,7 @@ export function IssueCard({ issue }: Props) {
         </Link>
       </h2>
       {issue.summary && (
-        <p className="text-[19px] text-govuk-black leading-[1.5] m-0">{issue.summary}</p>
+        <p className="text-[19px] text-govuk-black dark:text-white leading-[1.5] m-0">{issue.summary}</p>
       )}
     </div>
   )

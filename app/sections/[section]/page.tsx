@@ -45,10 +45,10 @@ export default async function SectionPage({ params }: Props) {
         </Link>
       </div>
 
-      <h1 className="text-[48px] font-bold text-govuk-black leading-tight mt-4 mb-2">
+      <h1 className="text-[48px] font-bold text-govuk-black dark:text-white leading-tight mt-4 mb-2">
         <span aria-hidden="true">{meta.emoji} </span>{meta.label}
       </h1>
-      <p className="text-[17px] text-govuk-dark-grey mb-10">
+      <p className="text-[17px] text-govuk-dark-grey dark:text-govuk-light-grey mb-10">
         {articles.length} pick{articles.length === 1 ? '' : 's'} across all issues
       </p>
 
@@ -72,7 +72,7 @@ export default async function SectionPage({ params }: Props) {
 
               {/* Article title */}
               {article.articleTitle && (
-                <h2 className="text-[22px] font-bold text-govuk-black leading-tight mb-2">
+                <h2 className="text-[22px] font-bold text-govuk-black dark:text-white leading-tight mb-2">
                   {article.articleUrl ? (
                     <a
                       href={article.articleUrl}
@@ -91,7 +91,7 @@ export default async function SectionPage({ params }: Props) {
 
               {/* Summary */}
               {article.summary && (
-                <p className="text-[17px] text-govuk-black leading-[1.5]">{article.summary}</p>
+                <p className="text-[17px] text-govuk-black dark:text-white leading-[1.5]">{article.summary}</p>
               )}
             </li>
           ))}
