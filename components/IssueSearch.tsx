@@ -25,8 +25,11 @@ export function IssueSearch({ issues }: Props) {
   return (
     <div>
       {/* Search input */}
-      <div className="mb-8">
-        <label htmlFor={inputId} className="block text-[17px] font-bold text-govuk-black dark:text-white mb-2">
+      <div className="mb-10">
+        <label
+          htmlFor={inputId}
+          className="block text-[15px] font-black uppercase tracking-wide text-neopop-black mb-2"
+        >
           Search issues
         </label>
         <input
@@ -35,13 +38,13 @@ export function IssueSearch({ issues }: Props) {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Filter by title or topic…"
-          className="w-full max-w-md border-2 border-govuk-black dark:border-govuk-mid-grey px-3 py-2 text-[17px] text-govuk-black dark:text-govuk-light-grey bg-white dark:bg-govuk-light-grey focus:outline-none focus:ring-4 focus:ring-govuk-yellow placeholder:text-govuk-dark-grey"
+          className="w-full max-w-md border-[3px] border-neopop-black px-4 py-3 text-[17px] text-neopop-black bg-neopop-white shadow-[4px_4px_0_0_var(--color-neopop-black)] focus:outline-none focus:shadow-[6px_6px_0_0_var(--color-neopop-red)] focus:border-neopop-red placeholder:text-neopop-black/50"
           aria-controls="issue-list"
           autoComplete="off"
           spellCheck={false}
         />
         {query.trim() && (
-          <p className="text-[15px] text-govuk-dark-grey mt-2" aria-live="polite">
+          <p className="text-[14px] font-bold uppercase tracking-wide mt-3" aria-live="polite">
             {filtered.length === 0
               ? 'No issues match your search.'
               : `${filtered.length} issue${filtered.length === 1 ? '' : 's'} found`}
@@ -50,7 +53,7 @@ export function IssueSearch({ issues }: Props) {
       </div>
 
       {/* Results */}
-      <ul id="issue-list" className="space-y-8 list-none p-0" aria-label="Newsletter issues">
+      <ul id="issue-list" className="space-y-10 list-none p-0" aria-label="Newsletter issues">
         {filtered.map(issue => (
           <li key={issue.id}>
             <IssueCard issue={issue} />
@@ -59,7 +62,7 @@ export function IssueSearch({ issues }: Props) {
       </ul>
 
       {filtered.length === 0 && !query.trim() && (
-        <p className="text-[19px] text-govuk-black dark:text-white">No issues published yet.</p>
+        <p className="text-[19px] font-bold text-neopop-black">No issues published yet.</p>
       )}
     </div>
   )

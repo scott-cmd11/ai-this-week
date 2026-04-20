@@ -1,32 +1,27 @@
-import Link from 'next/link'
+import { NeoPopButton } from '@/components/NeoPop/NeoPopButton'
 
 export default function NotFound() {
   return (
     <div className="max-w-2xl">
-      <p className="text-[16px] font-bold text-govuk-dark-grey uppercase tracking-wide mb-3">
+      <p className="text-[13px] font-black uppercase tracking-[0.15em] inline-block bg-neopop-red text-neopop-white px-3 py-1 mb-4">
         Error 404
       </p>
-      <h1 className="text-[48px] font-bold text-govuk-black dark:text-white leading-tight mb-4">
+      <h1 className="text-[56px] sm:text-[72px] font-black uppercase leading-[0.95] tracking-tight mb-4">
         Page not found
       </h1>
-      <p className="text-[19px] text-govuk-black dark:text-white leading-[1.5] mb-8">
+      <div className="w-20 h-[6px] bg-neopop-red mb-6" aria-hidden="true" />
+      <p className="text-[19px] leading-[1.5] mb-8">
         The page you&apos;re looking for doesn&apos;t exist. The link might be broken, or
         the issue might have been moved.
       </p>
 
-      <div className="flex flex-wrap gap-3">
-        <Link
-          href="/"
-          className="inline-block bg-govuk-black text-white dark:bg-white dark:text-govuk-black font-bold text-[17px] px-5 py-3 hover:bg-govuk-dark-grey no-underline"
-        >
-          Back to the latest issue
-        </Link>
-        <Link
-          href="/issues"
-          className="inline-block border-2 border-govuk-black dark:border-govuk-mid-grey text-govuk-black dark:text-white font-bold text-[17px] px-5 py-3 hover:bg-govuk-light-grey no-underline"
-        >
+      <div className="flex flex-wrap gap-4">
+        <NeoPopButton href="/" variant="primary">
+          Back to latest issue
+        </NeoPopButton>
+        <NeoPopButton href="/issues" variant="secondary">
           Browse all issues
-        </Link>
+        </NeoPopButton>
       </div>
     </div>
   )

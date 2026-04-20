@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import type { Issue } from '@/lib/types'
+import { NeoPopCard } from './NeoPop/NeoPopCard'
 
 interface Props {
   issue: Issue
@@ -16,23 +16,18 @@ function formatDate(isoDate: string): string {
 
 export function IssueCard({ issue }: Props) {
   return (
-    <div className="border-b border-govuk-mid-grey pb-6">
-      <div className="flex gap-3 text-[16px] text-govuk-dark-grey mb-1">
+    <NeoPopCard href={`/issues/${issue.slug}`} bg="white">
+      <div className="flex gap-3 text-[13px] font-bold uppercase tracking-wide mb-2">
         <span>Issue {issue.issueNumber}</span>
         <span aria-hidden="true">·</span>
         <time dateTime={issue.issueDate}>{formatDate(issue.issueDate)}</time>
       </div>
-      <h2 className="text-[24px] font-bold text-govuk-black dark:text-white mb-2 leading-tight">
-        <Link
-          href={`/issues/${issue.slug}`}
-          className="text-govuk-blue underline hover:text-govuk-black"
-        >
-          {issue.title}
-        </Link>
+      <h2 className="text-[24px] font-black leading-tight mb-2 text-neopop-black">
+        {issue.title}
       </h2>
       {issue.summary && (
-        <p className="text-[19px] text-govuk-black dark:text-white leading-[1.5] m-0">{issue.summary}</p>
+        <p className="text-[17px] leading-[1.5] text-neopop-black m-0">{issue.summary}</p>
       )}
-    </div>
+    </NeoPopCard>
   )
 }

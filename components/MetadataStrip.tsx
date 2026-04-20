@@ -15,7 +15,7 @@ function formatDate(isoDate: string): string {
 
 export function MetadataStrip({ issueNumber, issueDate }: Props) {
   return (
-    <div className="flex gap-4 text-[16px] text-govuk-dark-grey mb-2" aria-label="Issue details">
+    <div className="flex gap-3 text-[13px] font-bold uppercase tracking-wide" aria-label="Issue details">
       <span>Issue {issueNumber}</span>
       <span aria-hidden="true">·</span>
       <time dateTime={issueDate}>{formatDate(issueDate)}</time>

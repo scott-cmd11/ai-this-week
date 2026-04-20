@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { SECTIONS, getArticlesBySection } from '@/lib/notion'
 import type { SectionSlug } from '@/lib/notion'
+import { NeoPopCard } from '@/components/NeoPop/NeoPopCard'
 
 export const revalidate = 3600  // expensive: fetches all issue blocks
 
@@ -39,60 +40,68 @@ export default async function SectionPage({ params }: Props) {
 
   return (
     <>
-      <div className="mb-2">
-        <Link href="/sections" className="text-[14px] text-govuk-blue underline hover:no-underline">
+      <div className="mb-4">
+        <Link
+          href="/sections"
+          className="text-[14px] font-black uppercase tracking-wide no-underline border-b-[3px] border-transparent hover:border-neopop-red"
+        >
           ← All sections
         </Link>
       </div>
 
-      <h1 className="text-[48px] font-bold text-govuk-black dark:text-white leading-tight mt-4 mb-2">
+      <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mt-4 mb-2">
         <span aria-hidden="true">{meta.emoji} </span>{meta.label}
       </h1>
-      <p className="text-[17px] text-govuk-dark-grey dark:text-govuk-light-grey mb-10">
+      <div className="w-20 h-[6px] bg-neopop-red mb-6" aria-hidden="true" />
+      <p className="text-[15px] font-bold uppercase tracking-wide mb-10">
         {articles.length} pick{articles.length === 1 ? '' : 's'} across all issues
       </p>
 
       {articles.length === 0 ? (
-        <p className="text-[19px] text-govuk-dark-grey">No articles found in this section yet.</p>
+        <NeoPopCard bg="white" interactive={false}>
+          <p className="text-[19px] font-bold">No articles found in this section yet.</p>
+        </NeoPopCard>
       ) : (
-        <ul className="space-y-8 list-none p-0">
+        <ul className="space-y-10 list-none p-0">
           {articles.map((article, i) => (
-            <li key={i} className="border-b border-govuk-mid-grey pb-6">
-              {/* Issue attribution */}
-              <div className="flex gap-3 text-[14px] text-govuk-dark-grey mb-2">
-                <Link
-                  href={`/issues/${article.issueSlug}`}
-                  className="text-govuk-blue underline hover:no-underline font-bold"
-                >
-                  Issue {article.issueNumber}
-                </Link>
-                <span aria-hidden="true">·</span>
-                <time dateTime={article.issueDate}>{formatDate(article.issueDate)}</time>
-              </div>
+            <li key={i}>
+              <NeoPopCard bg="white" interactive={false}>
+                {/* Issue attribution */}
+                <div className="flex gap-3 text-[13px] font-bold uppercase tracking-wide mb-2">
+                  <Link
+                    href={`/issues/${article.issueSlug}`}
+                    className="underline hover:no-underline hover:text-neopop-red"
+                  >
+                    Issue {article.issueNumber}
+                  </Link>
+                  <span aria-hidden="true">·</span>
+                  <time dateTime={article.issueDate}>{formatDate(article.issueDate)}</time>
+                </div>
 
-              {/* Article title */}
-              {article.articleTitle && (
-                <h2 className="text-[22px] font-bold text-govuk-black dark:text-white leading-tight mb-2">
-                  {article.articleUrl ? (
-                    <a
-                      href={article.articleUrl}
-                      className="text-govuk-blue underline hover:text-govuk-black"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {article.articleTitle}
-                      <span className="sr-only"> (opens in new tab)</span>
-                    </a>
-                  ) : (
-                    article.articleTitle
-                  )}
-                </h2>
-              )}
+                {/* Article title */}
+                {article.articleTitle && (
+                  <h2 className="text-[22px] font-black leading-tight mb-3 text-neopop-black">
+                    {article.articleUrl ? (
+                      <a
+                        href={article.articleUrl}
+                        className="text-neopop-black hover:text-neopop-red underline hover:no-underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {article.articleTitle}
+                        <span className="sr-only"> (opens in new tab)</span>
+                      </a>
+                    ) : (
+                      article.articleTitle
+                    )}
+                  </h2>
+                )}
 
-              {/* Summary */}
-              {article.summary && (
-                <p className="text-[17px] text-govuk-black dark:text-white leading-[1.5]">{article.summary}</p>
-              )}
+                {/* Summary */}
+                {article.summary && (
+                  <p className="text-[17px] leading-[1.5]">{article.summary}</p>
+                )}
+              </NeoPopCard>
             </li>
           ))}
         </ul>

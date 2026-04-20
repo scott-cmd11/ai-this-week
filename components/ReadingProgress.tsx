@@ -24,7 +24,7 @@ export function ReadingProgress() {
       aria-valuemin={0}
       aria-valuemax={100}
       style={{ width: `${progress}%` }}
-      className="fixed top-0 left-0 h-[3px] bg-govuk-blue z-50 transition-[width] duration-75 ease-out pointer-events-none"
+      className="fixed top-0 left-0 h-[4px] bg-neopop-red z-50 transition-[width] duration-75 ease-out pointer-events-none"
     />
   )
 }

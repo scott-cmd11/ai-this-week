@@ -10,22 +10,23 @@ export const metadata: Metadata = {
 export default function SectionsPage() {
   return (
     <>
-      <h1 className="text-[48px] font-bold text-govuk-black dark:text-white leading-tight mb-4">
+      <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
         Browse by section
       </h1>
-      <p className="text-[19px] text-govuk-dark-grey dark:text-govuk-light-grey mb-10 max-w-xl">
+      <div className="w-20 h-[6px] bg-neopop-red mb-6" aria-hidden="true" />
+      <p className="text-[19px] mb-10 max-w-xl">
         Every issue is organised into sections. Browse all picks from a single section across
         every edition.
       </p>
-      <ul className="space-y-4 list-none p-0">
+      <ul className="space-y-5 list-none p-0">
         {SECTIONS.map(section => (
           <li key={section.slug}>
             <Link
               href={`/sections/${section.slug}`}
-              className="flex items-center gap-4 border-2 border-govuk-black px-5 py-4 hover:bg-govuk-light-grey no-underline group"
+              className="flex items-center gap-4 border-[3px] border-neopop-black bg-neopop-white px-6 py-4 no-underline shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 ease-out hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)]"
             >
               <span className="text-[28px]" aria-hidden="true">{section.emoji}</span>
-              <span className="text-[20px] font-bold text-govuk-blue group-hover:text-govuk-black underline group-hover:no-underline">
+              <span className="text-[20px] font-black uppercase tracking-wide text-neopop-black">
                 {section.label}
               </span>
             </Link>

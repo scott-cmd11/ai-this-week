@@ -1,12 +1,12 @@
 export function AIDisclosureBadge() {
   return (
     <div
-      className="flex items-start gap-3 bg-govuk-light-grey border-l-4 border-govuk-mid-grey px-4 py-3 mb-6"
+      className="inline-flex items-center gap-2 border-[3px] border-neopop-black bg-neopop-yellow px-3 py-2 mb-6 shadow-[4px_4px_0_0_var(--color-neopop-black)]"
       role="note"
       aria-label="AI content disclosure"
     >
-      <span className="font-bold text-[19px] text-govuk-black dark:text-white" aria-hidden="true">!</span>
-      <p className="text-[16px] text-govuk-black dark:text-white m-0">
+      <span className="font-black text-[15px] uppercase tracking-wide" aria-hidden="true">!</span>
+      <p className="text-[14px] font-bold m-0">
         Summaries in this issue are AI-assisted.
       </p>
     </div>

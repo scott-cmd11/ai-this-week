@@ -3,16 +3,22 @@ import Link from 'next/link'
 export function Footer() {
   return (
     <footer
-      className="border-t-4 border-govuk-blue mt-16 py-8 bg-govuk-light-grey dark:bg-govuk-black"
+      className="border-t-[4px] border-neopop-black mt-16 py-8 bg-neopop-white"
       role="contentinfo"
     >
-      <div className="max-w-4xl mx-auto px-4">
-        <p className="text-[16px] text-govuk-dark-grey">
-          Summaries on this site are drafted with AI assistance and reviewed before
-          publication.{' '}
-          <Link href="/about" className="text-govuk-blue underline hover:no-underline">
+      <div className="max-w-4xl mx-auto px-4 flex items-start justify-between gap-4 flex-wrap">
+        <p className="text-[15px] text-neopop-black max-w-xl">
+          <span className="font-black uppercase tracking-wide">AI disclosure —</span>{' '}
+          Summaries on this site are drafted with AI assistance and reviewed before publication.{' '}
+          <Link
+            href="/about"
+            className="underline font-bold hover:text-neopop-red hover:no-underline"
+          >
             Learn more
           </Link>
+        </p>
+        <p className="text-[13px] text-neopop-black font-bold uppercase tracking-wider">
+          Made in Canada
         </p>
       </div>
     </footer>

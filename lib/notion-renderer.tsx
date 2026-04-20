@@ -15,7 +15,7 @@ export function NotionRenderer({ blocks }: Props) {
           return (
             <ul key={item[0].id} className="list-disc pl-6 mb-4 space-y-2">
               {item.map(block => (
-                <li key={block.id} className="text-[19px] text-govuk-black dark:text-white leading-[1.5]">
+                <li key={block.id} className="text-[19px] text-neopop-black leading-[1.5]">
                   <RichText segments={block.richText} fallback={block.content} />
                 </li>
               ))}
@@ -41,7 +41,7 @@ function RichText({ segments, fallback }: { segments?: RichTextSegment[]; fallba
             <a
               key={i}
               href={seg.href}
-              className="text-govuk-blue underline hover:text-govuk-black focus:outline-none focus:bg-govuk-yellow focus:text-govuk-black"
+              className="text-neopop-black underline font-bold hover:text-neopop-red focus:outline-none focus:bg-neopop-yellow"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -62,20 +62,20 @@ function Block({ block }: { block: NotionBlock }) {
       return (
         <h2
           id={block.headingId}
-          className="text-[27px] font-bold text-govuk-black dark:text-white mt-8 mb-4 leading-tight"
+          className="text-[28px] font-black uppercase tracking-tight text-neopop-black mt-10 mb-4 leading-tight"
         >
           {block.content}
         </h2>
       )
     case 'heading_3':
       return (
-        <h3 className="text-[24px] font-bold text-govuk-black dark:text-white mt-6 mb-3 leading-tight">
+        <h3 className="text-[22px] font-black text-neopop-black mt-6 mb-3 leading-tight">
           {block.content}
         </h3>
       )
     case 'paragraph':
       return block.content ? (
-        <p className="text-[19px] text-govuk-black dark:text-white leading-[1.5] mb-4">
+        <p className="text-[19px] text-neopop-black leading-[1.5] mb-4">
           <RichText segments={block.richText} fallback={block.content} />
         </p>
       ) : null
@@ -91,7 +91,7 @@ function Block({ block }: { block: NotionBlock }) {
             loading="lazy"
           />
           {block.content && block.content !== block.href && (
-            <figcaption className="text-[15px] text-govuk-dark-grey mt-2">
+            <figcaption className="text-[14px] font-bold uppercase tracking-wide mt-2">
               {block.content}
             </figcaption>
           )}
@@ -113,7 +113,7 @@ function Block({ block }: { block: NotionBlock }) {
         </p>
       )
     case 'divider':
-      return <hr className="border-govuk-mid-grey my-8" aria-hidden="true" />
+      return <hr className="border-t-[3px] border-neopop-black my-10 w-20" aria-hidden="true" />
     default:
       return null
   }

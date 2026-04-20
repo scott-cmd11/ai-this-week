@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getPublishedIssues } from '@/lib/notion'
-import { IssueCard } from '@/components/IssueCard'
+import { NeoPopCard } from '@/components/NeoPop/NeoPopCard'
+import { NeoPopButton } from '@/components/NeoPop/NeoPopButton'
 
 export const revalidate = 300
 
@@ -23,60 +24,66 @@ export default async function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section aria-label="About this newsletter" className="border-b-4 border-govuk-black pb-10 mb-10">
-        <h1 className="text-[48px] font-bold text-govuk-black dark:text-white leading-tight mb-4">
-          AI news for people who aren&apos;t AI people.
-        </h1>
-        <p className="text-[22px] text-govuk-dark-grey leading-[1.5] max-w-2xl">
-          Every week, the most important stories in artificial intelligence — written for
-          professional, non-technical readers. No hype, no jargon. Just what matters, in
-          plain English.
-        </p>
+      <section aria-label="About this newsletter" className="mb-12">
+        <NeoPopCard bg="yellow">
+          <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
+            AI news for people who aren&apos;t AI people.
+          </h1>
+          <div className="w-20 h-[6px] bg-neopop-red mb-5" aria-hidden="true" />
+          <p className="text-[22px] leading-[1.4] max-w-2xl font-medium">
+            Every week: Canadian AI news, trending global stories, and new research —
+            written for professional, non-technical readers. No hype, no jargon.
+          </p>
+        </NeoPopCard>
       </section>
 
       {/* Latest issue */}
       {latest && (
         <section aria-label="Latest issue" className="mb-14">
-          <p className="text-[16px] font-bold text-govuk-dark-grey uppercase tracking-wide mb-3">
+          <p className="text-[14px] font-black uppercase tracking-[0.15em] mb-4 inline-block bg-neopop-red text-neopop-white px-3 py-1">
             Latest issue
           </p>
-          <div className="border-l-4 border-govuk-black pl-6">
-            <div className="flex gap-3 text-[16px] text-govuk-dark-grey mb-2">
+          <NeoPopCard bg="white">
+            <div className="flex gap-3 text-[14px] font-bold uppercase tracking-wide mb-3">
               <span>Issue {latest.issueNumber}</span>
               <span aria-hidden="true">·</span>
               <time dateTime={latest.issueDate}>{formatDate(latest.issueDate)}</time>
             </div>
-            <h2 className="text-[32px] font-bold text-govuk-black dark:text-white leading-tight mb-3">
-              <Link
-                href={`/issues/${latest.slug}`}
-                className="text-govuk-blue underline hover:text-govuk-black"
-              >
+            <h2 className="text-[36px] font-black uppercase leading-[1.05] tracking-tight mb-4">
+              <Link href={`/issues/${latest.slug}`} className="text-neopop-black hover:text-neopop-red no-underline">
                 {latest.title}
               </Link>
             </h2>
             {latest.summary && (
-              <p className="text-[19px] text-govuk-black dark:text-white leading-[1.5] mb-4 max-w-2xl">
-                {latest.summary}
-              </p>
+              <p className="text-[19px] leading-[1.5] mb-6 max-w-2xl">{latest.summary}</p>
             )}
-            <Link
-              href={`/issues/${latest.slug}`}
-              className="inline-block bg-govuk-black text-white font-bold text-[17px] px-5 py-3 hover:bg-govuk-dark-grey"
-            >
-              Read this issue
-            </Link>
-          </div>
+            <NeoPopButton href={`/issues/${latest.slug}`} variant="primary">
+              Read this issue →
+            </NeoPopButton>
+          </NeoPopCard>
         </section>
       )}
 
-      {/* Archive */}
+      {/* Past issues */}
       {past.length > 0 && (
         <section aria-label="Past issues">
-          <h2 className="text-[27px] font-bold text-govuk-black dark:text-white mb-6">Past issues</h2>
-          <ul className="space-y-8 list-none p-0">
+          <h2 className="text-[32px] font-black uppercase tracking-tight mb-6">Past issues</h2>
+          <ul className="space-y-10 list-none p-0">
             {past.map(issue => (
               <li key={issue.id}>
-                <IssueCard issue={issue} />
+                <NeoPopCard href={`/issues/${issue.slug}`} bg="white">
+                  <div className="flex gap-3 text-[13px] font-bold uppercase tracking-wide mb-2">
+                    <span>Issue {issue.issueNumber}</span>
+                    <span aria-hidden="true">·</span>
+                    <time dateTime={issue.issueDate}>{formatDate(issue.issueDate)}</time>
+                  </div>
+                  <h3 className="text-[24px] font-black leading-tight mb-2 text-neopop-black">
+                    {issue.title}
+                  </h3>
+                  {issue.summary && (
+                    <p className="text-[17px] leading-[1.5] text-neopop-black">{issue.summary}</p>
+                  )}
+                </NeoPopCard>
               </li>
             ))}
           </ul>
@@ -84,7 +91,10 @@ export default async function HomePage() {
       )}
 
       {issues.length === 0 && (
-        <p className="text-[19px] text-govuk-dark-grey">No issues published yet.</p>
+        <NeoPopCard bg="white" interactive={false}>
+          <p className="text-[19px] font-bold">No issues published yet.</p>
+          <p className="text-[15px] mt-2">Once the first issue is published it will appear here.</p>
+        </NeoPopCard>
       )}
     </>
   )

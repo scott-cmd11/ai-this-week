@@ -53,19 +53,19 @@ export function TableOfContents({ entries }: Props) {
       aria-label="Table of contents"
       className="hidden xl:block sticky top-8 self-start w-56 shrink-0"
     >
-      <p className="text-[13px] font-bold text-govuk-dark-grey uppercase tracking-wide mb-3">
+      <p className="text-[12px] font-black uppercase tracking-[0.15em] mb-3 inline-block bg-neopop-black text-neopop-white px-2 py-1">
         Contents
       </p>
-      <ol className="list-none p-0 space-y-1">
+      <ol className="list-none p-0 space-y-1 mt-1">
         {entries.map(({ id, label }) => (
           <li key={id}>
             <a
               href={`#${id}`}
               className={[
-                'block text-[14px] leading-[1.4] py-0.5 border-l-4 pl-3 no-underline hover:underline',
+                'block text-[14px] leading-[1.4] py-1 border-l-[4px] pl-3 no-underline',
                 activeId === id
-                  ? 'border-govuk-blue text-govuk-blue font-bold'
-                  : 'border-transparent text-govuk-dark-grey hover:text-govuk-black',
+                  ? 'border-neopop-red text-neopop-black font-black'
+                  : 'border-transparent text-neopop-black hover:border-neopop-red',
               ].join(' ')}
             >
               {label}

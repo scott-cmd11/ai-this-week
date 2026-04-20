@@ -70,7 +70,7 @@ export default async function IssuePage({ params }: Props) {
       <div className="xl:flex xl:gap-16 xl:items-start">
         <article aria-label={issue.title} className="min-w-0 flex-1">
           {/* Metadata + reading time */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2 text-[16px] text-govuk-dark-grey">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-[13px] font-bold uppercase tracking-wide">
             <MetadataStrip issueNumber={issue.issueNumber} issueDate={issue.issueDate} />
             <span aria-label={`Estimated reading time: ${readingTime} minutes`}>
               · {readingTime} min read
@@ -79,9 +79,10 @@ export default async function IssuePage({ params }: Props) {
 
           {issue.aiAssisted && <AIDisclosureBadge />}
 
-          <h1 className="text-[48px] font-bold text-govuk-black dark:text-white leading-tight mb-6 mt-2">
+          <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4 mt-2">
             {issue.title}
           </h1>
+          <div className="w-20 h-[6px] bg-neopop-red mb-8" aria-hidden="true" />
 
           {/* Share row */}
           <div className="flex flex-wrap gap-3 mb-8">
@@ -94,15 +95,15 @@ export default async function IssuePage({ params }: Props) {
           {/* Prev / Next navigation */}
           <nav
             aria-label="Issue navigation"
-            className="border-t border-govuk-mid-grey mt-12 pt-8 grid grid-cols-2 gap-4"
+            className="border-t-[3px] border-neopop-black mt-12 pt-8 grid grid-cols-2 gap-4"
           >
             <div>
               {adjacent.prev && (
                 <>
-                  <p className="text-[14px] text-govuk-dark-grey mb-1">← Older</p>
+                  <p className="text-[12px] font-black uppercase tracking-wide mb-1">← Older</p>
                   <Link
                     href={`/issues/${adjacent.prev.slug}`}
-                    className="text-govuk-blue text-[17px] font-bold underline hover:text-govuk-black"
+                    className="text-[17px] font-bold underline hover:text-neopop-red hover:no-underline"
                   >
                     {adjacent.prev.title}
                   </Link>
@@ -112,10 +113,10 @@ export default async function IssuePage({ params }: Props) {
             <div className="text-right">
               {adjacent.next && (
                 <>
-                  <p className="text-[14px] text-govuk-dark-grey mb-1">Newer →</p>
+                  <p className="text-[12px] font-black uppercase tracking-wide mb-1">Newer →</p>
                   <Link
                     href={`/issues/${adjacent.next.slug}`}
-                    className="text-govuk-blue text-[17px] font-bold underline hover:text-govuk-black"
+                    className="text-[17px] font-bold underline hover:text-neopop-red hover:no-underline"
                   >
                     {adjacent.next.title}
                   </Link>
@@ -127,7 +128,7 @@ export default async function IssuePage({ params }: Props) {
           {/* Related issues */}
           {related.length > 0 && (
             <section aria-label="More issues" className="mt-16">
-              <h2 className="text-[22px] font-bold text-govuk-black dark:text-white mb-6">More issues</h2>
+              <h2 className="text-[24px] font-black uppercase tracking-tight mb-6">More issues</h2>
               <ul className="space-y-8 list-none p-0">
                 {related.map(other => (
                   <li key={other.id}>
