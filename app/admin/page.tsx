@@ -1067,13 +1067,13 @@ export default function AdminPage() {
   if (!authed) {
     return (
       <div className="max-w-sm">
-        <h1 className="text-[32px] font-bold text-govuk-black mb-6">Admin sign in</h1>
+        <h1 className="text-[32px] font-bold text-govuk-black dark:text-white mb-6">Admin sign in</h1>
         <form onSubmit={handleSignIn} noValidate className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label htmlFor="password" className="font-bold text-[17px] text-govuk-black">Password</label>
+            <label htmlFor="password" className="font-bold text-[17px] text-govuk-black dark:text-white">Password</label>
             <input ref={passwordRef} id="password" type="password" value={password}
               onChange={e => setPassword(e.target.value)} disabled={authLoading} required
-              className="border-2 border-govuk-black px-3 py-2 text-[17px] text-govuk-black w-full focus-visible:outline-none focus-visible:border-govuk-blue disabled:bg-govuk-light-grey" />
+              className="border-2 border-govuk-black px-3 py-2 text-[17px] text-govuk-black dark:text-white dark:bg-transparent w-full focus-visible:outline-none focus-visible:border-govuk-blue disabled:bg-govuk-light-grey" />
             {authError && <p className="text-[15px] text-red-700 font-bold" role="alert">{authError}</p>}
           </div>
           <button type="submit" disabled={authLoading || !password}
