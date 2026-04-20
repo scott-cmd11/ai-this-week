@@ -7,7 +7,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ai-this-week.verce
 
 export const metadata: Metadata = {
   title: 'AI This Week',
-  description: 'A weekly update on the latest in artificial intelligence.',
+  description: 'Weekly AI news from Canada and around the world, plus trending stories and research — in plain English.',
   alternates: {
     types: {
       'application/rss+xml': `${SITE_URL}/feed.xml`,

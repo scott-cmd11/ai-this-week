@@ -8,7 +8,7 @@ export const revalidate = 300
 export const metadata: Metadata = {
   title: 'AI This Week — AI news for non-technical professionals',
   description:
-    'A weekly newsletter covering artificial intelligence for professional, non-technical readers. No hype, no jargon — just what matters, in plain English.',
+    'Canadian AI news, trending global stories, and new research — delivered weekly for professional, non-technical readers. No hype, no jargon.',
 }
 
 function formatDate(isoDate: string): string {
