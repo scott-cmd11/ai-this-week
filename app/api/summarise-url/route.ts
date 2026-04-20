@@ -91,6 +91,26 @@ function extractTitle(html: string): string | null {
     .trim() || null
 }
 
+// Jina Reader fallback — handles Cloudflare-protected and JS-heavy sites.
+// Free, no API key needed. Returns clean article text.
+async function fetchViaJina(url: string): Promise<FetchResult> {
+  try {
+    const res = await fetch(`https://r.jina.ai/${url}`, {
+      headers: { Accept: 'text/plain', 'X-Return-Format': 'text' },
+      signal: AbortSignal.timeout(30_000),
+    })
+    if (!res.ok) return { text: null, title: null, publishedDate: null, imageUrl: null }
+    const raw = await res.text()
+    // Jina prepends "Title: ..." and "URL Source: ..." lines — extract title if present
+    const titleMatch = raw.match(/^Title:\s*(.+)$/m)
+    const title = titleMatch?.[1]?.trim() ?? null
+    const text = raw.replace(/^(Title|URL Source|Published Time):.*$/gm, '').trim().slice(0, 6000)
+    return { text: text || null, title, publishedDate: null, imageUrl: null }
+  } catch {
+    return { text: null, title: null, publishedDate: null, imageUrl: null }
+  }
+}
+
 async function fetchArticle(url: string): Promise<FetchResult> {
   try {
     const res = await fetch(url, {
@@ -133,9 +153,13 @@ async function fetchArticle(url: string): Promise<FetchResult> {
       .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
       .replace(/\s{2,}/g, ' ').trim().slice(0, 6000)
 
+    // If text is suspiciously short it's likely a bot-challenge page — fall back to Jina
+    if (text.length < 200) throw new Error('Content too short — likely bot challenge')
+
     return { text, title, publishedDate, imageUrl }
   } catch {
-    return { text: null, title: null, publishedDate: null, imageUrl: null }
+    // Fallback: Jina Reader handles Cloudflare-protected and JS-rendered pages
+    return fetchViaJina(url)
   }
 }
 
