@@ -23,23 +23,14 @@ type ProgressEvent =
   | { type: 'complete';   notionUrl: string; issueNumber?: number; summaries: Record<string, Array<SectionSummary>> }
   | { type: 'error';      message: string }
 
-interface DraftIssue {
-  id: string
-  title: string
-  issueDate: string
-  issueNumber: number
-}
-
 interface SavedSession {
   savedAt: string
   sections: Record<SectionKey, string>
 }
 
-type Mode = 'create' | 'update'
 type SectionKey = 'top' | 'bright' | 'tool' | 'learning' | 'deep'
 
 interface CompletedCreate { notionUrl: string; issueNumber: number }
-interface CompletedUpdate { notionUrl: string }
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
@@ -82,10 +73,6 @@ function nextMonday(): string {
   return monday.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 }
 
-function formatIssueDateLabel(iso: string): string {
-  return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
 function formatSavedAt(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
@@ -97,10 +84,6 @@ function urlHostname(url: string): string {
 function parseUrlLines(text: string): string[] {
   if (!text.trim()) return []
   return text.split(/\n+/).map(u => u.trim()).filter(u => u.startsWith('http'))
-}
-
-function countUrls(text: string): number {
-  return parseUrlLines(text).length
 }
 
 function hasSummaryContent(summaries: Record<SectionKey, SectionSummary[]>): boolean {
@@ -368,13 +351,11 @@ function SectionTextarea({
 function QuickAdd({
   password,
   onAdd,
-  onSaveToDraft,
   disabled,
   initialUrl = '',
 }: {
   password: string
   onAdd: (url: string, section: SectionKey) => void
-  onSaveToDraft?: (url: string, section: SectionKey) => Promise<string>
   disabled: boolean
   initialUrl?: string
 }) {
@@ -385,8 +366,6 @@ function QuickAdd({
   const [overrideSection, setOverrideSection] = useState<SectionKey | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [added, setAdded] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
   // If a URL is passed from the ?add= param, open automatically
   useEffect(() => {
@@ -426,25 +405,6 @@ function QuickAdd({
     setOverrideSection(null)
     setError(null)
     setTimeout(() => setAdded(false), 2000)
-  }
-
-  async function handleSave() {
-    if (!onSaveToDraft) return
-    setSaving(true)
-    setSaveMessage(null)
-    try {
-      const msg = await onSaveToDraft(url, activeSection)
-      setSaveMessage(msg)
-      setUrl('')
-      setSuggestion(null)
-      setOverrideSection(null)
-      setError(null)
-      setTimeout(() => setSaveMessage(null), 4000)
-    } catch {
-      setSaveMessage('Error saving. Try again.')
-    } finally {
-      setSaving(false)
-    }
   }
 
   if (!open) {
@@ -498,11 +458,7 @@ function QuickAdd({
         <p className="text-[14px] text-green-700 font-bold">✓ Added to {SECTION_LABELS[activeSection]}</p>
       )}
 
-      {saveMessage && (
-        <p className="text-[14px] text-green-700 font-bold">{saveMessage}</p>
-      )}
-
-      {suggestion && !added && !saveMessage && (
+      {suggestion && !added && (
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-[14px] text-govuk-black">Suggested section:</span>
           <select
@@ -517,24 +473,13 @@ function QuickAdd({
           {suggestion.title && (
             <span className="text-[13px] text-govuk-dark-grey truncate max-w-xs">— {suggestion.title}</span>
           )}
-          {onSaveToDraft ? (
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-govuk-black text-white font-bold text-[14px] px-4 py-2 hover:bg-govuk-dark-grey disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-            >
-              {saving ? '⏳ Saving…' : `✓ Save to ${SECTION_LABELS[activeSection]}`}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleAdd}
-              className="bg-govuk-black text-white font-bold text-[14px] px-4 py-2 hover:bg-govuk-dark-grey shrink-0"
-            >
-              ✓ Add to {SECTION_LABELS[activeSection]}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="bg-govuk-black text-white font-bold text-[14px] px-4 py-2 hover:bg-govuk-dark-grey shrink-0"
+          >
+            ✓ Add to {SECTION_LABELS[activeSection]}
+          </button>
         </div>
       )}
     </div>
@@ -628,29 +573,6 @@ function SummaryPreview({
   )
 }
 
-// ─── ModeToggle ──────────────────────────────────────────────────────────────────
-
-function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
-  return (
-    <div className="flex flex-wrap border-2 border-govuk-black self-start" role="group" aria-label="Admin mode">
-      {(['create', 'update'] as const).map((m, i) => (
-        <button
-          key={m}
-          type="button"
-          onClick={() => onChange(m)}
-          className={[
-            'font-bold text-[15px] px-4 py-2',
-            i > 0 ? 'border-l-2 border-govuk-black' : '',
-            mode === m ? 'bg-govuk-black text-white' : 'bg-white text-govuk-black hover:bg-govuk-light-grey',
-          ].join(' ')}
-        >
-          {m === 'create' ? 'Create New Issue' : 'Update Existing Issue'}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 // ─── StatusLog ───────────────────────────────────────────────────────────────────
 
 function StatusLog({ items }: { items: string[] }) {
@@ -698,13 +620,10 @@ export default function AdminPage() {
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
 
-  // ── Mode
-  const [mode, setMode] = useState<Mode>('create')
-
   // ── Global settings
   const [summaryLength, setSummaryLength] = useState<SummaryLength>('standard')
 
-  // ── Create form
+  // ── Form state
   const [sections, setSections] = useState({ ...EMPTY_SECTIONS })
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({ ...ALL_COLLAPSED })
   const [includeImages, setIncludeImages] = useState(false)
@@ -714,21 +633,6 @@ export default function AdminPage() {
   const [resultSummaries, setResultSummaries] = useState<Record<SectionKey, SectionSummary[]>>({ ...EMPTY_SUMMARIES })
   const [apiError, setApiError] = useState<string | null>(null)
   const [createValidationError, setCreateValidationError] = useState<string | null>(null)
-
-  // ── Update form
-  const [draftIssues, setDraftIssues] = useState<DraftIssue[]>([])
-  const [draftLoading, setDraftLoading] = useState(false)
-  const [draftError, setDraftError] = useState<string | null>(null)
-  const [selectedIssueId, setSelectedIssueId] = useState('')
-  const [updateSections, setUpdateSections] = useState({ ...EMPTY_SECTIONS })
-  const [updateExpandedSections, setUpdateExpandedSections] = useState<Record<SectionKey, boolean>>({ ...ALL_COLLAPSED })
-  const [updateIncludeImages, setUpdateIncludeImages] = useState(false)
-  const [updateLoading, setUpdateLoading] = useState(false)
-  const [updateLog, setUpdateLog] = useState<string[]>([])
-  const [updateResult, setUpdateResult] = useState<CompletedUpdate | null>(null)
-  const [updateResultSummaries, setUpdateResultSummaries] = useState<Record<SectionKey, SectionSummary[]>>({ ...EMPTY_SUMMARIES })
-  const [updateError, setUpdateError] = useState<string | null>(null)
-  const [updateValidationError, setUpdateValidationError] = useState<string | null>(null)
 
   // ── Regenerate
   const [regeneratingUrl, setRegeneratingUrl] = useState<string | null>(null)
@@ -747,11 +651,9 @@ export default function AdminPage() {
   // ── Document title
   useEffect(() => {
     if (!authed) document.title = 'Admin sign in — AI This Week'
-    else if (mode === 'create' && result) document.title = 'Issue created — Admin — AI This Week'
-    else if (mode === 'update' && updateResult) document.title = 'Issue updated — Admin — AI This Week'
-    else if (mode === 'create') document.title = 'Create Issue — Admin — AI This Week'
-    else document.title = 'Update Issue — Admin — AI This Week'
-  }, [authed, mode, result, updateResult])
+    else if (result) document.title = 'Issue created — Admin — AI This Week'
+    else document.title = 'Admin — AI This Week'
+  }, [authed, result])
 
   // ── Restore auth from sessionStorage + check ?add= param
   useEffect(() => {
@@ -767,27 +669,7 @@ export default function AdminPage() {
     } catch { /* ignore */ }
   }, [])
 
-  // ── Auto-switch to update mode if drafts exist (runs after auth)
-  useEffect(() => {
-    if (!authed || !password) return
-    async function autoMode() {
-      try {
-        const res = await fetch(`/api/draft-issues?password=${encodeURIComponent(password)}`)
-        if (!res.ok) return
-        const data = await res.json()
-        const issues = (data.issues ?? []) as DraftIssue[]
-        if (issues.length > 0) {
-          setDraftIssues(issues)
-          setSelectedIssueId(prev => prev || issues[0].id)
-          setMode('update')
-        }
-      } catch { /* ignore — non-critical */ }
-    }
-    autoMode()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authed])
-
-  // ── Load saved session from localStorage
+// ── Load saved session from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem('adminLastSession')
@@ -798,9 +680,9 @@ export default function AdminPage() {
     } catch { /* ignore */ }
   }, [])
 
-  // ── Auto-save create-mode URLs (debounced 1s)
+  // ── Auto-save URLs to localStorage (debounced 1s) — keeps your in-progress issue across sessions
   useEffect(() => {
-    if (!authed || mode !== 'create') return
+    if (!authed) return
     const hasContent = SECTION_KEYS.some(k => sections[k].trim().length > 0)
     if (!hasContent) return
     const timer = setTimeout(() => {
@@ -811,7 +693,7 @@ export default function AdminPage() {
       } catch { /* ignore */ }
     }, 1000)
     return () => clearTimeout(timer)
-  }, [authed, mode, sections])
+  }, [authed, sections])
 
   // ── Auth handlers
   async function handleSignIn(e: React.FormEvent) {
@@ -840,34 +722,6 @@ export default function AdminPage() {
     setPassword('')
     setAuthed(false)
     setAuthError('')
-  }
-
-  // ── Mode
-  function handleModeChange(m: Mode) {
-    setMode(m)
-    if (m === 'update') loadDraftIssues()
-  }
-
-  async function loadDraftIssues() {
-    setDraftLoading(true)
-    setDraftError(null)
-    try {
-      const res = await fetch(`/api/draft-issues?password=${encodeURIComponent(password)}`)
-      if (res.status === 401) {
-        sessionStorage.removeItem('adminAuth')
-        setAuthed(false); setPassword('')
-        setAuthError('Session expired. Please sign in again.')
-        return
-      }
-      const data = await res.json()
-      if ('error' in data) { setDraftError(data.error as string) }
-      else {
-        const issues = data.issues as DraftIssue[]
-        setDraftIssues(issues)
-        if (issues.length > 0) setSelectedIssueId(prev => prev || issues[0].id)
-      }
-    } catch { setDraftError('Network error. Could not load draft issues.') }
-    finally { setDraftLoading(false) }
   }
 
   // ── Stream reader
@@ -928,47 +782,8 @@ export default function AdminPage() {
     finally { setLoading(false) }
   }
 
-  // ── Update handler
-  async function handleUpdate(e: React.FormEvent) {
-    e.preventDefault()
-    setUpdateValidationError(null)
-    const hasUrls = SECTION_KEYS.some(k => updateSections[k].trim().length > 0)
-    if (!hasUrls) { setUpdateValidationError('Please paste at least one URL before generating.'); return }
-    setUpdateLoading(true)
-    setUpdateError(null)
-    setUpdateResult(null)
-    setUpdateResultSummaries({ ...EMPTY_SUMMARIES })
-    setUpdateLog([])
-    try {
-      const res = await fetch('/api/update-issue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, pageId: selectedIssueId, sections: updateSections, includeImages: updateIncludeImages, summaryLength }),
-      })
-      if (res.status === 401) {
-        sessionStorage.removeItem('adminAuth'); setAuthed(false); setPassword('')
-        setAuthError('Session expired. Please sign in again.'); return
-      }
-      await readStream(res, (event) => {
-        switch (event.type) {
-          case 'fetch':    setUpdateLog(p => [...p, `⏳ Fetching ${urlHostname(event.url)}…`]); break
-          case 'pdf':      setUpdateLog(p => [...p, `📄 Extracting PDF text…`]); break
-          case 'summarise':setUpdateLog(p => [...p, `🤖 Summarising…`]); break
-          case 'done_url': setUpdateLog(p => [...p, `✓ Done — ${event.summary.slice(0, 80)}…`]); break
-          case 'notion':   setUpdateLog(p => [...p, `✍️ Appending to Notion page…`]); break
-          case 'complete':
-            setUpdateResult({ notionUrl: event.notionUrl })
-            setUpdateResultSummaries(event.summaries as Record<SectionKey, SectionSummary[]>)
-            break
-          case 'error': setUpdateError(event.message); break
-        }
-      })
-    } catch { setUpdateError('Network error. Check your connection and try again.') }
-    finally { setUpdateLoading(false) }
-  }
-
   // ── Regenerate single summary
-  async function handleRegenerate(url: string, isUpdate: boolean) {
+  async function handleRegenerate(url: string) {
     setRegeneratingUrl(url)
     try {
       const res = await fetch('/api/summarise-url', {
@@ -979,8 +794,7 @@ export default function AdminPage() {
       if (!res.ok) return
       const data = await res.json() as { summary: string; title: string | null; publishedDate: string | null; imageUrl: string | null }
       if (!data.summary) return
-      const setter = isUpdate ? setUpdateResultSummaries : setResultSummaries
-      setter(prev => {
+      setResultSummaries(prev => {
         const next = { ...prev }
         for (const key of SECTION_KEYS) {
           next[key] = (next[key] ?? []).map(s =>
@@ -994,9 +808,8 @@ export default function AdminPage() {
   }
 
   // ── Edit summary inline
-  function handleEditSummary(url: string, text: string, isUpdate: boolean) {
-    const setter = isUpdate ? setUpdateResultSummaries : setResultSummaries
-    setter(prev => {
+  function handleEditSummary(url: string, text: string) {
+    setResultSummaries(prev => {
       const next = { ...prev }
       for (const key of SECTION_KEYS) {
         next[key] = (next[key] ?? []).map(s => s.url === url ? { ...s, summary: text } : s)
@@ -1034,50 +847,15 @@ export default function AdminPage() {
 
   // ── Quick Add: adds a URL to a section and expands it
   function handleQuickAdd(url: string, section: SectionKey) {
-    if (mode === 'create') {
-      setSections(prev => {
-        const existing = prev[section].trim()
-        return { ...prev, [section]: existing ? `${existing}\n${url}` : url }
-      })
-      setExpandedSections(prev => ({ ...prev, [section]: true }))
-      setCreateValidationError(null)
-    } else {
-      setUpdateSections(prev => {
-        const existing = prev[section].trim()
-        return { ...prev, [section]: existing ? `${existing}\n${url}` : url }
-      })
-      setUpdateExpandedSections(prev => ({ ...prev, [section]: true }))
-      setUpdateValidationError(null)
-    }
+    setSections(prev => {
+      const existing = prev[section].trim()
+      return { ...prev, [section]: existing ? `${existing}\n${url}` : url }
+    })
+    setExpandedSections(prev => ({ ...prev, [section]: true }))
+    setCreateValidationError(null)
   }
 
-  // ── Save single article directly to Notion (used by QuickAdd in update mode)
-  async function handleSaveToDraft(url: string, section: SectionKey): Promise<string> {
-    const singleSection = { ...EMPTY_SECTIONS, [section]: url }
-    try {
-      const res = await fetch('/api/update-issue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, pageId: selectedIssueId, sections: singleSection, summaryLength }),
-      })
-      if (res.status === 401) {
-        sessionStorage.removeItem('adminAuth'); setAuthed(false); setPassword('')
-        return 'Session expired. Please sign in again.'
-      }
-      let savedSummary = ''
-      let errorMsg = ''
-      await readStream(res, (event) => {
-        if (event.type === 'done_url') savedSummary = event.summary
-        if (event.type === 'error') errorMsg = event.message
-      })
-      if (errorMsg) return `Error: ${errorMsg}`
-      return `✓ Saved to ${SECTION_LABELS[section]}${savedSummary ? ` — ${savedSummary.slice(0, 60)}…` : ''}`
-    } catch {
-      return 'Network error. Could not save.'
-    }
-  }
-
-  // ── Reset
+// ── Reset
   function handleReset() {
     setSections({ ...EMPTY_SECTIONS })
     setExpandedSections({ ...ALL_COLLAPSED })
@@ -1085,23 +863,12 @@ export default function AdminPage() {
     setApiError(null); setCreateLog([]); setCreateValidationError(null); setCopiedEmail(false)
   }
 
-  function handleUpdateAddMore() {
-    setUpdateSections({ ...EMPTY_SECTIONS })
-    setUpdateExpandedSections({ ...ALL_COLLAPSED })
-    setUpdateResult(null); setUpdateResultSummaries({ ...EMPTY_SUMMARIES })
-    setUpdateError(null); setUpdateLog([]); setUpdateValidationError(null); setCopiedEmail(false)
-    loadDraftIssues()
-  }
-
   function toggleSection(key: SectionKey) {
     setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
   }
-  function toggleUpdateSection(key: SectionKey) {
-    setUpdateExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
-  }
 
   // ── Render helpers
-  function renderSuccessActions(notionUrl: string, summaries: Record<SectionKey, SectionSummary[]>, isUpdate: boolean) {
+  function renderSuccessActions(notionUrl: string, summaries: Record<SectionKey, SectionSummary[]>) {
     return (
       <div className="flex flex-wrap gap-3">
         <a href={notionUrl} target="_blank" rel="noopener noreferrer"
@@ -1114,22 +881,20 @@ export default function AdminPage() {
             {copiedEmail ? '✓ Copied!' : '📋 Copy as plain text'}
           </button>
         )}
-        <button type="button" onClick={isUpdate ? handleUpdateAddMore : handleReset}
+        <button type="button" onClick={handleReset}
           className="inline-flex items-center gap-2 border-2 border-govuk-black text-govuk-black font-bold text-[17px] px-5 py-3 hover:bg-govuk-light-grey">
-          {isUpdate ? 'Add more' : 'Create another issue'}
+          Create another issue
         </button>
       </div>
     )
   }
 
-  function renderSummaryPreviews(summaries: Record<SectionKey, SectionSummary[]>, isUpdate: boolean) {
+  function renderSummaryPreviews(summaries: Record<SectionKey, SectionSummary[]>) {
     if (!hasSummaryContent(summaries)) return null
     return (
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-[22px] font-bold text-govuk-black">
-            {isUpdate ? 'Appended summaries' : 'Generated summaries'}
-          </h2>
+          <h2 className="text-[22px] font-bold text-govuk-black">Generated summaries</h2>
           <p className="text-[13px] text-govuk-dark-grey">Click Edit or ↻ Regenerate on any summary to modify it.</p>
         </div>
         {SECTION_KEYS.map(key => (
@@ -1137,8 +902,8 @@ export default function AdminPage() {
             key={key}
             label={SECTION_LABELS[key]}
             summaries={summaries[key] ?? []}
-            onEdit={(url, text) => handleEditSummary(url, text, isUpdate)}
-            onRegenerate={url => handleRegenerate(url, isUpdate)}
+            onEdit={handleEditSummary}
+            onRegenerate={handleRegenerate}
             regeneratingUrl={regeneratingUrl}
           />
         ))}
@@ -1171,7 +936,7 @@ export default function AdminPage() {
 
   // ── Render: create success ────────────────────────────────────────────────────
 
-  if (mode === 'create' && result) {
+  if (result) {
     return (
       <div className="max-w-2xl flex flex-col gap-6">
         <div className="flex justify-end">
@@ -1180,33 +945,15 @@ export default function AdminPage() {
         <div className="bg-green-50 border-l-4 border-green-700 px-5 py-4">
           <p className="font-bold text-[19px] text-green-900">Issue #{result.issueNumber} created successfully</p>
         </div>
-        {renderSuccessActions(result.notionUrl, resultSummaries, false)}
-        {renderSummaryPreviews(resultSummaries, false)}
-      </div>
-    )
-  }
-
-  // ── Render: update success ────────────────────────────────────────────────────
-
-  if (mode === 'update' && updateResult) {
-    const selectedIssue = draftIssues.find(i => i.id === selectedIssueId)
-    return (
-      <div className="max-w-2xl flex flex-col gap-6">
-        <div className="flex justify-end">
-          <button onClick={handleSignOut} className="text-[14px] text-govuk-dark-grey underline hover:no-underline">Sign out</button>
-        </div>
-        <div className="bg-green-50 border-l-4 border-green-700 px-5 py-4">
-          <p className="font-bold text-[19px] text-green-900">Added to Issue #{selectedIssue?.issueNumber ?? '—'}</p>
-        </div>
-        {renderSuccessActions(updateResult.notionUrl, updateResultSummaries, true)}
-        {renderSummaryPreviews(updateResultSummaries, true)}
+        {renderSuccessActions(result.notionUrl, resultSummaries)}
+        {renderSummaryPreviews(resultSummaries)}
       </div>
     )
   }
 
   // ── Render: main form ─────────────────────────────────────────────────────────
 
-  const isFormBusy = loading || updateLoading
+  const isFormBusy = loading
 
   return (
     <div className="max-w-2xl flex flex-col gap-8">
@@ -1223,14 +970,13 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
-        <ModeToggle mode={mode} onChange={handleModeChange} />
       </div>
 
       {/* Session restore banner */}
-      {savedSession && mode === 'create' && (
+      {savedSession && (
         <div className="bg-govuk-light-grey border-l-4 border-govuk-blue px-4 py-3 flex items-start sm:items-center justify-between gap-4 flex-wrap">
           <p className="text-[15px] text-govuk-black">
-            <strong>Unsaved session</strong> from {formatSavedAt(savedSession.savedAt)} — restore your URLs?
+            <strong>In-progress issue</strong> from {formatSavedAt(savedSession.savedAt)} — restore your URLs?
           </p>
           <div className="flex gap-4 shrink-0">
             <button onClick={handleRestoreSession} className="text-[14px] font-bold text-govuk-blue underline hover:no-underline">Restore</button>
@@ -1247,151 +993,57 @@ export default function AdminPage() {
       {/* Summary length — shared across modes */}
       <SummaryLengthPicker value={summaryLength} onChange={setSummaryLength} disabled={isFormBusy} />
 
-      {/* ── Create mode ── */}
-      {mode === 'create' && (
-        <>
-          <p className="text-[17px] text-govuk-dark-grey">
-            Issue date: <strong>{nextMonday()}</strong> &middot; Issue number: auto
-          </p>
+      <p className="text-[17px] text-govuk-dark-grey">
+        Issue date: <strong>{nextMonday()}</strong> &middot; Issue number: auto
+      </p>
 
-          <label className="flex items-center gap-3 cursor-pointer self-start">
-            <input type="checkbox" checked={includeImages} onChange={e => setIncludeImages(e.target.checked)}
-              className="w-5 h-5 border-2 border-govuk-black accent-govuk-black cursor-pointer" />
-            <span className="text-[17px] text-govuk-black font-bold">Include images</span>
-            <span className="text-[15px] text-govuk-dark-grey">(uses og:image from each article)</span>
-          </label>
+      <label className="flex items-center gap-3 cursor-pointer self-start">
+        <input type="checkbox" checked={includeImages} onChange={e => setIncludeImages(e.target.checked)}
+          className="w-5 h-5 border-2 border-govuk-black accent-govuk-black cursor-pointer" />
+        <span className="text-[17px] text-govuk-black font-bold">Include images</span>
+        <span className="text-[15px] text-govuk-dark-grey">(uses og:image from each article)</span>
+      </label>
 
-          {/* Quick Add */}
-          <QuickAdd
-            password={password}
-            onAdd={handleQuickAdd}
+      {/* Quick Add — adds URLs to the right section textarea below */}
+      <QuickAdd
+        password={password}
+        onAdd={handleQuickAdd}
+        disabled={isFormBusy}
+        initialUrl={quickAddInitialUrl}
+      />
+
+      <form onSubmit={handleGenerate} noValidate className="flex flex-col gap-6">
+        {SECTION_KEYS.map(key => (
+          <SectionTextarea
+            key={key}
+            label={SECTION_LABELS[key]}
+            value={sections[key]}
+            onChange={v => { setSections(s => ({ ...s, [key]: v })); setCreateValidationError(null) }}
             disabled={isFormBusy}
-            initialUrl={quickAddInitialUrl}
+            expanded={expandedSections[key]}
+            onToggle={() => toggleSection(key)}
           />
+        ))}
 
-          <form onSubmit={handleGenerate} noValidate className="flex flex-col gap-6">
-            {SECTION_KEYS.map(key => (
-              <SectionTextarea
-                key={key}
-                label={SECTION_LABELS[key]}
-                value={sections[key]}
-                onChange={v => { setSections(s => ({ ...s, [key]: v })); setCreateValidationError(null) }}
-                disabled={isFormBusy}
-                expanded={expandedSections[key]}
-                onToggle={() => toggleSection(key)}
-              />
-            ))}
+        {createValidationError && (
+          <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
+            <p className="text-[15px] text-red-800">{createValidationError}</p>
+          </div>
+        )}
+        {apiError && (
+          <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
+            <p className="text-[15px] text-red-800 font-bold">Error</p>
+            <p className="text-[15px] text-red-800">{apiError}</p>
+          </div>
+        )}
 
-            {createValidationError && (
-              <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
-                <p className="text-[15px] text-red-800">{createValidationError}</p>
-              </div>
-            )}
-            {apiError && (
-              <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
-                <p className="text-[15px] text-red-800 font-bold">Error</p>
-                <p className="text-[15px] text-red-800">{apiError}</p>
-              </div>
-            )}
+        <StatusLog items={createLog} />
 
-            <StatusLog items={createLog} />
-
-            <button type="submit" disabled={isFormBusy}
-              className="bg-govuk-black text-white font-bold text-[17px] px-5 py-3 self-start hover:bg-govuk-dark-grey disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">
-              {loading ? 'Generating…' : 'Generate Issue'}
-            </button>
-          </form>
-        </>
-      )}
-
-      {/* ── Update mode ── */}
-      {mode === 'update' && (
-        <>
-          <label className="flex items-center gap-3 cursor-pointer self-start">
-            <input type="checkbox" checked={updateIncludeImages} onChange={e => setUpdateIncludeImages(e.target.checked)}
-              className="w-5 h-5 border-2 border-govuk-black accent-govuk-black cursor-pointer" />
-            <span className="text-[17px] text-govuk-black font-bold">Include images</span>
-            <span className="text-[15px] text-govuk-dark-grey">(uses og:image from each article)</span>
-          </label>
-
-          {/* Quick Add in update mode — saves directly to Notion when a draft is selected */}
-          <QuickAdd
-            password={password}
-            onAdd={handleQuickAdd}
-            onSaveToDraft={selectedIssueId ? handleSaveToDraft : undefined}
-            disabled={isFormBusy}
-            initialUrl={quickAddInitialUrl}
-          />
-
-          <form onSubmit={handleUpdate} noValidate className="flex flex-col gap-6">
-            {/* Draft issue selector */}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <label htmlFor="draft-issue" className="font-bold text-[17px] text-govuk-black">Select draft issue</label>
-                {!draftLoading && (
-                  <button type="button" onClick={loadDraftIssues} className="text-[14px] text-govuk-blue hover:underline">↻ Refresh</button>
-                )}
-              </div>
-              {draftLoading ? (
-                <p className="text-[15px] text-govuk-dark-grey animate-pulse">Loading draft issues…</p>
-              ) : draftError ? (
-                <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
-                  <p className="text-[15px] text-red-800">{draftError}</p>
-                  <button type="button" onClick={loadDraftIssues} className="text-[14px] text-govuk-blue underline hover:no-underline mt-1">Try again</button>
-                </div>
-              ) : draftIssues.length === 0 ? (
-                <p className="text-[15px] text-govuk-dark-grey">No draft issues found.</p>
-              ) : (
-                <select id="draft-issue" value={selectedIssueId} onChange={e => setSelectedIssueId(e.target.value)}
-                  disabled={isFormBusy}
-                  className="border-2 border-govuk-black px-3 py-2 text-[17px] text-govuk-black bg-white w-full focus-visible:outline-none focus-visible:border-govuk-blue disabled:bg-govuk-light-grey disabled:cursor-not-allowed">
-                  {draftIssues.map(issue => (
-                    <option key={issue.id} value={issue.id}>
-                      Issue #{issue.issueNumber} — {formatIssueDateLabel(issue.issueDate)}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {draftIssues.length > 0 && (
-              <>
-                {SECTION_KEYS.map(key => (
-                  <SectionTextarea
-                    key={key}
-                    label={SECTION_LABELS[key]}
-                    value={updateSections[key]}
-                    onChange={v => { setUpdateSections(s => ({ ...s, [key]: v })); setUpdateValidationError(null) }}
-                    disabled={isFormBusy}
-                    placeholder="Paste one URL per line — will be appended to existing content"
-                    expanded={updateExpandedSections[key]}
-                    onToggle={() => toggleUpdateSection(key)}
-                  />
-                ))}
-
-                {updateValidationError && (
-                  <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
-                    <p className="text-[15px] text-red-800">{updateValidationError}</p>
-                  </div>
-                )}
-                {updateError && (
-                  <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
-                    <p className="text-[15px] text-red-800 font-bold">Error</p>
-                    <p className="text-[15px] text-red-800">{updateError}</p>
-                  </div>
-                )}
-
-                <StatusLog items={updateLog} />
-
-                <button type="submit" disabled={isFormBusy || !selectedIssueId}
-                  className="bg-govuk-black text-white font-bold text-[17px] px-5 py-3 self-start hover:bg-govuk-dark-grey disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">
-                  {updateLoading ? 'Adding…' : 'Add to Issue'}
-                </button>
-              </>
-            )}
-          </form>
-        </>
-      )}
+        <button type="submit" disabled={isFormBusy}
+          className="bg-govuk-black text-white font-bold text-[17px] px-5 py-3 self-start hover:bg-govuk-dark-grey disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">
+          {loading ? 'Generating…' : 'Generate Issue'}
+        </button>
+      </form>
     </div>
   )
 }
