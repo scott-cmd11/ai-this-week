@@ -59,7 +59,12 @@ describe('mapBlockToNotionBlock', () => {
       paragraph: { rich_text: [{ plain_text: 'Hello world' }] },
     }
     const result = mapBlockToNotionBlock(block)
-    expect(result).toEqual({ id: 'block-1', type: 'paragraph', content: 'Hello world' })
+    expect(result).toEqual({
+      id: 'block-1',
+      type: 'paragraph',
+      content: 'Hello world',
+      richText: [{ text: 'Hello world', bold: false, href: null }],
+    })
   })
 
   it('maps a heading_2 block', () => {
@@ -69,7 +74,7 @@ describe('mapBlockToNotionBlock', () => {
       heading_2: { rich_text: [{ plain_text: 'Bright Spot' }] },
     }
     const result = mapBlockToNotionBlock(block)
-    expect(result).toEqual({ id: 'block-2', type: 'heading_2', content: 'Bright Spot' })
+    expect(result).toEqual({ id: 'block-2', type: 'heading_2', content: 'Bright Spot', headingId: 'bright-spot' })
   })
 
   it('maps a bookmark block', () => {
