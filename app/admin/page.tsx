@@ -193,32 +193,31 @@ function SectionTextarea({
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between flex-wrap gap-1">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-[17px] text-govuk-black">{label}</span>
+    <div className={`border-[3px] border-neopop-black bg-neopop-white ${expanded ? 'shadow-[6px_6px_0_0_var(--color-neopop-black)]' : 'shadow-[4px_4px_0_0_var(--color-neopop-black)]'} transition-shadow`}>
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={disabled}
+        aria-expanded={expanded}
+        className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <div className="flex items-center gap-3">
+          <span className="font-black uppercase tracking-wide text-[16px] text-neopop-black">{label}</span>
           {urls.length > 0 && (
-            <span className="text-[12px] font-bold text-white bg-govuk-blue px-1.5 py-0.5 rounded-sm">
+            <span className="text-[12px] font-black uppercase tracking-wide text-neopop-white bg-neopop-red border-[2px] border-neopop-black px-2 py-0.5">
               {urls.length} URL{urls.length !== 1 ? 's' : ''}
             </span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onToggle}
-          disabled={disabled}
-          className="text-[14px] text-govuk-blue hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {expanded ? '− Collapse' : '＋ Add URL'}
-        </button>
-      </div>
-
-      {expanded && (
-        <>
+        <span className="text-[13px] font-black uppercase tracking-wide text-neopop-black/70">
+          {expanded ? '− Hide' : '＋ Add URL'}
+        </span>
+      </button>
+      <div className={expanded ? 'px-5 pb-5 pt-1 flex flex-col gap-2' : 'hidden'}>
           {hasUrls ? (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               {/* Drag-to-reorder list */}
-              <div className="border-2 border-govuk-black divide-y divide-govuk-light-grey">
+              <div className="border-[2px] border-neopop-black divide-y divide-neopop-black/20">
                 {urls.map((url, i) => (
                   <div
                     key={`${i}:${url}`}
@@ -228,19 +227,19 @@ function SectionTextarea({
                     onDrop={e => handleDrop(e, i)}
                     onDragEnd={handleDragEnd}
                     className={[
-                      'flex items-center gap-2 px-3 py-2 bg-white select-none',
+                      'flex items-center gap-2 px-3 py-2 bg-neopop-white select-none',
                       dragIndex === i ? 'opacity-40' : '',
-                      dragOverIndex === i && dragIndex !== i ? 'border-t-2 !border-t-govuk-blue' : '',
+                      dragOverIndex === i && dragIndex !== i ? 'border-t-2 !border-t-neopop-red' : '',
                     ].join(' ')}
                   >
                     {/* Drag handle — desktop only hint */}
                     <span
-                      className="text-govuk-mid-grey cursor-grab text-[18px] leading-none shrink-0 hidden sm:block"
+                      className="text-neopop-black/50 cursor-grab text-[18px] leading-none shrink-0 hidden sm:block"
                       title="Drag to reorder"
                     >⠿</span>
 
                     {/* Hostname */}
-                    <span className="text-[14px] text-govuk-black font-medium truncate flex-1 min-w-0">
+                    <span className="text-[14px] text-neopop-black font-medium truncate flex-1 min-w-0">
                       {urlHostname(url)}
                     </span>
 
@@ -249,7 +248,7 @@ function SectionTextarea({
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[12px] text-govuk-dark-grey underline hover:no-underline hidden md:block truncate max-w-[160px]"
+                      className="text-[12px] text-neopop-black/70 underline hover:no-underline hidden md:block truncate max-w-[160px]"
                       title={url}
                     >
                       {url}
@@ -261,7 +260,7 @@ function SectionTextarea({
                         type="button"
                         onClick={() => moveUrl(i, -1)}
                         disabled={disabled || i === 0}
-                        className="text-govuk-mid-grey hover:text-govuk-black disabled:opacity-20 px-1 text-[14px] leading-none"
+                        className="text-neopop-black/50 hover:text-neopop-black disabled:opacity-20 px-1 text-[14px] leading-none"
                         title="Move up"
                         aria-label="Move up"
                       >↑</button>
@@ -269,7 +268,7 @@ function SectionTextarea({
                         type="button"
                         onClick={() => moveUrl(i, 1)}
                         disabled={disabled || i === urls.length - 1}
-                        className="text-govuk-mid-grey hover:text-govuk-black disabled:opacity-20 px-1 text-[14px] leading-none"
+                        className="text-neopop-black/50 hover:text-neopop-black disabled:opacity-20 px-1 text-[14px] leading-none"
                         title="Move down"
                         aria-label="Move down"
                       >↓</button>
@@ -280,7 +279,7 @@ function SectionTextarea({
                       type="button"
                       onClick={() => removeUrl(i)}
                       disabled={disabled}
-                      className="text-govuk-dark-grey hover:text-red-700 disabled:opacity-40 ml-1 text-[15px] leading-none shrink-0"
+                      className="text-neopop-black/70 hover:text-red-700 disabled:opacity-40 ml-1 text-[15px] leading-none shrink-0"
                       title={`Remove ${url}`}
                       aria-label={`Remove ${urlHostname(url)}`}
                     >✕</button>
@@ -294,7 +293,7 @@ function SectionTextarea({
                   type="button"
                   onClick={() => setShowAddMore(true)}
                   disabled={disabled}
-                  className="text-[14px] text-govuk-blue underline hover:no-underline self-start disabled:opacity-50"
+                  className="text-[14px] text-neopop-red underline hover:no-underline self-start disabled:opacity-50"
                 >
                   + Add another URL
                 </button>
@@ -308,19 +307,19 @@ function SectionTextarea({
                     placeholder="Paste URL(s) to add…"
                     disabled={disabled}
                     autoFocus
-                    className="border-2 border-govuk-black px-3 py-2 text-[15px] font-mono resize-none w-full focus-visible:outline-none focus-visible:border-govuk-blue"
+                    className="border-2 border-neopop-black px-3 py-2 text-[15px] font-mono resize-none w-full focus-visible:outline-none focus-visible:border-neopop-red"
                   />
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={handleAddMoreSubmit}
                       disabled={!addText.trim()}
-                      className="text-[13px] font-bold bg-govuk-black text-white px-3 py-1 hover:bg-govuk-dark-grey disabled:opacity-50"
+                      className="text-[13px] font-bold bg-neopop-red text-white px-3 py-1 hover:bg-neopop-red-dark disabled:opacity-50"
                     >Add</button>
                     <button
                       type="button"
                       onClick={() => { setShowAddMore(false); setAddText('') }}
-                      className="text-[13px] text-govuk-dark-grey underline hover:no-underline"
+                      className="text-[13px] text-neopop-black/70 underline hover:no-underline"
                     >Cancel</button>
                   </div>
                 </div>
@@ -335,15 +334,14 @@ function SectionTextarea({
                 onPaste={e => applySmartPaste(e, value, onChange)}
                 disabled={disabled}
                 placeholder={placeholder ?? 'Paste one URL per line — or paste any text and URLs are extracted automatically'}
-                className="border-2 border-govuk-black px-3 py-2 text-[17px] text-govuk-black font-mono resize-y w-full focus-visible:outline-none focus-visible:ring-0 focus-visible:border-govuk-blue disabled:bg-govuk-light-grey disabled:cursor-not-allowed"
+                className="border-2 border-neopop-black px-3 py-2 text-[17px] text-neopop-black font-mono resize-y w-full focus-visible:outline-none focus-visible:ring-0 focus-visible:border-neopop-red disabled:bg-neopop-cream disabled:cursor-not-allowed"
               />
-              <p className="text-[13px] text-govuk-dark-grey">
+              <p className="text-[12px] text-neopop-black/70">
                 One URL per line. Supports articles and PDFs. Paste any text and URLs are extracted automatically.
               </p>
             </>
           )}
-        </>
-      )}
+      </div>
     </div>
   )
 }
@@ -354,25 +352,18 @@ function QuickAdd({
   password,
   onAdd,
   disabled,
-  initialUrl = '',
 }: {
   password: string
   onAdd: (url: string, section: SectionKey) => void
   disabled: boolean
-  initialUrl?: string
 }) {
-  const [open, setOpen] = useState(!!initialUrl)
-  const [url, setUrl] = useState(initialUrl)
+  const [open, setOpen] = useState(false)
+  const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [suggestion, setSuggestion] = useState<{ section: SectionKey; title: string | null } | null>(null)
   const [overrideSection, setOverrideSection] = useState<SectionKey | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [added, setAdded] = useState(false)
-
-  // If a URL is passed from the ?add= param, open automatically
-  useEffect(() => {
-    if (initialUrl) { setUrl(initialUrl); setOpen(true) }
-  }, [initialUrl])
 
   const activeSection: SectionKey = overrideSection ?? suggestion?.section ?? 'top'
 
@@ -414,21 +405,21 @@ function QuickAdd({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-[14px] text-govuk-blue underline hover:no-underline self-start"
+        className="inline-flex items-center gap-2 border-[3px] border-neopop-black bg-neopop-yellow text-neopop-black font-black uppercase tracking-wide text-[14px] px-4 py-2 self-start shadow-[4px_4px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-neopop-black)]"
       >
-        ✦ Quick Add — AI section suggester
+        ✦ Quick Add a URL
       </button>
     )
   }
 
   return (
-    <div className="border-2 border-govuk-black p-4 flex flex-col gap-3 bg-govuk-light-grey">
+    <div className="border-[3px] border-neopop-black bg-neopop-yellow p-5 flex flex-col gap-3 shadow-[6px_6px_0_0_var(--color-neopop-black)]">
       <div className="flex items-center justify-between">
-        <p className="font-bold text-[15px] text-govuk-black">Quick Add — AI section suggester</p>
+        <p className="font-black uppercase tracking-wide text-[14px]">Quick Add — paste a URL</p>
         <button
           type="button"
           onClick={() => { setOpen(false); setSuggestion(null); setError(null) }}
-          className="text-[13px] text-govuk-dark-grey underline hover:no-underline"
+          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline"
         >
           Hide
         </button>
@@ -442,43 +433,43 @@ function QuickAdd({
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSuggest() } }}
           placeholder="https://…"
           disabled={disabled || loading}
-          className="flex-1 border-2 border-govuk-black px-3 py-2 text-[15px] font-mono focus-visible:outline-none focus-visible:border-govuk-blue disabled:bg-white disabled:opacity-70 min-w-0 bg-white"
+          className="flex-1 border-[3px] border-neopop-black px-3 py-2 text-[15px] font-mono bg-neopop-white focus-visible:outline-none focus-visible:border-neopop-red disabled:opacity-70 min-w-0"
         />
         <button
           type="button"
           onClick={handleSuggest}
           disabled={disabled || loading || !url.startsWith('http')}
-          className="bg-govuk-black text-white font-bold text-[15px] px-4 py-2 hover:bg-govuk-dark-grey disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[14px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
         >
           {loading ? '↻ Thinking…' : 'Suggest section'}
         </button>
       </div>
 
-      {error && <p className="text-[14px] text-red-700" role="alert">{error}</p>}
+      {error && <p className="text-[14px] font-bold text-neopop-red" role="alert">{error}</p>}
 
       {added && (
-        <p className="text-[14px] text-green-700 font-bold">✓ Added to {SECTION_LABELS[activeSection]}</p>
+        <p className="text-[14px] font-black uppercase tracking-wide">✓ Added to {SECTION_LABELS[activeSection]}</p>
       )}
 
       {suggestion && !added && (
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[14px] text-govuk-black">Suggested section:</span>
+          <span className="text-[13px] font-bold uppercase tracking-wide">Section:</span>
           <select
             value={activeSection}
             onChange={e => setOverrideSection(e.target.value as SectionKey)}
-            className="border-2 border-govuk-black px-2 py-1.5 text-[14px] text-govuk-black bg-white focus-visible:outline-none focus-visible:border-govuk-blue"
+            className="border-[3px] border-neopop-black px-3 py-2 text-[14px] font-bold bg-neopop-white focus-visible:outline-none focus-visible:border-neopop-red"
           >
             {SECTION_KEYS.map(k => (
               <option key={k} value={k}>{SECTION_LABELS[k]}</option>
             ))}
           </select>
           {suggestion.title && (
-            <span className="text-[13px] text-govuk-dark-grey truncate max-w-xs">— {suggestion.title}</span>
+            <span className="text-[13px] text-neopop-black/70 truncate max-w-xs">— {suggestion.title}</span>
           )}
           <button
             type="button"
             onClick={handleAdd}
-            className="bg-govuk-black text-white font-bold text-[14px] px-4 py-2 hover:bg-govuk-dark-grey shrink-0"
+            className="border-[3px] border-neopop-black bg-neopop-black text-neopop-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-red)] hover:bg-neopop-red shrink-0"
           >
             ✓ Add to {SECTION_LABELS[activeSection]}
           </button>
@@ -506,20 +497,20 @@ function SummaryPreview({
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="font-bold text-[16px] text-govuk-black border-b border-govuk-mid-grey pb-1">{label}</h3>
+      <h3 className="font-bold text-[16px] text-neopop-black border-b border-neopop-black/30 pb-1">{label}</h3>
       {summaries.map(({ url, title, publishedDate, imageUrl, summary }) => {
         const isEditing = editingUrl === url
         const isRegenerating = regeneratingUrl === url
         return (
-          <div key={url} className="border-l-4 border-govuk-mid-grey pl-3 flex flex-col gap-1.5">
+          <div key={url} className="border-l-4 border-neopop-black/30 pl-3 flex flex-col gap-1.5">
             {imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={imageUrl} alt={title ?? ''} className="w-full max-h-40 object-cover rounded mb-1" />
             )}
-            <a href={url} target="_blank" rel="noopener noreferrer" className="font-bold text-[15px] text-govuk-black underline hover:no-underline">
+            <a href={url} target="_blank" rel="noopener noreferrer" className="font-bold text-[15px] text-neopop-black underline hover:no-underline">
               {title ?? url}
             </a>
-            {publishedDate && <p className="text-[13px] text-govuk-dark-grey">Published: {publishedDate}</p>}
+            {publishedDate && <p className="text-[13px] text-neopop-black/70">Published: {publishedDate}</p>}
 
             {isEditing ? (
               <div className="flex flex-col gap-1.5">
@@ -528,17 +519,17 @@ function SummaryPreview({
                   onChange={e => setEditText(e.target.value)}
                   rows={4}
                   autoFocus
-                  className="border-2 border-govuk-blue px-3 py-2 text-[15px] text-govuk-black resize-y w-full focus-visible:outline-none"
+                  className="border-2 border-neopop-red px-3 py-2 text-[15px] text-neopop-black resize-y w-full focus-visible:outline-none"
                 />
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <span className="text-[12px] text-govuk-dark-grey">{editText.length} chars</span>
+                  <span className="text-[12px] text-neopop-black/70">{editText.length} chars</span>
                   <div className="flex gap-3">
                     <button type="button" onClick={() => { onEdit(url, editText); setEditingUrl(null) }}
-                      className="text-[13px] font-bold bg-govuk-black text-white px-3 py-1 hover:bg-govuk-dark-grey">
+                      className="text-[13px] font-bold bg-neopop-red text-white px-3 py-1 hover:bg-neopop-red-dark">
                       Save
                     </button>
                     <button type="button" onClick={() => setEditingUrl(null)}
-                      className="text-[13px] text-govuk-dark-grey underline hover:no-underline">
+                      className="text-[13px] text-neopop-black/70 underline hover:no-underline">
                       Cancel
                     </button>
                   </div>
@@ -546,17 +537,17 @@ function SummaryPreview({
               </div>
             ) : (
               <div className="flex flex-col gap-1.5">
-                <p className="text-[15px] text-govuk-black">{summary}</p>
+                <p className="text-[15px] text-neopop-black">{summary}</p>
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <span className="text-[12px] text-govuk-dark-grey">{summary.length} chars</span>
+                  <span className="text-[12px] text-neopop-black/70">{summary.length} chars</span>
                   <div className="flex gap-3">
                     <button type="button" onClick={() => { setEditingUrl(url); setEditText(summary) }}
-                      className="text-[13px] text-govuk-blue underline hover:no-underline">
+                      className="text-[13px] text-neopop-red underline hover:no-underline">
                       Edit
                     </button>
                     <button type="button" onClick={() => onRegenerate(url)}
                       disabled={isRegenerating || regeneratingUrl !== null}
-                      className="text-[13px] text-govuk-blue underline hover:no-underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline">
+                      className="text-[13px] text-neopop-red underline hover:no-underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline">
                       {isRegenerating ? '↻ Regenerating…' : '↻ Regenerate'}
                     </button>
                   </div>
@@ -565,7 +556,7 @@ function SummaryPreview({
             )}
 
             <a href={url} target="_blank" rel="noopener noreferrer"
-              className="text-[13px] text-govuk-dark-grey underline hover:no-underline break-all">
+              className="text-[13px] text-neopop-black/70 underline hover:no-underline break-all">
               {url}
             </a>
           </div>
@@ -585,7 +576,7 @@ function StatusLog({ items }: { items: string[] }) {
   if (items.length === 0) return null
   return (
     <ul ref={logRef}
-      className="border border-govuk-mid-grey bg-govuk-light-grey max-h-48 overflow-y-auto font-mono text-[13px] text-govuk-black p-2 flex flex-col gap-0.5">
+      className="border border-neopop-black/30 bg-neopop-cream max-h-48 overflow-y-auto font-mono text-[13px] text-neopop-black p-2 flex flex-col gap-0.5">
       {items.map((item, i) => <li key={i}>{item}</li>)}
     </ul>
   )
@@ -597,15 +588,15 @@ function SummaryLengthPicker({ value, onChange, disabled }: {
   value: SummaryLength; onChange: (v: SummaryLength) => void; disabled: boolean
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <p className="font-bold text-[17px] text-govuk-black">Summary length</p>
+    <div className="flex flex-col gap-2">
+      <p className="text-[13px] font-black uppercase tracking-wide text-neopop-black/70">Summary length</p>
       <div className="flex flex-wrap gap-x-5 gap-y-1.5">
         {(['brief', 'standard', 'detailed'] as const).map(l => (
           <label key={l} className="flex items-center gap-2 cursor-pointer">
             <input type="radio" name="summaryLength" value={l} checked={value === l}
               onChange={() => onChange(l)} disabled={disabled}
-              className="accent-govuk-black cursor-pointer" />
-            <span className="text-[15px] text-govuk-black">{SUMMARY_LENGTH_LABELS[l]}</span>
+              className="accent-neopop-black cursor-pointer" />
+            <span className="text-[14px]">{SUMMARY_LENGTH_LABELS[l]}</span>
           </label>
         ))}
       </div>
@@ -645,9 +636,6 @@ export default function AdminPage() {
   // ── Copy as email
   const [copiedEmail, setCopiedEmail] = useState(false)
 
-  // ── Quick Add initial URL (from ?add= query param)
-  const [quickAddInitialUrl, setQuickAddInitialUrl] = useState('')
-
   const passwordRef = useRef<HTMLInputElement>(null)
 
   // ── Document title
@@ -657,18 +645,11 @@ export default function AdminPage() {
     else document.title = 'Admin — AI This Week'
   }, [authed, result])
 
-  // ── Restore auth from sessionStorage + check ?add= param
+  // ── Restore auth from sessionStorage
   useEffect(() => {
     const stored = sessionStorage.getItem('adminAuth')
     if (stored) { setPassword(stored); setAuthed(true) }
     else passwordRef.current?.focus()
-
-    // Read ?add= URL param for bookmarklet support
-    try {
-      const params = new URLSearchParams(window.location.search)
-      const addUrl = params.get('add')
-      if (addUrl?.startsWith('http')) setQuickAddInitialUrl(addUrl)
-    } catch { /* ignore */ }
   }, [])
 
 // ── Load saved session from localStorage
@@ -874,17 +855,17 @@ export default function AdminPage() {
     return (
       <div className="flex flex-wrap gap-3">
         <a href={notionUrl} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 bg-govuk-black text-white font-bold text-[17px] px-5 py-3 hover:bg-govuk-dark-grey no-underline">
+          className="inline-flex items-center gap-2 bg-neopop-red text-white font-bold text-[17px] px-5 py-3 hover:bg-neopop-red-dark no-underline">
           Open in Notion &rarr;
         </a>
         {hasSummaryContent(summaries) && (
           <button type="button" onClick={() => handleCopyEmail(summaries)}
-            className="inline-flex items-center gap-2 border-2 border-govuk-black text-govuk-black font-bold text-[17px] px-5 py-3 hover:bg-govuk-light-grey">
+            className="inline-flex items-center gap-2 border-2 border-neopop-black text-neopop-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream">
             {copiedEmail ? '✓ Copied!' : '📋 Copy as plain text'}
           </button>
         )}
         <button type="button" onClick={handleReset}
-          className="inline-flex items-center gap-2 border-2 border-govuk-black text-govuk-black font-bold text-[17px] px-5 py-3 hover:bg-govuk-light-grey">
+          className="inline-flex items-center gap-2 border-2 border-neopop-black text-neopop-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream">
           Create another issue
         </button>
       </div>
@@ -896,8 +877,8 @@ export default function AdminPage() {
     return (
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-[22px] font-bold text-govuk-black">Generated summaries</h2>
-          <p className="text-[13px] text-govuk-dark-grey">Click Edit or ↻ Regenerate on any summary to modify it.</p>
+          <h2 className="text-[22px] font-bold text-neopop-black">Generated summaries</h2>
+          <p className="text-[13px] text-neopop-black/70">Click Edit or ↻ Regenerate on any summary to modify it.</p>
         </div>
         {SECTION_KEYS.map(key => (
           <SummaryPreview
@@ -917,21 +898,40 @@ export default function AdminPage() {
 
   if (!authed) {
     return (
-      <div className="max-w-sm">
-        <h1 className="text-[32px] font-bold text-govuk-black dark:text-white mb-6">Admin sign in</h1>
-        <form onSubmit={handleSignIn} noValidate className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="password" className="font-bold text-[17px] text-govuk-black dark:text-white">Password</label>
-            <input ref={passwordRef} id="password" type="password" value={password}
-              onChange={e => setPassword(e.target.value)} disabled={authLoading} required
-              className="border-2 border-govuk-black px-3 py-2 text-[17px] text-govuk-black dark:text-white dark:bg-transparent w-full focus-visible:outline-none focus-visible:border-govuk-blue disabled:bg-govuk-light-grey" />
-            {authError && <p className="text-[15px] text-red-700 font-bold" role="alert">{authError}</p>}
-          </div>
-          <button type="submit" disabled={authLoading || !password}
-            className="bg-govuk-black text-white font-bold text-[17px] px-5 py-2 self-start hover:bg-govuk-dark-grey disabled:opacity-50 disabled:cursor-not-allowed">
-            {authLoading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+      <div className="max-w-md">
+        <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
+          Admin sign in
+        </h1>
+        <div className="w-20 h-[6px] bg-neopop-red mb-8" aria-hidden="true" />
+        <div className="border-[3px] border-neopop-black bg-neopop-white p-6 shadow-[8px_8px_0_0_var(--color-neopop-black)]">
+          <form onSubmit={handleSignIn} noValidate className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="password" className="text-[13px] font-black uppercase tracking-wide">
+                Password
+              </label>
+              <input
+                ref={passwordRef}
+                id="password"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                disabled={authLoading}
+                required
+                className="border-[3px] border-neopop-black px-3 py-3 text-[17px] font-mono w-full focus-visible:outline-none focus-visible:border-neopop-red disabled:bg-neopop-cream"
+              />
+              {authError && (
+                <p className="text-[14px] font-bold text-neopop-red" role="alert">{authError}</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={authLoading || !password}
+              className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[15px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {authLoading ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+        </div>
       </div>
     )
   }
@@ -940,12 +940,17 @@ export default function AdminPage() {
 
   if (result) {
     return (
-      <div className="max-w-2xl flex flex-col gap-6">
+      <div className="max-w-3xl flex flex-col gap-6">
         <div className="flex justify-end">
-          <button onClick={handleSignOut} className="text-[14px] text-govuk-dark-grey underline hover:no-underline">Sign out</button>
+          <button onClick={handleSignOut} className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-neopop-red">
+            Sign out
+          </button>
         </div>
-        <div className="bg-green-50 border-l-4 border-green-700 px-5 py-4">
-          <p className="font-bold text-[19px] text-green-900">Issue #{result.issueNumber} created successfully</p>
+        <div className="border-[3px] border-neopop-black bg-neopop-yellow p-5 shadow-[6px_6px_0_0_var(--color-neopop-black)]">
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] mb-2">✓ Published</p>
+          <p className="text-[28px] font-black uppercase tracking-tight leading-tight">
+            Issue #{result.issueNumber} created
+          </p>
         </div>
         {renderSuccessActions(result.notionUrl, resultSummaries)}
         {renderSummaryPreviews(resultSummaries)}
@@ -958,60 +963,67 @@ export default function AdminPage() {
   const isFormBusy = loading
 
   return (
-    <div className="max-w-2xl flex flex-col gap-8">
+    <div className="max-w-3xl flex flex-col gap-8">
       {/* Header */}
       <div>
-        <div className="flex items-start justify-between mb-4">
-          <h1 className="text-[32px] font-bold text-govuk-black">Admin</h1>
-          <div className="flex items-center gap-4 mt-2">
-            <a href="/admin/bookmarklet" className="text-[14px] text-govuk-blue underline hover:no-underline hidden sm:inline">
-              📱 Mobile bookmarklet
-            </a>
-            <button onClick={handleSignOut} className="text-[14px] text-govuk-dark-grey underline hover:no-underline">
-              Sign out
-            </button>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
+              Admin
+            </h1>
+            <div className="w-20 h-[6px] bg-neopop-red" aria-hidden="true" />
           </div>
+          <button
+            onClick={handleSignOut}
+            className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-neopop-red mt-4"
+          >
+            Sign out
+          </button>
         </div>
       </div>
 
       {/* Session restore banner */}
       {savedSession && (
-        <div className="bg-govuk-light-grey border-l-4 border-govuk-blue px-4 py-3 flex items-start sm:items-center justify-between gap-4 flex-wrap">
-          <p className="text-[15px] text-govuk-black">
-            <strong>In-progress issue</strong> from {formatSavedAt(savedSession.savedAt)} — restore your URLs?
+        <div className="border-[3px] border-neopop-black bg-neopop-yellow px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex items-start sm:items-center justify-between gap-4 flex-wrap">
+          <p className="text-[15px]">
+            <strong className="uppercase tracking-wide">In-progress issue</strong> from {formatSavedAt(savedSession.savedAt)} — restore your URLs?
           </p>
           <div className="flex gap-4 shrink-0">
-            <button onClick={handleRestoreSession} className="text-[14px] font-bold text-govuk-blue underline hover:no-underline">Restore</button>
-            <button onClick={handleDismissSession} className="text-[14px] text-govuk-dark-grey underline hover:no-underline">Dismiss</button>
+            <button onClick={handleRestoreSession} className="text-[14px] font-black uppercase tracking-wide underline hover:no-underline">Restore</button>
+            <button onClick={handleDismissSession} className="text-[14px] text-neopop-black/70 underline hover:no-underline">Dismiss</button>
           </div>
         </div>
       )}
 
       {/* AI notice */}
-      <div className="bg-govuk-light-grey border-l-4 border-govuk-mid-grey px-4 py-3">
-        <p className="text-[15px] text-govuk-black">Summaries are AI-generated. Always review before publishing.</p>
+      <div className="border-[3px] border-neopop-black bg-neopop-cream px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
+        <p className="text-[14px] font-bold">
+          <span className="uppercase tracking-wide">Heads up —</span> Summaries are AI-generated. Always review before publishing.
+        </p>
       </div>
 
-      {/* Summary length — shared across modes */}
-      <SummaryLengthPicker value={summaryLength} onChange={setSummaryLength} disabled={isFormBusy} />
-
-      <p className="text-[17px] text-govuk-dark-grey">
-        Issue date: <strong>{nextMonday()}</strong> &middot; Issue number: auto
-      </p>
-
-      <label className="flex items-center gap-3 cursor-pointer self-start">
-        <input type="checkbox" checked={includeImages} onChange={e => setIncludeImages(e.target.checked)}
-          className="w-5 h-5 border-2 border-govuk-black accent-govuk-black cursor-pointer" />
-        <span className="text-[17px] text-govuk-black font-bold">Include images</span>
-        <span className="text-[15px] text-govuk-dark-grey">(uses og:image from each article)</span>
-      </label>
+      {/* Issue metadata */}
+      <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-4">
+        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70">Issue details</p>
+        <p className="text-[17px]">
+          <span className="font-bold">Date:</span> {nextMonday()}
+          <span className="mx-3 text-neopop-black/40">·</span>
+          <span className="font-bold">Number:</span> auto
+        </p>
+        <label className="flex items-center gap-3 cursor-pointer self-start">
+          <input type="checkbox" checked={includeImages} onChange={e => setIncludeImages(e.target.checked)}
+            className="w-5 h-5 border-2 border-neopop-black accent-neopop-black cursor-pointer" />
+          <span className="text-[15px] font-bold">Include images</span>
+          <span className="text-[13px] text-neopop-black/70">(og:image from each article)</span>
+        </label>
+        <SummaryLengthPicker value={summaryLength} onChange={setSummaryLength} disabled={isFormBusy} />
+      </div>
 
       {/* Quick Add — adds URLs to the right section textarea below */}
       <QuickAdd
         password={password}
         onAdd={handleQuickAdd}
         disabled={isFormBusy}
-        initialUrl={quickAddInitialUrl}
       />
 
       <form onSubmit={handleGenerate} noValidate className="flex flex-col gap-6">
@@ -1028,22 +1040,25 @@ export default function AdminPage() {
         ))}
 
         {createValidationError && (
-          <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
-            <p className="text-[15px] text-red-800">{createValidationError}</p>
+          <div className="border-[3px] border-neopop-red bg-neopop-white px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-red)]" role="alert">
+            <p className="text-[15px] font-bold text-neopop-red">{createValidationError}</p>
           </div>
         )}
         {apiError && (
-          <div className="bg-red-50 border-l-4 border-red-700 px-4 py-3" role="alert">
-            <p className="text-[15px] text-red-800 font-bold">Error</p>
-            <p className="text-[15px] text-red-800">{apiError}</p>
+          <div className="border-[3px] border-neopop-red bg-neopop-white px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-red)]" role="alert">
+            <p className="text-[14px] font-black uppercase tracking-wide text-neopop-red">Error</p>
+            <p className="text-[15px] text-neopop-black">{apiError}</p>
           </div>
         )}
 
         <StatusLog items={createLog} />
 
-        <button type="submit" disabled={isFormBusy}
-          className="bg-govuk-black text-white font-bold text-[17px] px-5 py-3 self-start hover:bg-govuk-dark-grey disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">
-          {loading ? 'Generating…' : 'Generate Issue'}
+        <button
+          type="submit"
+          disabled={isFormBusy}
+          className="inline-block border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)] disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+        >
+          {loading ? 'Generating…' : '✦ Generate Issue'}
         </button>
       </form>
     </div>
