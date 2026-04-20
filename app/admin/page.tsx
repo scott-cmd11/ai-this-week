@@ -368,11 +368,13 @@ function SectionTextarea({
 function QuickAdd({
   password,
   onAdd,
+  onSaveToDraft,
   disabled,
   initialUrl = '',
 }: {
   password: string
   onAdd: (url: string, section: SectionKey) => void
+  onSaveToDraft?: (url: string, section: SectionKey) => Promise<string>
   disabled: boolean
   initialUrl?: string
 }) {
@@ -383,6 +385,8 @@ function QuickAdd({
   const [overrideSection, setOverrideSection] = useState<SectionKey | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [added, setAdded] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
   // If a URL is passed from the ?add= param, open automatically
   useEffect(() => {
@@ -422,6 +426,25 @@ function QuickAdd({
     setOverrideSection(null)
     setError(null)
     setTimeout(() => setAdded(false), 2000)
+  }
+
+  async function handleSave() {
+    if (!onSaveToDraft) return
+    setSaving(true)
+    setSaveMessage(null)
+    try {
+      const msg = await onSaveToDraft(url, activeSection)
+      setSaveMessage(msg)
+      setUrl('')
+      setSuggestion(null)
+      setOverrideSection(null)
+      setError(null)
+      setTimeout(() => setSaveMessage(null), 4000)
+    } catch {
+      setSaveMessage('Error saving. Try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (!open) {
@@ -475,7 +498,11 @@ function QuickAdd({
         <p className="text-[14px] text-green-700 font-bold">✓ Added to {SECTION_LABELS[activeSection]}</p>
       )}
 
-      {suggestion && !added && (
+      {saveMessage && (
+        <p className="text-[14px] text-green-700 font-bold">{saveMessage}</p>
+      )}
+
+      {suggestion && !added && !saveMessage && (
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-[14px] text-govuk-black">Suggested section:</span>
           <select
@@ -490,13 +517,24 @@ function QuickAdd({
           {suggestion.title && (
             <span className="text-[13px] text-govuk-dark-grey truncate max-w-xs">— {suggestion.title}</span>
           )}
-          <button
-            type="button"
-            onClick={handleAdd}
-            className="bg-govuk-black text-white font-bold text-[14px] px-4 py-2 hover:bg-govuk-dark-grey shrink-0"
-          >
-            ✓ Add to {SECTION_LABELS[activeSection]}
-          </button>
+          {onSaveToDraft ? (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-govuk-black text-white font-bold text-[14px] px-4 py-2 hover:bg-govuk-dark-grey disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            >
+              {saving ? '⏳ Saving…' : `✓ Save to ${SECTION_LABELS[activeSection]}`}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleAdd}
+              className="bg-govuk-black text-white font-bold text-[14px] px-4 py-2 hover:bg-govuk-dark-grey shrink-0"
+            >
+              ✓ Add to {SECTION_LABELS[activeSection]}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -728,6 +766,26 @@ export default function AdminPage() {
       if (addUrl?.startsWith('http')) setQuickAddInitialUrl(addUrl)
     } catch { /* ignore */ }
   }, [])
+
+  // ── Auto-switch to update mode if drafts exist (runs after auth)
+  useEffect(() => {
+    if (!authed || !password) return
+    async function autoMode() {
+      try {
+        const res = await fetch(`/api/draft-issues?password=${encodeURIComponent(password)}`)
+        if (!res.ok) return
+        const data = await res.json()
+        const issues = (data.issues ?? []) as DraftIssue[]
+        if (issues.length > 0) {
+          setDraftIssues(issues)
+          setSelectedIssueId(prev => prev || issues[0].id)
+          setMode('update')
+        }
+      } catch { /* ignore — non-critical */ }
+    }
+    autoMode()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed])
 
   // ── Load saved session from localStorage
   useEffect(() => {
@@ -993,6 +1051,32 @@ export default function AdminPage() {
     }
   }
 
+  // ── Save single article directly to Notion (used by QuickAdd in update mode)
+  async function handleSaveToDraft(url: string, section: SectionKey): Promise<string> {
+    const singleSection = { ...EMPTY_SECTIONS, [section]: url }
+    try {
+      const res = await fetch('/api/update-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, pageId: selectedIssueId, sections: singleSection, summaryLength }),
+      })
+      if (res.status === 401) {
+        sessionStorage.removeItem('adminAuth'); setAuthed(false); setPassword('')
+        return 'Session expired. Please sign in again.'
+      }
+      let savedSummary = ''
+      let errorMsg = ''
+      await readStream(res, (event) => {
+        if (event.type === 'done_url') savedSummary = event.summary
+        if (event.type === 'error') errorMsg = event.message
+      })
+      if (errorMsg) return `Error: ${errorMsg}`
+      return `✓ Saved to ${SECTION_LABELS[section]}${savedSummary ? ` — ${savedSummary.slice(0, 60)}…` : ''}`
+    } catch {
+      return 'Network error. Could not save.'
+    }
+  }
+
   // ── Reset
   function handleReset() {
     setSections({ ...EMPTY_SECTIONS })
@@ -1230,10 +1314,11 @@ export default function AdminPage() {
             <span className="text-[15px] text-govuk-dark-grey">(uses og:image from each article)</span>
           </label>
 
-          {/* Quick Add in update mode too */}
+          {/* Quick Add in update mode — saves directly to Notion when a draft is selected */}
           <QuickAdd
             password={password}
             onAdd={handleQuickAdd}
+            onSaveToDraft={selectedIssueId ? handleSaveToDraft : undefined}
             disabled={isFormBusy}
             initialUrl={quickAddInitialUrl}
           />
