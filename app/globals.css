@@ -11,6 +11,19 @@
   --color-govuk-mid-grey: #b1b4b6;
   --color-govuk-dark-grey: #505a5f;
   /* Dark-mode surface — not exposed as a Tailwind colour, used directly below */
+
+  /* NeoPop prototype tokens (used only on /neopop route) */
+  --color-neopop-black: #0c0c0c;
+  --color-neopop-white: #ffffff;
+  --color-neopop-blue: #1d4ed8;
+  --color-neopop-yellow: #ffdd00;
+  --color-neopop-pink: #ec4899;
+  --color-neopop-cream: #fefae0;
+
+  /* Hard-offset shadows — no blur. Used via shadow-[var(--shadow-neopop)] */
+  --shadow-neopop: 8px 8px 0 0 #0c0c0c;
+  --shadow-neopop-sm: 4px 4px 0 0 #0c0c0c;
+  --shadow-neopop-pressed: 2px 2px 0 0 #0c0c0c;
 }
 
 /* ── Dark mode overrides ─────────────────────────────────────── */

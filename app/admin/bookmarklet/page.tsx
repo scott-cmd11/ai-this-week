@@ -8,6 +8,9 @@ export default function BookmarkletPage() {
   const [tested, setTested] = useState(false)
 
   useEffect(() => {
+    // Intentional: read window.location.origin once after hydration so the
+    // initial server-rendered HTML doesn't include it (avoids SSR mismatch).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOrigin(window.location.origin)
   }, [])
 

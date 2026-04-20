@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import './globals.css'
-import { Header } from '@/components/Header'
-import { Footer } from '@/components/Footer'
+import { ConditionalHeader, ConditionalFooter } from '@/components/ConditionalChrome'
 
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ai-this-week.vercel.app'
 
@@ -29,11 +28,11 @@ export default function RootLayout({
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
-        <Header />
+        <ConditionalHeader />
         <main id="main-content" className="max-w-4xl mx-auto px-4 py-10" tabIndex={-1}>
           {children}
         </main>
-        <Footer />
+        <ConditionalFooter />
       </body>
     </html>
   )
