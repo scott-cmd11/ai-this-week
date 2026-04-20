@@ -18,6 +18,7 @@ interface SectionsInput {
   top: string
   bright: string
   tool: string
+  podcast: string
   learning: string
   deep: string
 }
@@ -304,6 +305,7 @@ const SECTION_HEADINGS: Record<keyof SectionsInput, string> = {
   top: 'Top Stories',
   bright: '🌟 Bright Spot of the Week',
   tool: '🔧 Tool of the Week',
+  podcast: '🎙️ Podcast of the Week',
   learning: '💡 Learning',
   deep: '📖 Deep Dive',
 }
@@ -355,6 +357,7 @@ export async function POST(request: NextRequest) {
           top: parseUrls(sections.top),
           bright: parseUrls(sections.bright),
           tool: parseUrls(sections.tool),
+          podcast: parseUrls(sections.podcast),
           learning: parseUrls(sections.learning),
           deep: parseUrls(sections.deep),
         }
@@ -363,6 +366,7 @@ export async function POST(request: NextRequest) {
           top: [],
           bright: [],
           tool: [],
+          podcast: [],
           learning: [],
           deep: [],
         }

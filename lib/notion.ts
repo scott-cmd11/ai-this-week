@@ -3,7 +3,7 @@ import type { Issue, NotionBlock, RichTextSegment } from './types'
 
 // ─── Section types ────────────────────────────────────────────────────────────
 
-export type SectionSlug = 'top' | 'bright' | 'tool' | 'learning' | 'deep'
+export type SectionSlug = 'top' | 'bright' | 'tool' | 'podcast' | 'learning' | 'deep'
 
 export interface SectionMeta {
   slug: SectionSlug
@@ -13,11 +13,12 @@ export interface SectionMeta {
 }
 
 export const SECTIONS: SectionMeta[] = [
-  { slug: 'top',      label: 'Top Stories',           keyword: 'Top Stories',   emoji: '📰' },
-  { slug: 'bright',   label: 'Bright Spot of the Week', keyword: 'Bright Spot', emoji: '🌟' },
-  { slug: 'tool',     label: 'Tool of the Week',      keyword: 'Tool of the Week', emoji: '🔧' },
-  { slug: 'learning', label: 'Learning',               keyword: 'Learning',      emoji: '💡' },
-  { slug: 'deep',     label: 'Deep Dive',              keyword: 'Deep Dive',     emoji: '📖' },
+  { slug: 'top',      label: 'Top Stories',             keyword: 'Top Stories',       emoji: '📰' },
+  { slug: 'bright',   label: 'Bright Spot of the Week', keyword: 'Bright Spot',       emoji: '🌟' },
+  { slug: 'tool',     label: 'Tool of the Week',        keyword: 'Tool of the Week',  emoji: '🔧' },
+  { slug: 'podcast',  label: 'AI Podcast of the Week',  keyword: 'Podcast of the Week', emoji: '🎙️' },
+  { slug: 'learning', label: 'Learning',                keyword: 'Learning',          emoji: '💡' },
+  { slug: 'deep',     label: 'Deep Dive',               keyword: 'Deep Dive',         emoji: '📖' },
 ]
 
 export interface SectionArticle {

@@ -14,6 +14,7 @@
  *     --top="https://... https://..." \
  *     --bright="https://..." \
  *     --tool="https://..." \
+ *     --podcast="https://..." \
  *     --learning="https://..." \
  *     --deep="https://..."
  *
@@ -301,7 +302,7 @@ function singleSectionBlocks(summaries, placeholder) {
 
 async function main() {
   const argv = parseArgs()
-  const hasUrls = argv.top || argv.bright || argv.tool || argv.learning || argv.deep
+  const hasUrls = argv.top || argv.bright || argv.tool || argv.podcast || argv.learning || argv.deep
 
   const issueDate = nextMonday()
   const issueNumber = await getNextIssueNumber()
@@ -326,6 +327,7 @@ async function main() {
   let topSummaries = []
   let brightSummaries = []
   let toolSummaries = []
+  let podcastSummaries = []
   let learnSummaries = []
   let deepSummaries = []
 
@@ -340,6 +342,10 @@ async function main() {
   if (argv.tool) {
     console.log('  🔧 Tool of the Week:')
     toolSummaries = await summariseUrls(parseUrls(argv.tool))
+  }
+  if (argv.podcast) {
+    console.log('  🎙️  Podcast of the Week:')
+    podcastSummaries = await summariseUrls(parseUrls(argv.podcast))
   }
   if (argv.learning) {
     console.log('  💡 Learning:')
@@ -384,6 +390,13 @@ async function main() {
       block.h2('🔧 Tool of the Week'),
       ...singleSectionBlocks(
         toolSummaries,
+        '[AI-generated summary. Review for accuracy and edit before publishing.]'
+      ),
+      block.divider(),
+
+      block.h2('🎙️ Podcast of the Week'),
+      ...singleSectionBlocks(
+        podcastSummaries,
         '[AI-generated summary. Review for accuracy and edit before publishing.]'
       ),
       block.divider(),

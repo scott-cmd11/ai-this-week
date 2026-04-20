@@ -18,6 +18,7 @@ interface SectionsInput {
   top: string
   bright: string
   tool: string
+  podcast: string
   learning: string
   deep: string
 }
@@ -438,6 +439,7 @@ export async function POST(request: NextRequest) {
         const topUrls = parseUrls(sections.top)
         const brightUrls = parseUrls(sections.bright)
         const toolUrls = parseUrls(sections.tool)
+        const podcastUrls = parseUrls(sections.podcast)
         const learningUrls = parseUrls(sections.learning)
         const deepUrls = parseUrls(sections.deep)
 
@@ -445,6 +447,7 @@ export async function POST(request: NextRequest) {
           { key: 'top', label: 'Top Stories', urls: topUrls },
           { key: 'bright', label: 'Bright Spot', urls: brightUrls },
           { key: 'tool', label: 'Tool of the Week', urls: toolUrls },
+          { key: 'podcast', label: 'Podcast of the Week', urls: podcastUrls },
           { key: 'learning', label: 'Learning', urls: learningUrls },
           { key: 'deep', label: 'Deep Dive', urls: deepUrls },
         ]
@@ -453,6 +456,7 @@ export async function POST(request: NextRequest) {
           top: [],
           bright: [],
           tool: [],
+          podcast: [],
           learning: [],
           deep: [],
         }
@@ -507,6 +511,14 @@ export async function POST(request: NextRequest) {
             block.h2('🔧 Tool of the Week'),
             ...singleSectionBlocks(
               summaryMap.tool,
+              '[AI-generated summary. Review for accuracy and edit before publishing.]',
+              includeImages
+            ),
+            block.divider(),
+
+            block.h2('🎙️ Podcast of the Week'),
+            ...singleSectionBlocks(
+              summaryMap.podcast,
               '[AI-generated summary. Review for accuracy and edit before publishing.]',
               includeImages
             ),

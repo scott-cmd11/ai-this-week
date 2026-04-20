@@ -4,7 +4,7 @@ import { createRequire } from 'module'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type SectionKey = 'top' | 'bright' | 'tool' | 'learning' | 'deep'
+type SectionKey = 'top' | 'bright' | 'tool' | 'podcast' | 'learning' | 'deep'
 
 interface FetchResult {
   text: string | null
@@ -19,11 +19,12 @@ const SECTION_DESCRIPTIONS: Record<SectionKey, string> = {
   top: 'Major AI news, announcements, or industry developments that affect many people',
   bright: 'Uplifting, positive, or hopeful stories about AI benefiting people or society',
   tool: 'New AI tools, apps, products, or services worth knowing about or trying',
+  podcast: 'AI-focused podcasts, specific podcast episodes, or audio/video interviews worth listening to',
   learning: 'Educational articles, tutorials, explainers, or how-to content about AI',
   deep: 'Long-form analysis, research papers, academic studies, or in-depth AI essays',
 }
 
-const VALID_SECTIONS = new Set<SectionKey>(['top', 'bright', 'tool', 'learning', 'deep'])
+const VALID_SECTIONS = new Set<SectionKey>(['top', 'bright', 'tool', 'podcast', 'learning', 'deep'])
 
 // ─── Article fetching (mirrors other routes) ────────────────────────────────────
 
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
     title ? `Article title: ${title}` : '',
     text ? `Article snippet: ${text.slice(0, 600)}` : '',
     ``,
-    `Which section (top/bright/tool/learning/deep) best fits this article?`,
+    `Which section (top/bright/tool/podcast/learning/deep) best fits this article?`,
     `Reply with ONLY the section key — one word, lowercase, no punctuation.`,
   ].filter(Boolean).join('\n')
 
