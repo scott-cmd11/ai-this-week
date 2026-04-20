@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Client } from '@notionhq/client'
 import OpenAI from 'openai'
 import { createRequire } from 'module'
+import { SYSTEM_PROMPTS, type SummaryLength } from '@/lib/prompts'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -20,8 +21,6 @@ interface SectionsInput {
   learning: string
   deep: string
 }
-
-type SummaryLength = 'brief' | 'standard' | 'detailed'
 
 interface RequestBody {
   password: string
@@ -253,15 +252,6 @@ async function fetchArticle(
 }
 
 // ─── OpenAI summarisation ───────────────────────────────────────────────────────
-
-const SYSTEM_PROMPTS: Record<SummaryLength, string> = {
-  brief:
-    'You write concise 1-2 sentence summaries for an AI newsletter aimed at a professional, non-technical audience. Your tone is informative and neutral — like a quality broadsheet news brief. Rules: 1-2 sentences maximum, no bullet points. Lead with what happened and why it matters. Avoid jargon. No "In this article..." framing. Do not invent facts not present in the article text. End with a period.',
-  standard:
-    'You write concise, clear 2-3 sentence summaries for an AI newsletter aimed at a professional, non-technical audience. Your tone is informative and neutral — like a quality broadsheet news brief, not hype-driven tech journalism. Rules: 2-3 sentences maximum, no bullet points. Lead with what happened and why it matters. Avoid jargon; if a technical term is essential, briefly explain it. No "In this article..." or "The author argues..." framing. Do not invent facts not present in the article text. End with a period.',
-  detailed:
-    'You write clear, informative 3-4 sentence summaries for an AI newsletter aimed at a professional, non-technical audience. Your tone is informative and neutral — like a quality broadsheet news brief, not hype-driven tech journalism. Rules: 3-4 sentences. No bullet points. Lead with what happened, explain the significance, and add a sentence of context or implication. Avoid jargon; if a technical term is essential, briefly explain it. No "In this article..." or "The author argues..." framing. Do not invent facts not present in the article text. End with a period.',
-}
 
 async function summariseUrlWithEvents(
   openai: OpenAI,
