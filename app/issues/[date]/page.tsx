@@ -10,7 +10,6 @@ import {
 } from '@/lib/notion'
 import { NotionRenderer } from '@/lib/notion-renderer'
 import { MetadataStrip } from '@/components/MetadataStrip'
-import { AIDisclosureBadge } from '@/components/AIDisclosureBadge'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { CopyMarkdownButton } from '@/components/CopyMarkdownButton'
 import { TableOfContents } from '@/components/TableOfContents'
@@ -77,20 +76,19 @@ export default async function IssuePage({ params }: Props) {
             </span>
           </div>
 
-          {issue.aiAssisted && <AIDisclosureBadge />}
-
-          <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4 mt-2">
-            {issue.title}
+          <h1 className="text-[40px] sm:text-[52px] font-black uppercase leading-[0.95] tracking-tight mb-4 mt-2 break-words">
+            {/* Non-breaking space inside the date prevents wrap between "27," and "2026" */}
+            {issue.title.replace(/, (\d{4})/, ',\u00A0$1')}
           </h1>
           <div className="w-20 h-[6px] bg-neopop-red mb-8" aria-hidden="true" />
 
-          {/* Share row */}
-          <div className="flex flex-wrap gap-3 mb-8">
+          <NotionRenderer blocks={blocks} />
+
+          {/* Share row — moved to the bottom of the article */}
+          <div className="flex flex-wrap gap-3 mt-12">
             <CopyLinkButton />
             <CopyMarkdownButton markdown={markdown} />
           </div>
-
-          <NotionRenderer blocks={blocks} />
 
           {/* Prev / Next navigation */}
           <nav

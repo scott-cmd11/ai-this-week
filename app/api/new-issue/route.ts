@@ -492,9 +492,6 @@ export async function POST(request: NextRequest) {
             'AI Assisted': { checkbox: true },
           },
           children: [
-            block.paragraph("Hello,\n\nHere's your weekly update on the latest in AI."),
-            block.divider(),
-
             block.h2('Top Stories'),
             block.paragraph('⚠️ AI-generated summaries below — review and edit each one before publishing.'),
             ...topStoriesBlocks(summaryMap.top, includeImages),
