@@ -376,45 +376,87 @@ export async function POST(request: NextRequest) {
 
         if (request.signal.aborted) { controller.close(); return }
 
-        // Build blocks to append — only for sections that have URLs
-        const blocksToAppend: ReturnType<typeof block.h2 | typeof block.h3 | typeof block.paragraph | typeof block.bookmark | typeof block.divider | typeof block.image>[] = []
+        // Fetch the page's existing top-level blocks so we can insert new
+        // content into existing sections instead of appending duplicate h2
+        // headings at the end of the page.
+        const existing = await notion.blocks.children.list({ block_id: pageId, page_size: 100 })
 
+        // Walk the existing blocks and record the ID of the LAST block that
+        // belongs to each known section. "Belongs to" means: appears after
+        // that section's h2 and before the next h2. The divider at the end
+        // of a section counts as the last block of that section.
+        const sectionLastBlock = new Map<keyof SectionsInput, string>()
+        let currentKey: keyof SectionsInput | null = null
+        let lastIdInCurrent: string | null = null
+        for (const b of existing.results) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const block = b as any
+          if (block.type === 'heading_2') {
+            if (currentKey && lastIdInCurrent) sectionLastBlock.set(currentKey, lastIdInCurrent)
+            const text: string = block.heading_2?.rich_text?.[0]?.plain_text?.trim() ?? ''
+            const matched = (Object.keys(SECTION_HEADINGS) as Array<keyof SectionsInput>)
+              .find(k => SECTION_HEADINGS[k] === text)
+            currentKey = matched ?? null
+            lastIdInCurrent = block.id
+          } else if (currentKey) {
+            lastIdInCurrent = block.id
+          }
+        }
+        if (currentKey && lastIdInCurrent) sectionLastBlock.set(currentKey, lastIdInCurrent)
+
+        // Per-section block bundles. We build the content (no leading h2 —
+        // we'll decide later whether to prepend one depending on whether
+        // the section already exists in the page).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sectionBlocks: Array<{ key: keyof SectionsInput; blocks: any[] }> = []
         for (const key of sectionKeys) {
           const summaries = summaryMap[key]
           if (summaries.length === 0) continue
-
-          blocksToAppend.push(block.h2(SECTION_HEADINGS[key]))
-
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const blocks: any[] = []
           for (const { url, title, publishedDate, imageUrl, summary } of summaries) {
-            if (includeImages && imageUrl) blocksToAppend.push(block.image(imageUrl))
-            if (title) blocksToAppend.push(block.h3(title))
-            if (publishedDate) blocksToAppend.push(block.paragraph(`Published: ${publishedDate}`))
-            blocksToAppend.push(block.paragraph(summary))
-            blocksToAppend.push(block.bookmark(url))
+            if (includeImages && imageUrl) blocks.push(block.image(imageUrl))
+            if (title) blocks.push(block.h3(title))
+            if (publishedDate) blocks.push(block.paragraph(`Published: ${publishedDate}`))
+            blocks.push(block.paragraph(summary))
+            blocks.push(block.bookmark(url))
           }
-
-          blocksToAppend.push(block.divider())
+          sectionBlocks.push({ key, blocks })
         }
 
-        if (blocksToAppend.length === 0) {
+        if (sectionBlocks.length === 0) {
           emit(JSON.stringify({ type: 'error', message: 'No URLs provided in any section.' }))
           controller.close()
           return
         }
 
         emit(JSON.stringify({ type: 'notion', message: 'Appending to Notion page…' }))
-
         if (request.signal.aborted) { controller.close(); return }
 
-        // Append in batches of 100 (Notion API limit)
-        const BATCH_SIZE = 100
-        for (let i = 0; i < blocksToAppend.length; i += BATCH_SIZE) {
-          const batch = blocksToAppend.slice(i, i + BATCH_SIZE)
-          await notion.blocks.children.append({
-            block_id: pageId,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            children: batch as any,
-          })
+        // For each section: if the h2 already exists, insert the new blocks
+        // right after the existing last block in that section (no new
+        // heading). Otherwise append heading + content + divider at the
+        // bottom of the page.
+        for (const { key, blocks } of sectionBlocks) {
+          const existingLastId = sectionLastBlock.get(key)
+          if (existingLastId) {
+            await notion.blocks.children.append({
+              block_id: pageId,
+              after: existingLastId,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              children: blocks as any,
+            })
+          } else {
+            await notion.blocks.children.append({
+              block_id: pageId,
+              children: [
+                block.h2(SECTION_HEADINGS[key]),
+                ...blocks,
+                block.divider(),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ] as any,
+            })
+          }
         }
 
         const notionUrl = `https://notion.so/${pageId.replace(/-/g, '')}`
