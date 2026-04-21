@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Canada red square background -->
+  <rect width="512" height="512" fill="#d52b1e"/>
+  <!-- Simplified 11-point maple leaf, white, shifted down so it optically centers -->
+  <path
+    transform="translate(0 32)"
+    d="M256 28l-30 56-30-18 12 90-68-12 24 58-42 18 78 74-14 36 80-14v106h20V316l80 14-14-36 78-74-42-18 24-58-68 12 12-90-30 18z"
+    fill="#ffffff"/>
+</svg>
