@@ -785,6 +785,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [createLog, setCreateLog] = useState<string[]>([])
   const [result, setResult] = useState<CompletedCreate | null>(null)
+  const [wasUpdate, setWasUpdate] = useState(false)
+  // Pre-check: is there already a draft for this week's target Monday?
+  // If yes, Generate will append to it instead of creating a new page.
+  const [currentWeekDraft, setCurrentWeekDraft] = useState<DraftIssue | null>(null)
   const [resultSummaries, setResultSummaries] = useState<Record<SectionKey, SectionSummary[]>>({ ...EMPTY_SUMMARIES })
   const [apiError, setApiError] = useState<string | null>(null)
   const [createValidationError, setCreateValidationError] = useState<string | null>(null)
@@ -824,6 +828,27 @@ export default function AdminPage() {
       }
     } catch { /* ignore */ }
   }, [])
+
+  // ── On auth (and after each Generate), look up whether a draft already
+  // exists for this week's target Monday. Drives the "Appending to Issue #N"
+  // banner and the button label.
+  useEffect(() => {
+    if (!authed || !password) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/draft-issues?password=${encodeURIComponent(password)}`)
+        if (!res.ok || cancelled) return
+        const data = await res.json()
+        const target = nextMonday()
+        const match = ((data.issues ?? []) as DraftIssue[]).find(d => d.issueDate === target) ?? null
+        if (!cancelled) setCurrentWeekDraft(match)
+      } catch { /* ignore */ }
+    })()
+    return () => { cancelled = true }
+    // Re-run after a successful generate so the banner flips from "Will
+    // create" to "Appending to Issue #N" without requiring a page reload.
+  }, [authed, password, result])
 
   // ── Auto-save URLs to localStorage (debounced 1s) — keeps your in-progress issue across sessions
   useEffect(() => {
@@ -887,7 +912,23 @@ export default function AdminPage() {
     }
   }
 
-  // ── Create handler
+  // ── Fetch drafts, find one matching this week's target Monday
+  async function findExistingDraftForThisWeek(): Promise<DraftIssue | null> {
+    try {
+      const res = await fetch(`/api/draft-issues?password=${encodeURIComponent(password)}`)
+      if (!res.ok) return null
+      const data = await res.json()
+      const drafts = (data.issues ?? []) as DraftIssue[]
+      const target = nextMonday()
+      return drafts.find(d => d.issueDate === target) ?? null
+    } catch {
+      return null
+    }
+  }
+
+  // ── Generate handler — creates a new draft OR appends to the current
+  // week's existing unpublished draft. Decides by querying Notion for a
+  // draft matching nextMonday() right before it fires.
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault()
     setCreateValidationError(null)
@@ -898,11 +939,25 @@ export default function AdminPage() {
     setResult(null)
     setResultSummaries({ ...EMPTY_SUMMARIES })
     setCreateLog([])
+
+    // Check for an existing draft for this week's Monday — if there is one,
+    // we append to it instead of creating a second Notion page.
+    const existingDraft = await findExistingDraftForThisWeek()
+    const isUpdate = existingDraft !== null
+    const endpoint = isUpdate ? '/api/update-issue' : '/api/new-issue'
+    const body = isUpdate
+      ? { password, pageId: existingDraft!.id, sections, includeImages, summaryLength }
+      : { password, sections, includeImages, summaryLength }
+
+    if (isUpdate) {
+      setCreateLog([`→ Adding to existing draft (Issue #${existingDraft!.issueNumber})`])
+    }
+
     try {
-      const res = await fetch('/api/new-issue', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, sections, includeImages, summaryLength }),
+        body: JSON.stringify(body),
       })
       if (res.status === 401) {
         sessionStorage.removeItem('adminAuth'); setAuthed(false); setPassword('')
@@ -914,9 +969,15 @@ export default function AdminPage() {
           case 'pdf':      setCreateLog(p => [...p, `📄 Extracting PDF text…`]); break
           case 'summarise':setCreateLog(p => [...p, `🤖 Summarising…`]); break
           case 'done_url': setCreateLog(p => [...p, `✓ Done — ${event.summary.slice(0, 80)}…`]); break
-          case 'notion':   setCreateLog(p => [...p, `✍️ Creating Notion page…`]); break
+          case 'notion':   setCreateLog(p => [...p, isUpdate ? `✍️ Appending to Notion page…` : `✍️ Creating Notion page…`]); break
           case 'complete':
-            setResult({ notionUrl: event.notionUrl, issueNumber: event.issueNumber ?? 0 })
+            setResult({
+              notionUrl: event.notionUrl,
+              // update-issue doesn't emit issueNumber, fall back to the one
+              // we picked up when we looked the draft up
+              issueNumber: event.issueNumber ?? existingDraft?.issueNumber ?? 0,
+            })
+            setWasUpdate(isUpdate)
             setResultSummaries(event.summaries as Record<SectionKey, SectionSummary[]>)
             try { localStorage.removeItem('adminLastSession') } catch { /* ignore */ }
             break
@@ -1006,6 +1067,7 @@ export default function AdminPage() {
     setExpandedSections({ ...ALL_COLLAPSED })
     setResult(null); setResultSummaries({ ...EMPTY_SUMMARIES })
     setApiError(null); setCreateLog([]); setCreateValidationError(null); setCopiedEmail(false)
+    setWasUpdate(false)
   }
 
   function toggleSection(key: SectionKey) {
@@ -1028,7 +1090,7 @@ export default function AdminPage() {
         )}
         <button type="button" onClick={handleReset}
           className="inline-flex items-center gap-2 border-2 border-neopop-black text-neopop-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream">
-          Create another issue
+          {wasUpdate ? 'Add more URLs' : 'Create another issue'}
         </button>
       </div>
     )
@@ -1109,9 +1171,11 @@ export default function AdminPage() {
           </button>
         </div>
         <div className="border-[3px] border-neopop-black bg-neopop-yellow p-5 shadow-[6px_6px_0_0_var(--color-neopop-black)]">
-          <p className="text-[13px] font-black uppercase tracking-[0.15em] mb-2">✓ Published</p>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] mb-2">
+            {wasUpdate ? '✓ URLs added' : '✓ Draft created'}
+          </p>
           <p className="text-[28px] font-black uppercase tracking-tight leading-tight">
-            Issue #{result.issueNumber} created
+            Issue #{result.issueNumber} {wasUpdate ? 'updated' : 'ready to review'}
           </p>
         </div>
         {renderSuccessActions(result.notionUrl, resultSummaries)}
@@ -1218,12 +1282,31 @@ export default function AdminPage() {
 
         <StatusLog items={createLog} />
 
+        {/* Smart Generate button — tells you whether it'll create or append
+            so you know before clicking */}
+        {currentWeekDraft && !loading && (
+          <p className="text-[13px] font-bold text-neopop-black">
+            <span className="uppercase tracking-wide">↪ Will append to</span>{' '}
+            <a
+              href={`https://notion.so/${currentWeekDraft.id.replace(/-/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:no-underline hover:text-neopop-red"
+            >
+              Issue #{currentWeekDraft.issueNumber}
+            </a>{' '}
+            (unpublished draft for {nextMonday()}).
+          </p>
+        )}
+
         <button
           type="submit"
           disabled={isFormBusy}
           className="inline-block border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)] disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
         >
-          {loading ? 'Generating draft…' : '✦ Generate Draft'}
+          {loading
+            ? (currentWeekDraft ? 'Appending…' : 'Generating draft…')
+            : (currentWeekDraft ? `✦ Add to Issue #${currentWeekDraft.issueNumber}` : '✦ Generate Draft')}
         </button>
       </form>
     </div>
