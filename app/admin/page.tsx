@@ -566,6 +566,61 @@ function SummaryPreview({
   )
 }
 
+// ─── RefreshPublicSite ───────────────────────────────────────────────────────────
+
+// Small card that calls /api/revalidate so the public site picks up a
+// Notion change (publish/unpublish, edit) immediately instead of waiting
+// for the 5-min background refresh.
+function RefreshPublicSite({ password }: { password: string }) {
+  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [message, setMessage] = useState<string>('')
+
+  async function handleRefresh() {
+    setState('loading')
+    setMessage('')
+    try {
+      const res = await fetch('/api/revalidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      if (!res.ok) {
+        setState('error')
+        setMessage(res.status === 401 ? 'Session expired. Sign in again.' : `Error ${res.status}`)
+        return
+      }
+      setState('done')
+      setMessage('Public site refreshed. Changes are live.')
+      setTimeout(() => { setState('idle'); setMessage('') }, 4000)
+    } catch {
+      setState('error')
+      setMessage('Network error. Try again.')
+    }
+  }
+
+  return (
+    <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
+        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70 mb-1">Just published in Notion?</p>
+        <p className="text-[14px]">Hit refresh to make the change live immediately instead of waiting up to 5 min.</p>
+        {message && (
+          <p className={`text-[13px] font-bold mt-2 ${state === 'error' ? 'text-neopop-red' : ''}`}>
+            {state === 'done' ? '✓ ' : ''}{message}
+          </p>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={handleRefresh}
+        disabled={state === 'loading'}
+        className="border-[3px] border-neopop-black bg-neopop-yellow text-neopop-black font-black uppercase tracking-wide text-[14px] px-4 py-2 shadow-[4px_4px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-neopop-black)] disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+      >
+        {state === 'loading' ? '↻ Refreshing…' : '↻ Refresh site'}
+      </button>
+    </div>
+  )
+}
+
 // ─── StatusLog ───────────────────────────────────────────────────────────────────
 
 function StatusLog({ items }: { items: string[] }) {
@@ -1001,6 +1056,9 @@ export default function AdminPage() {
           <span className="uppercase tracking-wide">Heads up —</span> Summaries are AI-generated. Always review before publishing.
         </p>
       </div>
+
+      {/* Publish refresh */}
+      <RefreshPublicSite password={password} />
 
       {/* Issue metadata */}
       <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-4">
