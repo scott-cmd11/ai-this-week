@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 
-// On-demand revalidation for the public site.
-// Called from the admin UI after you publish/unpublish an issue in Notion
-// so the change shows up immediately instead of waiting for the
-// revalidate-every-5-min background refresh.
+// On-demand revalidation. Use case: you edited an already-published issue
+// in Notion (typo fix, summary tweak) and want the change live right away
+// instead of waiting for the 5-min background refresh.
+// For new publications use /api/publish-issue — it both flips Published
+// AND revalidates in one call.
 export async function POST(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
   if (!adminPassword) {
@@ -22,12 +23,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Incorrect password.' }, { status: 401 })
   }
 
-  // 'layout' type invalidates every route that uses the root layout —
-  // homepage, issues list, issue detail pages, sections, feed, sitemap.
   revalidatePath('/', 'layout')
 
-  return NextResponse.json({
-    ok: true,
-    revalidatedAt: new Date().toISOString(),
-  })
+  return NextResponse.json({ ok: true })
 }

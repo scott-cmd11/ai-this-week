@@ -28,6 +28,13 @@ interface SavedSession {
   sections: Record<SectionKey, string>
 }
 
+interface DraftIssue {
+  id: string
+  title: string
+  issueDate: string
+  issueNumber: number
+}
+
 type SectionKey = 'top' | 'bright' | 'tool' | 'podcast' | 'learning' | 'deep'
 
 interface CompletedCreate { notionUrl: string; issueNumber: number }
@@ -566,18 +573,46 @@ function SummaryPreview({
   )
 }
 
-// ─── RefreshPublicSite ───────────────────────────────────────────────────────────
+// ─── PublishDrafts ───────────────────────────────────────────────────────────────
 
-// Small card that calls /api/revalidate so the public site picks up a
-// Notion change (publish/unpublish, edit) immediately instead of waiting
-// for the 5-min background refresh.
-function RefreshPublicSite({ password }: { password: string }) {
-  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
-  const [message, setMessage] = useState<string>('')
+// Lists every unpublished draft in Notion with a one-click publish button.
+// Publishing sets Published=true on the Notion page AND calls revalidate
+// so the issue appears on the public site immediately.
+function PublishDrafts({ password }: { password: string }) {
+  const [drafts, setDrafts] = useState<DraftIssue[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [publishing, setPublishing] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
-  async function handleRefresh() {
-    setState('loading')
-    setMessage('')
+  async function loadDrafts() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/draft-issues?password=${encodeURIComponent(password)}`)
+      if (!res.ok) {
+        setError(res.status === 401 ? 'Session expired. Sign in again.' : `Error ${res.status}`)
+        return
+      }
+      const data = await res.json()
+      setDrafts((data.issues ?? []) as DraftIssue[])
+    } catch {
+      setError('Network error. Try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadDrafts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function handleRefreshSite() {
+    setRefreshing(true)
+    setError(null)
+    setMessage(null)
     try {
       const res = await fetch('/api/revalidate', {
         method: 'POST',
@@ -585,38 +620,110 @@ function RefreshPublicSite({ password }: { password: string }) {
         body: JSON.stringify({ password }),
       })
       if (!res.ok) {
-        setState('error')
-        setMessage(res.status === 401 ? 'Session expired. Sign in again.' : `Error ${res.status}`)
+        setError(res.status === 401 ? 'Session expired. Sign in again.' : `Error ${res.status}`)
         return
       }
-      setState('done')
-      setMessage('Public site refreshed. Changes are live.')
-      setTimeout(() => { setState('idle'); setMessage('') }, 4000)
+      setMessage('✓ Public site refreshed.')
+      setTimeout(() => setMessage(null), 4000)
     } catch {
-      setState('error')
-      setMessage('Network error. Try again.')
+      setError('Network error. Try again.')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  async function handlePublish(pageId: string, title: string) {
+    setPublishing(pageId)
+    setError(null)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/publish-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, pageId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? `Error ${res.status}`)
+        return
+      }
+      setMessage(`✓ Published "${title}" — live on the public site.`)
+      setTimeout(() => setMessage(null), 5000)
+      // Refresh the list so the just-published draft disappears
+      loadDrafts()
+    } catch {
+      setError('Network error. Try again.')
+    } finally {
+      setPublishing(null)
     }
   }
 
   return (
-    <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <div>
-        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70 mb-1">Just published in Notion?</p>
-        <p className="text-[14px]">Hit refresh to make the change live immediately instead of waiting up to 5 min.</p>
-        {message && (
-          <p className={`text-[13px] font-bold mt-2 ${state === 'error' ? 'text-neopop-red' : ''}`}>
-            {state === 'done' ? '✓ ' : ''}{message}
-          </p>
-        )}
+    <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70">Drafts ready to publish</p>
+        <button
+          type="button"
+          onClick={loadDrafts}
+          disabled={loading}
+          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-neopop-red disabled:opacity-50"
+        >
+          {loading ? '↻ Loading…' : '↻ Refresh list'}
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={handleRefresh}
-        disabled={state === 'loading'}
-        className="border-[3px] border-neopop-black bg-neopop-yellow text-neopop-black font-black uppercase tracking-wide text-[14px] px-4 py-2 shadow-[4px_4px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-neopop-black)] disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-      >
-        {state === 'loading' ? '↻ Refreshing…' : '↻ Refresh site'}
-      </button>
+
+      {message && (
+        <p className="text-[14px] font-bold text-neopop-black mb-3">{message}</p>
+      )}
+      {error && (
+        <p className="text-[14px] font-bold text-neopop-red mb-3">{error}</p>
+      )}
+
+      {loading && !drafts ? (
+        <p className="text-[14px] text-neopop-black/70">Loading drafts…</p>
+      ) : drafts && drafts.length === 0 ? (
+        <p className="text-[14px] text-neopop-black/70">
+          No unpublished drafts. Generate one below to start a new issue.
+        </p>
+      ) : drafts && drafts.length > 0 ? (
+        <ul className="list-none p-0 m-0 flex flex-col gap-2">
+          {drafts.map(draft => (
+            <li
+              key={draft.id}
+              className="flex items-center justify-between gap-3 flex-wrap border-[2px] border-neopop-black/30 px-3 py-2"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-bold truncate">{draft.title}</p>
+                <p className="text-[12px] text-neopop-black/70 uppercase tracking-wide">
+                  Issue {draft.issueNumber} · {draft.issueDate}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handlePublish(draft.id, draft.title)}
+                disabled={publishing !== null}
+                className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[13px] px-3 py-1.5 shadow-[3px_3px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+              >
+                {publishing === draft.id ? 'Publishing…' : 'Publish'}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="mt-4 pt-3 border-t-[2px] border-neopop-black/20 flex items-center justify-between flex-wrap gap-2">
+        <p className="text-[12px] text-neopop-black/70">
+          Edited a typo on an already-published issue?
+        </p>
+        <button
+          type="button"
+          onClick={handleRefreshSite}
+          disabled={refreshing}
+          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-neopop-red disabled:opacity-50"
+        >
+          {refreshing ? '↻ Refreshing…' : '↻ Refresh public site'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -1057,8 +1164,8 @@ export default function AdminPage() {
         </p>
       </div>
 
-      {/* Publish refresh */}
-      <RefreshPublicSite password={password} />
+      {/* Publish drafts */}
+      <PublishDrafts password={password} />
 
       {/* Issue metadata */}
       <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-4">
@@ -1116,7 +1223,7 @@ export default function AdminPage() {
           disabled={isFormBusy}
           className="inline-block border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)] disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
         >
-          {loading ? 'Generating…' : '✦ Generate Issue'}
+          {loading ? 'Generating draft…' : '✦ Generate Draft'}
         </button>
       </form>
     </div>
