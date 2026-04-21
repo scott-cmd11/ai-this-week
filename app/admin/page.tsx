@@ -73,13 +73,14 @@ const SUMMARY_LENGTH_LABELS: Record<SummaryLength, string> = {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
-function nextMonday(): string {
+function nextFriday(): string {
   const today = new Date()
-  const day = today.getDay()
-  const daysUntil = day === 0 ? 1 : day === 1 ? 7 : 8 - day
-  const monday = new Date(today)
-  monday.setDate(today.getDate() + daysUntil)
-  return monday.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+  const day = today.getDay() // 0 = Sun, 1 = Mon, … 5 = Fri, 6 = Sat
+  // If today IS Friday, target next week's Friday, not today.
+  const daysUntil = day === 5 ? 7 : day < 5 ? 5 - day : 6
+  const friday = new Date(today)
+  friday.setDate(today.getDate() + daysUntil)
+  return friday.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 }
 
 function formatSavedAt(iso: string): string {
@@ -1263,7 +1264,7 @@ export default function AdminPage() {
       <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-4">
         <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70">Issue details</p>
         <p className="text-[17px]">
-          <span className="font-bold">Date:</span> {nextMonday()}
+          <span className="font-bold">Date:</span> {nextFriday()}
           <span className="mx-3 text-neopop-black/40">·</span>
           <span className="font-bold">Number:</span> auto
         </p>

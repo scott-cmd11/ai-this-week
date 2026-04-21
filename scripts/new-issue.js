@@ -68,14 +68,15 @@ function parseUrls(str) {
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────
 
-/** Returns the date of the next Monday as YYYY-MM-DD */
-function nextMonday() {
+/** Returns the date of the next Friday as YYYY-MM-DD */
+function nextFriday() {
   const today = new Date()
-  const day = today.getDay() // 0 = Sun, 1 = Mon, …
-  const daysUntil = day === 0 ? 1 : day === 1 ? 7 : 8 - day
-  const monday = new Date(today)
-  monday.setDate(today.getDate() + daysUntil)
-  return monday.toISOString().split('T')[0]
+  const day = today.getDay() // 0 = Sun, 1 = Mon, … 5 = Fri, 6 = Sat
+  // If today IS Friday, target next week's Friday, not today.
+  const daysUntil = day === 5 ? 7 : day < 5 ? 5 - day : 6
+  const friday = new Date(today)
+  friday.setDate(today.getDate() + daysUntil)
+  return friday.toISOString().split('T')[0]
 }
 
 /** Formats a YYYY-MM-DD string as "Apr 21, 2026" */
@@ -304,7 +305,7 @@ async function main() {
   const argv = parseArgs()
   const hasUrls = argv.top || argv.bright || argv.tool || argv.podcast || argv.learning || argv.deep
 
-  const issueDate = nextMonday()
+  const issueDate = nextFriday()
   const issueNumber = await getNextIssueNumber()
   const title = `AI This Week — ${formatDate(issueDate)}`
 
