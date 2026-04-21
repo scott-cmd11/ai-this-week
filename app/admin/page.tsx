@@ -1088,10 +1088,6 @@ export default function AdminPage() {
             {copiedEmail ? '✓ Copied!' : '📋 Copy as plain text'}
           </button>
         )}
-        <button type="button" onClick={handleReset}
-          className="inline-flex items-center gap-2 border-2 border-neopop-black text-neopop-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream">
-          {wasUpdate ? 'Add more URLs' : 'Create another issue'}
-        </button>
       </div>
     )
   }
@@ -1165,7 +1161,13 @@ export default function AdminPage() {
   if (result) {
     return (
       <div className="max-w-3xl flex flex-col gap-6">
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-4">
+          <button
+            onClick={handleReset}
+            className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-neopop-red"
+          >
+            ← Back to admin
+          </button>
           <button onClick={handleSignOut} className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-neopop-red">
             Sign out
           </button>
@@ -1178,6 +1180,16 @@ export default function AdminPage() {
             Issue #{result.issueNumber} {wasUpdate ? 'updated' : 'ready to review'}
           </p>
         </div>
+
+        {/* Primary next action — add more URLs to this same issue */}
+        <button
+          type="button"
+          onClick={handleReset}
+          className="inline-block border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)]"
+        >
+          + Add more URLs to this issue
+        </button>
+
         {renderSuccessActions(result.notionUrl, resultSummaries)}
         {renderSummaryPreviews(resultSummaries)}
       </div>
