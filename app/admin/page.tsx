@@ -40,7 +40,7 @@ const SECTION_LABELS: Record<SectionKey, string> = {
   top: 'Top Stories',
   bright: 'Bright Spot',
   tool: 'Tool of the Week',
-  podcast: 'AI Podcast of the Week',
+  podcast: 'Podcast of the Week',
   learning: 'Learning',
   deep: 'Deep Dive',
 }
@@ -49,7 +49,7 @@ const SECTION_EMAIL_HEADINGS: Record<SectionKey, string> = {
   top: 'TOP STORIES',
   bright: 'BRIGHT SPOT OF THE WEEK',
   tool: 'TOOL OF THE WEEK',
-  podcast: 'AI PODCAST OF THE WEEK',
+  podcast: 'PODCAST OF THE WEEK',
   learning: 'LEARNING',
   deep: 'DEEP DIVE',
 }
