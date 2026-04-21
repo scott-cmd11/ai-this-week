@@ -841,9 +841,9 @@ export default function AdminPage() {
     } catch { /* ignore */ }
   }, [])
 
-  // ── On auth (and after each Generate), look up whether a draft already
-  // exists for this week's target Monday. Drives the "Appending to Issue #N"
-  // banner and the button label.
+  // ── On auth (and after each Generate), look up whether any unpublished
+  // draft exists in Notion. Drives the "Appending to Issue #N" banner
+  // and the button label. Takes the most recent draft if there are several.
   useEffect(() => {
     if (!authed || !password) return
     let cancelled = false
@@ -852,9 +852,8 @@ export default function AdminPage() {
         const res = await fetch(`/api/draft-issues?password=${encodeURIComponent(password)}`)
         if (!res.ok || cancelled) return
         const data = await res.json()
-        const target = nextMonday()
-        const match = ((data.issues ?? []) as DraftIssue[]).find(d => d.issueDate === target) ?? null
-        if (!cancelled) setCurrentWeekDraft(match)
+        const drafts = (data.issues ?? []) as DraftIssue[]
+        if (!cancelled) setCurrentWeekDraft(drafts[0] ?? null)
       } catch { /* ignore */ }
     })()
     return () => { cancelled = true }
@@ -924,15 +923,20 @@ export default function AdminPage() {
     }
   }
 
-  // ── Fetch drafts, find one matching this week's target Monday
-  async function findExistingDraftForThisWeek(): Promise<DraftIssue | null> {
+  // ── Find the draft to append to — the most recent unpublished draft in
+  // Notion, if any. We don't match by date anymore because client (local tz)
+  // and server (UTC) can disagree on what "next Monday" is, which produced
+  // duplicate drafts. Simpler model: one unpublished draft at a time, and
+  // Generate always appends to it until it's published.
+  async function findExistingDraft(): Promise<DraftIssue | null> {
     try {
       const res = await fetch(`/api/draft-issues?password=${encodeURIComponent(password)}`)
       if (!res.ok) return null
       const data = await res.json()
       const drafts = (data.issues ?? []) as DraftIssue[]
-      const target = nextMonday()
-      return drafts.find(d => d.issueDate === target) ?? null
+      // /api/draft-issues returns drafts sorted by Issue Date descending,
+      // so drafts[0] is the most recent unpublished one.
+      return drafts[0] ?? null
     } catch {
       return null
     }
@@ -954,7 +958,7 @@ export default function AdminPage() {
 
     // Check for an existing draft for this week's Monday — if there is one,
     // we append to it instead of creating a second Notion page.
-    const existingDraft = await findExistingDraftForThisWeek()
+    const existingDraft = await findExistingDraft()
     const isUpdate = existingDraft !== null
     const endpoint = isUpdate ? '/api/update-issue' : '/api/new-issue'
     const body = isUpdate
@@ -1319,7 +1323,7 @@ export default function AdminPage() {
             >
               Issue #{currentWeekDraft.issueNumber}
             </a>{' '}
-            (unpublished draft for {nextMonday()}).
+            ({currentWeekDraft.issueDate}). Publish it from the list above if you want to start a fresh one.
           </p>
         )}
 
