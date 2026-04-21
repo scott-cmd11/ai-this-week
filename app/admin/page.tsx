@@ -583,6 +583,7 @@ function PublishDrafts({ password }: { password: string }) {
   const [drafts, setDrafts] = useState<DraftIssue[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState<string | null>(null)
+  const [archiving, setArchiving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -630,6 +631,33 @@ function PublishDrafts({ password }: { password: string }) {
       setError('Network error. Try again.')
     } finally {
       setRefreshing(false)
+    }
+  }
+
+  async function handleArchive(pageId: string, title: string) {
+    // Two-step confirm — deletion is irreversible from the admin UI.
+    if (!window.confirm(`Delete "${title}"? It will be moved to the Notion trash.`)) return
+    setArchiving(pageId)
+    setError(null)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/archive-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, pageId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? `Error ${res.status}`)
+        return
+      }
+      setMessage(`✓ Deleted "${title}". Restorable from Notion trash if needed.`)
+      setTimeout(() => setMessage(null), 5000)
+      loadDrafts()
+    } catch {
+      setError('Network error. Try again.')
+    } finally {
+      setArchiving(null)
     }
   }
 
@@ -710,14 +738,25 @@ function PublishDrafts({ password }: { password: string }) {
                     Issue {draft.issueNumber} · {draft.issueDate}
                   </p>
                 </a>
-                <button
-                  type="button"
-                  onClick={() => handlePublish(draft.id, draft.title)}
-                  disabled={publishing !== null}
-                  className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[13px] px-3 py-1.5 shadow-[3px_3px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                >
-                  {publishing === draft.id ? 'Publishing…' : 'Publish'}
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleArchive(draft.id, draft.title)}
+                    disabled={publishing !== null || archiving !== null}
+                    className="border-[2px] border-neopop-black bg-neopop-white text-neopop-black font-bold uppercase tracking-wide text-[12px] px-2 py-1.5 hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Move to Notion trash"
+                  >
+                    {archiving === draft.id ? 'Deleting…' : 'Delete'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePublish(draft.id, draft.title)}
+                    disabled={publishing !== null || archiving !== null}
+                    className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[13px] px-3 py-1.5 shadow-[3px_3px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {publishing === draft.id ? 'Publishing…' : 'Publish'}
+                  </button>
+                </div>
               </li>
             )
           })}
