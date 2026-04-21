@@ -687,27 +687,39 @@ function PublishDrafts({ password }: { password: string }) {
         </p>
       ) : drafts && drafts.length > 0 ? (
         <ul className="list-none p-0 m-0 flex flex-col gap-2">
-          {drafts.map(draft => (
-            <li
-              key={draft.id}
-              className="flex items-center justify-between gap-3 flex-wrap border-[2px] border-neopop-black/30 px-3 py-2"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-bold truncate">{draft.title}</p>
-                <p className="text-[12px] text-neopop-black/70 uppercase tracking-wide">
-                  Issue {draft.issueNumber} · {draft.issueDate}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handlePublish(draft.id, draft.title)}
-                disabled={publishing !== null}
-                className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[13px] px-3 py-1.5 shadow-[3px_3px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          {drafts.map(draft => {
+            // Notion accepts the page ID without dashes as a valid URL
+            const notionUrl = `https://notion.so/${draft.id.replace(/-/g, '')}`
+            return (
+              <li
+                key={draft.id}
+                className="flex items-center justify-between gap-3 flex-wrap border-[2px] border-neopop-black/30 px-3 py-2 hover:bg-neopop-cream"
               >
-                {publishing === draft.id ? 'Publishing…' : 'Publish'}
-              </button>
-            </li>
-          ))}
+                <a
+                  href={notionUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-w-0 flex-1 no-underline group"
+                  title="Open draft in Notion"
+                >
+                  <p className="text-[14px] font-bold truncate group-hover:text-neopop-red group-hover:underline">
+                    {draft.title} ↗
+                  </p>
+                  <p className="text-[12px] text-neopop-black/70 uppercase tracking-wide">
+                    Issue {draft.issueNumber} · {draft.issueDate}
+                  </p>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => handlePublish(draft.id, draft.title)}
+                  disabled={publishing !== null}
+                  className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[13px] px-3 py-1.5 shadow-[3px_3px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                >
+                  {publishing === draft.id ? 'Publishing…' : 'Publish'}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       ) : null}
 
