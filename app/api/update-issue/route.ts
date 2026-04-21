@@ -43,6 +43,11 @@ const block = {
     type: 'heading_2' as const,
     heading_2: { rich_text: richText(content) },
   }),
+  h3: (content: string) => ({
+    object: 'block' as const,
+    type: 'heading_3' as const,
+    heading_3: { rich_text: richText(content) },
+  }),
   paragraph: (content: string) => ({
     object: 'block' as const,
     type: 'paragraph' as const,
@@ -57,17 +62,6 @@ const block = {
     object: 'block' as const,
     type: 'bookmark' as const,
     bookmark: { url, caption: [] as never[] },
-  }),
-  linkedTitle: (title: string, url: string) => ({
-    object: 'block' as const,
-    type: 'paragraph' as const,
-    paragraph: {
-      rich_text: [{
-        type: 'text' as const,
-        text: { content: title, link: { url } },
-        annotations: { bold: true, italic: false, strikethrough: false, underline: false, code: false, color: 'default' as const },
-      }],
-    },
   }),
   image: (imageUrl: string) => ({
     object: 'block' as const,
@@ -383,7 +377,7 @@ export async function POST(request: NextRequest) {
         if (request.signal.aborted) { controller.close(); return }
 
         // Build blocks to append — only for sections that have URLs
-        const blocksToAppend: ReturnType<typeof block.h2 | typeof block.paragraph | typeof block.bookmark | typeof block.divider | typeof block.linkedTitle | typeof block.image>[] = []
+        const blocksToAppend: ReturnType<typeof block.h2 | typeof block.h3 | typeof block.paragraph | typeof block.bookmark | typeof block.divider | typeof block.image>[] = []
 
         for (const key of sectionKeys) {
           const summaries = summaryMap[key]
@@ -393,7 +387,7 @@ export async function POST(request: NextRequest) {
 
           for (const { url, title, publishedDate, imageUrl, summary } of summaries) {
             if (includeImages && imageUrl) blocksToAppend.push(block.image(imageUrl))
-            if (title) blocksToAppend.push(block.linkedTitle(title, url))
+            if (title) blocksToAppend.push(block.h3(title))
             if (publishedDate) blocksToAppend.push(block.paragraph(`Published: ${publishedDate}`))
             blocksToAppend.push(block.paragraph(summary))
             blocksToAppend.push(block.bookmark(url))

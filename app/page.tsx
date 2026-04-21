@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getPublishedIssues } from '@/lib/notion'
+import { nonBreakingDate } from '@/lib/title'
 import { NeoPopCard } from '@/components/NeoPop/NeoPopCard'
 import { NeoPopButton } from '@/components/NeoPop/NeoPopButton'
 
@@ -51,7 +52,7 @@ export default async function HomePage() {
             </div>
             <h2 className="text-[36px] font-black uppercase leading-[1.05] tracking-tight mb-4">
               <Link href={`/issues/${latest.slug}`} className="text-neopop-black hover:text-neopop-red no-underline">
-                {latest.title}
+                {nonBreakingDate(latest.title)}
               </Link>
             </h2>
             {latest.summary && (
@@ -78,7 +79,7 @@ export default async function HomePage() {
                     <time dateTime={issue.issueDate}>{formatDate(issue.issueDate)}</time>
                   </div>
                   <h3 className="text-[24px] font-black leading-tight mb-2 text-neopop-black">
-                    {issue.title}
+                    {nonBreakingDate(issue.title)}
                   </h3>
                   {issue.summary && (
                     <p className="text-[17px] leading-[1.5] text-neopop-black">{issue.summary}</p>

@@ -42,6 +42,11 @@ const block = {
     type: 'heading_2' as const,
     heading_2: { rich_text: richText(content) },
   }),
+  h3: (content: string) => ({
+    object: 'block' as const,
+    type: 'heading_3' as const,
+    heading_3: { rich_text: richText(content) },
+  }),
   paragraph: (content: string) => ({
     object: 'block' as const,
     type: 'paragraph' as const,
@@ -61,17 +66,6 @@ const block = {
     object: 'block' as const,
     type: 'bookmark' as const,
     bookmark: { url, caption: [] as never[] },
-  }),
-  linkedTitle: (title: string, url: string) => ({
-    object: 'block' as const,
-    type: 'paragraph' as const,
-    paragraph: {
-      rich_text: [{
-        type: 'text' as const,
-        text: { content: title, link: { url } },
-        annotations: { bold: true, italic: false, strikethrough: false, underline: false, code: false, color: 'default' as const },
-      }],
-    },
   }),
   image: (imageUrl: string) => ({
     object: 'block' as const,
@@ -363,7 +357,7 @@ function topStoriesBlocks(summaries: SectionSummary[], includeImages: boolean) {
   const blocks = []
   for (const { url, title, publishedDate, imageUrl, summary } of summaries) {
     if (includeImages && imageUrl) blocks.push(block.image(imageUrl))
-    if (title) blocks.push(block.linkedTitle(title, url))
+    if (title) blocks.push(block.h3(title))
     if (publishedDate) blocks.push(block.paragraph(`Published: ${publishedDate}`))
     blocks.push(block.paragraph(`🔹 ${summary}`))
     blocks.push(block.bookmark(url))
@@ -386,7 +380,7 @@ function singleSectionBlocks(summaries: SectionSummary[], placeholder: string, i
   const { url, title, publishedDate, imageUrl, summary } = summaries[0]
   return [
     ...(includeImages && imageUrl ? [block.image(imageUrl)] : []),
-    ...(title ? [block.linkedTitle(title, url)] : []),
+    ...(title ? [block.h3(title)] : []),
     ...(publishedDate ? [block.paragraph(`Published: ${publishedDate}`)] : []),
     block.paragraph(summary),
     block.bookmark(url),

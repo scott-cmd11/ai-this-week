@@ -1,4 +1,5 @@
 import type { Issue } from '@/lib/types'
+import { nonBreakingDate } from '@/lib/title'
 import { NeoPopCard } from './NeoPop/NeoPopCard'
 
 interface Props {
@@ -23,7 +24,7 @@ export function IssueCard({ issue }: Props) {
         <time dateTime={issue.issueDate}>{formatDate(issue.issueDate)}</time>
       </div>
       <h2 className="text-[24px] font-black leading-tight mb-2 text-neopop-black">
-        {issue.title}
+        {nonBreakingDate(issue.title)}
       </h2>
       {issue.summary && (
         <p className="text-[17px] leading-[1.5] text-neopop-black m-0">{issue.summary}</p>

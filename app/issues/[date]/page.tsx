@@ -9,6 +9,7 @@ import {
   getRelatedIssues,
 } from '@/lib/notion'
 import { NotionRenderer } from '@/lib/notion-renderer'
+import { nonBreakingDate } from '@/lib/title'
 import { MetadataStrip } from '@/components/MetadataStrip'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { CopyMarkdownButton } from '@/components/CopyMarkdownButton'
@@ -77,8 +78,7 @@ export default async function IssuePage({ params }: Props) {
           </div>
 
           <h1 className="text-[40px] sm:text-[52px] font-black uppercase leading-[0.95] tracking-tight mb-4 mt-2 break-words">
-            {/* Non-breaking space inside the date prevents wrap between "27," and "2026" */}
-            {issue.title.replace(/, (\d{4})/, ',\u00A0$1')}
+            {nonBreakingDate(issue.title)}
           </h1>
           <div className="w-20 h-[6px] bg-neopop-red mb-8" aria-hidden="true" />
 
