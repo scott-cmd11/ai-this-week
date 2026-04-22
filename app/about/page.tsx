@@ -60,14 +60,28 @@ export default function AboutPage() {
             to the original source — linked beneath each summary as &ldquo;Read
             more&rdquo; — for the authoritative version of any story.
           </p>
-          <p className="text-[19px] leading-[1.5] mb-4">
+          <p className="text-[19px] leading-[1.5]">
             Minor editing happens prior to publishing: summaries are reviewed for
             obvious errors and tone before each issue goes live. But AI-generated
             text can misread nuance, miss context, or occasionally invent detail.
             Treat summaries as a pointer to the story, not the story itself.
           </p>
-          <p className="text-[19px] leading-[1.5]">
-            Questions about the editorial process? Contact us directly.
+        </NeoPopCard>
+      </section>
+
+      <section aria-label="Contact" className="mb-10">
+        <NeoPopCard bg="white" interactive={false}>
+          <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">Contact</h2>
+          <p className="text-[19px] leading-[1.5] mb-3">
+            Questions, corrections, or a story to pass along? Get in touch.
+          </p>
+          <p className="text-[22px] font-black">
+            <a
+              href="mailto:scott.hazlitt@gmail.com"
+              className="text-neopop-black underline hover:text-neopop-red hover:no-underline"
+            >
+              scott.hazlitt@gmail.com
+            </a>
           </p>
         </NeoPopCard>
       </section>
