@@ -1292,7 +1292,7 @@ export default function AdminPage() {
       {/* AI notice */}
       <div className="border-[3px] border-neopop-black bg-neopop-cream px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
         <p className="text-[14px] font-bold">
-          <span className="uppercase tracking-wide">Heads up —</span> Summaries are AI-generated. Always review before publishing.
+          <span className="uppercase tracking-wide">Heads up —</span> All summaries are AI-generated. Review official sources. Minor editing happens prior to publishing.
         </p>
       </div>
 

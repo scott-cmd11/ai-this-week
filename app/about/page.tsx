@@ -56,14 +56,18 @@ export default function AboutPage() {
         <NeoPopCard bg="cream" interactive={false}>
           <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">AI content disclosure</h2>
           <p className="text-[19px] leading-[1.5] mb-4">
-            Some article summaries on this site are drafted with AI assistance.
-            All AI-assisted content is reviewed and edited by a human editor before
-            publication. Issues that contain AI-assisted summaries are marked with
-            a disclosure notice at the top of the page.
+            <strong>All summaries on this site are AI-generated.</strong> Always go
+            to the original source — linked beneath each summary as &ldquo;Read
+            more&rdquo; — for the authoritative version of any story.
+          </p>
+          <p className="text-[19px] leading-[1.5] mb-4">
+            Minor editing happens prior to publishing: summaries are reviewed for
+            obvious errors and tone before each issue goes live. But AI-generated
+            text can misread nuance, miss context, or occasionally invent detail.
+            Treat summaries as a pointer to the story, not the story itself.
           </p>
           <p className="text-[19px] leading-[1.5]">
-            This disclosure is provided in the interest of transparency. If you
-            have questions about our editorial process, contact us directly.
+            Questions about the editorial process? Contact us directly.
           </p>
         </NeoPopCard>
       </section>
