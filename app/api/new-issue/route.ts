@@ -192,10 +192,39 @@ function extractPublishedDate(html: string): string | null {
   return null
 }
 
+// Last-resort title when nothing else worked — "cbc.ca" is worse than a real
+// headline but miles better than no heading at all.
+function hostnameFallback(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return 'Untitled article'
+  }
+}
+
 function extractTitle(html: string): string | null {
-  const match = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-  if (!match) return null
-  return match[1]
+  // Order of preference:
+  //   1. <title> — most reliable for server-rendered pages
+  //   2. og:title — set even when <title> is empty (common on SPA shells)
+  //   3. twitter:title — same idea, alternate tag some sites prefer
+  let raw: string | null = null
+
+  const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+  if (titleTag) raw = titleTag[1]
+
+  if (!raw) {
+    const metaCandidates = [
+      html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i),
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i),
+      html.match(/<meta[^>]+name=["']twitter:title["'][^>]+content=["']([^"']+)["']/i),
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:title["']/i),
+    ]
+    raw = metaCandidates.find(m => m && m[1]?.trim())?.[1] ?? null
+  }
+
+  if (!raw) return null
+
+  return raw
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -358,7 +387,8 @@ function topStoriesBlocks(summaries: SectionSummary[], includeImages: boolean) {
   const blocks = []
   for (const { url, title, publishedDate, imageUrl, summary } of summaries) {
     if (includeImages && imageUrl) blocks.push(block.image(imageUrl))
-    if (title) blocks.push(block.h3(title))
+    // Always emit a heading — fall back to hostname so articles aren't headless.
+    blocks.push(block.h3(title || hostnameFallback(url)))
     if (publishedDate) blocks.push(block.paragraph(`Published: ${publishedDate}`))
     blocks.push(block.paragraph(`🔹 ${summary}`))
     blocks.push(block.bookmark(url))
@@ -381,7 +411,7 @@ function singleSectionBlocks(summaries: SectionSummary[], placeholder: string, i
   const { url, title, publishedDate, imageUrl, summary } = summaries[0]
   return [
     ...(includeImages && imageUrl ? [block.image(imageUrl)] : []),
-    ...(title ? [block.h3(title)] : []),
+    block.h3(title || hostnameFallback(url)),
     ...(publishedDate ? [block.paragraph(`Published: ${publishedDate}`)] : []),
     block.paragraph(summary),
     block.bookmark(url),

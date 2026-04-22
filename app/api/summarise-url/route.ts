@@ -69,9 +69,25 @@ function extractPublishedDate(html: string): string | null {
 }
 
 function extractTitle(html: string): string | null {
-  const match = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-  if (!match) return null
-  return match[1]
+  // 1. <title> · 2. og:title · 3. twitter:title · 4. null → hostname upstream
+  let raw: string | null = null
+
+  const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+  if (titleTag) raw = titleTag[1]
+
+  if (!raw) {
+    const metaCandidates = [
+      html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i),
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i),
+      html.match(/<meta[^>]+name=["']twitter:title["'][^>]+content=["']([^"']+)["']/i),
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:title["']/i),
+    ]
+    raw = metaCandidates.find(m => m && m[1]?.trim())?.[1] ?? null
+  }
+
+  if (!raw) return null
+
+  return raw
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
     .replace(/\s+/g, ' ').trim()
