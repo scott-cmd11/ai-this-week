@@ -72,17 +72,16 @@ export default function AboutPage() {
       <section aria-label="Contact" className="mb-10">
         <NeoPopCard bg="white" interactive={false}>
           <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">Contact</h2>
-          <p className="text-[19px] leading-[1.5] mb-3">
-            Questions, corrections, or a story to pass along? Get in touch.
+          <p className="text-[19px] leading-[1.5] mb-5">
+            Questions, corrections, or a story to pass along? Send a message and
+            I&apos;ll reply when I can.
           </p>
-          <p className="text-[22px] font-black">
-            <a
-              href="mailto:scott.hazlitt@gmail.com"
-              className="text-neopop-black underline hover:text-neopop-red hover:no-underline"
-            >
-              scott.hazlitt@gmail.com
-            </a>
-          </p>
+          <a
+            href="/contact"
+            className="inline-block border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[15px] px-5 py-3 shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark no-underline"
+          >
+            ✦ Open contact form
+          </a>
         </NeoPopCard>
       </section>
     </>

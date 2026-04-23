@@ -17,12 +17,12 @@ export function Footer() {
             Learn more
           </Link>
           {' · '}
-          <a
-            href="mailto:scott.hazlitt@gmail.com"
+          <Link
+            href="/contact"
             className="underline font-bold hover:text-neopop-red hover:no-underline"
           >
             Contact
-          </a>
+          </Link>
         </p>
         <p className="text-[13px] text-neopop-black font-bold uppercase tracking-wider">
           Made in Canada
