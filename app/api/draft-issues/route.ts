@@ -54,6 +54,9 @@ export async function GET(request: NextRequest) {
         return { id: page.id, title, issueDate, issueNumber }
       })
       .filter((item): item is DraftIssue => item !== null)
+      // Exclude utility/admin pages that live in the database but aren't
+      // real newsletter issues (identified by issueNumber === 0).
+      .filter((item) => item.issueNumber > 0)
 
     return NextResponse.json({ issues }, { status: 200 })
   } catch (err) {
