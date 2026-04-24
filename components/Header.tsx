@@ -23,12 +23,12 @@ export function Header() {
 
   return (
     <header className="bg-neopop-white border-b-[4px] border-neopop-black" role="banner">
-      <div className="max-w-4xl mx-auto px-4 py-5 flex items-center justify-between">
+      <div className="max-w-4xl mx-auto px-4 py-3 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
         <Link
           href="/"
-          className="flex items-center gap-2 text-neopop-black font-black text-[22px] uppercase tracking-tight no-underline hover:text-neopop-red focus-visible:outline-none focus-visible:bg-neopop-yellow focus-visible:px-1"
+          className="flex items-center gap-2 text-neopop-black font-black text-[20px] sm:text-[22px] uppercase tracking-tight no-underline hover:text-neopop-red focus-visible:outline-none focus-visible:bg-neopop-yellow focus-visible:px-1"
         >
-          <MapleLeaf className="w-7 h-7" />
+          <MapleLeaf className="w-6 h-6 sm:w-7 sm:h-7" />
           AI This Week
         </Link>
 

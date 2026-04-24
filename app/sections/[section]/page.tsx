@@ -49,7 +49,7 @@ export default async function SectionPage({ params }: Props) {
         </Link>
       </div>
 
-      <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mt-4 mb-2">
+      <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black uppercase leading-[0.95] tracking-tight mt-4 mb-2">
         <span aria-hidden="true">{meta.emoji} </span>{meta.label}
       </h1>
       <div className="w-20 h-[6px] bg-neopop-red mb-6" aria-hidden="true" />

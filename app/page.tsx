@@ -27,11 +27,11 @@ export default async function HomePage() {
       {/* Hero */}
       <section aria-label="About this newsletter" className="mb-12">
         <NeoPopCard bg="yellow">
-          <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
+          <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
             AI news for people who aren&apos;t AI people.
           </h1>
           <div className="w-20 h-[6px] bg-neopop-red mb-5" aria-hidden="true" />
-          <p className="text-[22px] leading-[1.4] max-w-2xl font-medium">
+          <p className="text-[18px] sm:text-[22px] leading-[1.4] max-w-2xl font-medium">
             Every week: Canadian AI news, trending global stories, and new research —
             written for professional, non-technical readers. No hype, no jargon.
           </p>
@@ -50,7 +50,7 @@ export default async function HomePage() {
               <span aria-hidden="true">·</span>
               <time dateTime={latest.issueDate}>{formatDate(latest.issueDate)}</time>
             </div>
-            <h2 className="text-[36px] font-black uppercase leading-[1.05] tracking-tight mb-4">
+            <h2 className="text-[28px] sm:text-[36px] font-black uppercase leading-[1.05] tracking-tight mb-4">
               <Link href={`/issues/${latest.slug}`} className="text-neopop-black hover:text-neopop-red no-underline">
                 {nonBreakingDate(latest.title)}
               </Link>
@@ -68,7 +68,7 @@ export default async function HomePage() {
       {/* Past issues */}
       {past.length > 0 && (
         <section aria-label="Past issues">
-          <h2 className="text-[32px] font-black uppercase tracking-tight mb-6">Past issues</h2>
+          <h2 className="text-[26px] sm:text-[32px] font-black uppercase tracking-tight mb-6">Past issues</h2>
           <ul className="space-y-10 list-none p-0">
             {past.map(issue => (
               <li key={issue.id}>
