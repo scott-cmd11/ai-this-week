@@ -31,7 +31,6 @@ export function Header() {
         <nav aria-label="Main navigation">
           <ul className="flex gap-5 sm:gap-7 list-none m-0 p-0">
             <li><Link href="/issues" className={navLinkClass}>Issues</Link></li>
-            <li><Link href="/sections" className={navLinkClass}>Sections</Link></li>
             <li><Link href="/about" className={navLinkClass}>About</Link></li>
           </ul>
         </nav>
