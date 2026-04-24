@@ -12,6 +12,7 @@
   --color-ws-accent-light: #E1F0ED;
   --color-ws-white: #FFFFFF;
 
+  /* Legacy aliases — backward compat with any remaining neopop refs */
   --color-neopop-black: #2D2D2A;
   --color-neopop-white: #FFFFFF;
   --color-neopop-red: #1A7A6D;
@@ -23,6 +24,7 @@
   --color-focus-text: #2D2D2A;
 }
 
+/* ── Skip link ───────────────────────────────────────────────── */
 .skip-link {
   position: absolute;
   top: -100%;
@@ -40,12 +42,14 @@
   top: 0;
 }
 
+/* ── Focus style ─────────────────────────────────────────────── */
 *:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 0;
   box-shadow: 0 -2px var(--color-focus), 0 4px var(--color-ws-black);
 }
 
+/* ── Base ────────────────────────────────────────────────────── */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, sans-serif;
   font-size: 19px;
