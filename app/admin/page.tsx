@@ -574,6 +574,252 @@ function SummaryPreview({
   )
 }
 
+// ─── SiteStats ───────────────────────────────────────────────────────────────────
+
+interface StatsData {
+  totalPublished: number
+  draftsCount: number
+  recentPublished: number
+  latestIssue: { issueNumber: number; issueDate: string; title: string } | null
+}
+
+function SiteStats({ password }: { password: string }) {
+  const [stats, setStats] = useState<StatsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/stats?password=${encodeURIComponent(password)}`)
+        if (!res.ok) { setError('Could not load stats.'); return }
+        const data = await res.json() as StatsData
+        if (!cancelled) setStats(data)
+      } catch {
+        if (!cancelled) setError('Network error.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [password])
+
+  return (
+    <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
+      <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70 mb-4">Site stats</p>
+
+      {loading && <p className="text-[14px] text-neopop-black/70">Loading…</p>}
+      {error && <p className="text-[14px] text-neopop-red font-bold">{error}</p>}
+
+      {stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
+            <p className="text-[32px] font-black leading-none">{stats.totalPublished}</p>
+            <p className="text-[12px] font-black uppercase tracking-wide text-neopop-black/70">Published issues</p>
+          </div>
+          <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
+            <p className="text-[32px] font-black leading-none">{stats.recentPublished}</p>
+            <p className="text-[12px] font-black uppercase tracking-wide text-neopop-black/70">Issues last 30 days</p>
+          </div>
+          <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
+            <p className="text-[32px] font-black leading-none">{stats.draftsCount}</p>
+            <p className="text-[12px] font-black uppercase tracking-wide text-neopop-black/70">Drafts in queue</p>
+          </div>
+          <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
+            {stats.latestIssue ? (
+              <>
+                <p className="text-[32px] font-black leading-none">#{stats.latestIssue.issueNumber}</p>
+                <p className="text-[12px] font-black uppercase tracking-wide text-neopop-black/70">Latest issue</p>
+                <p className="text-[11px] text-neopop-black/50">{stats.latestIssue.issueDate}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-[32px] font-black leading-none">—</p>
+                <p className="text-[12px] font-black uppercase tracking-wide text-neopop-black/70">Latest issue</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {stats && (
+        <p className="text-[12px] text-neopop-black/50 mt-3">
+          Visitor data →{' '}
+          <a
+            href="https://vercel.com/dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:no-underline hover:text-neopop-red"
+          >
+            Vercel Analytics dashboard
+          </a>
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ─── GenerateEmailFromPublished ──────────────────────────────────────────────────
+
+interface PublishedIssue {
+  id: string
+  issueNumber: number
+  issueDate: string
+  title: string
+}
+
+function GenerateEmailFromPublished({ password }: { password: string }) {
+  const [issues, setIssues] = useState<PublishedIssue[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [selectedId, setSelectedId] = useState<string>('')
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [emailDraft, setEmailDraft] = useState<{ subject: string; body: string } | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [emailCopied, setEmailCopied] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  async function loadIssues() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/published-issues?password=${encodeURIComponent(password)}`)
+      if (!res.ok) return
+      const data = await res.json()
+      const list = (data.issues ?? []) as PublishedIssue[]
+      setIssues(list)
+      if (list.length > 0) setSelectedId(list[0].id)
+    } catch { /* ignore */ }
+    finally { setLoading(false) }
+  }
+
+  function handleOpen() {
+    setOpen(true)
+    if (!issues) loadIssues()
+  }
+
+  async function handleGenerate() {
+    const issue = issues?.find(i => i.id === selectedId)
+    if (!issue) return
+    setEmailLoading(true)
+    setEmailDraft(null)
+    setEmailError(null)
+    try {
+      const summariesRes = await fetch(
+        `/api/issue-summaries?password=${encodeURIComponent(password)}&pageId=${encodeURIComponent(issue.id)}`
+      )
+      if (!summariesRes.ok) throw new Error('Could not load issue content from Notion.')
+      const { summaries, issueNumber } = await summariesRes.json()
+
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? ''
+      const issueUrl = issue.issueDate ? `${baseUrl}/issues/${issue.issueDate}` : undefined
+      const emailRes = await fetch('/api/generate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, summaries, issueNumber: issueNumber || issue.issueNumber, issueUrl }),
+      })
+      const data = await emailRes.json()
+      if (data.error) throw new Error(data.error)
+      setEmailDraft(data)
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : 'Failed to generate email.')
+    } finally {
+      setEmailLoading(false)
+    }
+  }
+
+  async function handleCopy() {
+    if (!emailDraft) return
+    try {
+      await navigator.clipboard.writeText(`Subject: ${emailDraft.subject}\n\n${emailDraft.body}`)
+      setEmailCopied(true)
+      setTimeout(() => setEmailCopied(false), 2500)
+    } catch { /* clipboard blocked */ }
+  }
+
+  if (!open) {
+    return (
+      <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70">Generate email from published issue</p>
+          <button
+            type="button"
+            onClick={handleOpen}
+            className="border-[3px] border-neopop-black bg-neopop-black text-neopop-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-red)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-red)] hover:bg-neopop-red"
+          >
+            ✉️ Generate email
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70">Generate email from published issue</p>
+        <button type="button" onClick={() => setOpen(false)}
+          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-neopop-red">
+          Hide
+        </button>
+      </div>
+
+      {loading && <p className="text-[14px] text-neopop-black/70">Loading issues…</p>}
+
+      {issues && issues.length === 0 && (
+        <p className="text-[14px] text-neopop-black/70">No published issues found.</p>
+      )}
+
+      {issues && issues.length > 0 && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <select
+            value={selectedId}
+            onChange={e => { setSelectedId(e.target.value); setEmailDraft(null); setEmailError(null) }}
+            className="flex-1 border-[3px] border-neopop-black px-3 py-2 text-[14px] font-bold bg-neopop-white focus-visible:outline-none focus-visible:border-neopop-red"
+          >
+            {issues.map(i => (
+              <option key={i.id} value={i.id}>
+                Issue #{i.issueNumber} — {i.issueDate}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={emailLoading || !selectedId}
+            className="border-[3px] border-neopop-black bg-neopop-black text-neopop-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-red)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-red)] hover:bg-neopop-red disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          >
+            {emailLoading ? '…Generating' : '✉️ Generate'}
+          </button>
+        </div>
+      )}
+
+      {emailError && <p className="text-[13px] font-bold text-neopop-red">{emailError}</p>}
+
+      {emailDraft && (
+        <div className="border-[2px] border-neopop-black bg-neopop-white flex flex-col">
+          <div className="flex items-center justify-between gap-3 border-b-[2px] border-neopop-black px-4 py-2">
+            <p className="text-[12px] font-black uppercase tracking-[0.15em]">Generated email</p>
+            <button type="button" onClick={handleCopy}
+              className="text-[12px] font-black uppercase tracking-wide border-[2px] border-neopop-black px-3 py-1 hover:bg-neopop-cream">
+              {emailCopied ? '✓ Copied!' : '📋 Copy'}
+            </button>
+          </div>
+          <div className="px-4 py-3 flex flex-col gap-3">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Subject</p>
+              <p className="text-[14px] font-bold">{emailDraft.subject}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Body</p>
+              <pre className="text-[13px] font-sans whitespace-pre-wrap leading-relaxed">{emailDraft.body}</pre>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── PublishDrafts ───────────────────────────────────────────────────────────────
 
 // Lists every unpublished draft in Notion with a one-click publish button.
@@ -587,6 +833,11 @@ function PublishDrafts({ password }: { password: string }) {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [justPublished, setJustPublished] = useState<DraftIssue | null>(null)
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [emailDraft, setEmailDraft] = useState<{ subject: string; body: string } | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [emailCopied, setEmailCopied] = useState(false)
 
   async function loadDrafts() {
     setLoading(true)
@@ -661,30 +912,71 @@ function PublishDrafts({ password }: { password: string }) {
     }
   }
 
-  async function handlePublish(pageId: string, title: string) {
-    setPublishing(pageId)
+  async function handlePublish(draft: DraftIssue) {
+    setPublishing(draft.id)
     setError(null)
     setMessage(null)
+    setJustPublished(null)
+    setEmailDraft(null)
+    setEmailError(null)
     try {
       const res = await fetch('/api/publish-issue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, pageId }),
+        body: JSON.stringify({ password, pageId: draft.id }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         setError(data.error ?? `Error ${res.status}`)
         return
       }
-      setMessage(`✓ Published "${title}" — live on the public site.`)
-      setTimeout(() => setMessage(null), 5000)
-      // Refresh the list so the just-published draft disappears
+      setMessage(`✓ Published "${draft.title}" — live on the public site.`)
+      setTimeout(() => setMessage(null), 8000)
+      setJustPublished(draft)
       loadDrafts()
     } catch {
       setError('Network error. Try again.')
     } finally {
       setPublishing(null)
     }
+  }
+
+  async function handleGenerateEmail() {
+    if (!justPublished) return
+    setEmailLoading(true)
+    setEmailDraft(null)
+    setEmailError(null)
+    try {
+      const summariesRes = await fetch(
+        `/api/issue-summaries?password=${encodeURIComponent(password)}&pageId=${encodeURIComponent(justPublished.id)}`
+      )
+      if (!summariesRes.ok) throw new Error('Could not load issue content from Notion.')
+      const { summaries, issueNumber, issueDate } = await summariesRes.json()
+
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? ''
+      const issueUrl = issueDate ? `${baseUrl}/issues/${issueDate}` : undefined
+      const emailRes = await fetch('/api/generate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, summaries, issueNumber: issueNumber || justPublished.issueNumber, issueUrl }),
+      })
+      const data = await emailRes.json()
+      if (data.error) throw new Error(data.error)
+      setEmailDraft(data)
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : 'Failed to generate email.')
+    } finally {
+      setEmailLoading(false)
+    }
+  }
+
+  async function handleCopyEmail() {
+    if (!emailDraft) return
+    try {
+      await navigator.clipboard.writeText(`Subject: ${emailDraft.subject}\n\n${emailDraft.body}`)
+      setEmailCopied(true)
+      setTimeout(() => setEmailCopied(false), 2500)
+    } catch { /* clipboard blocked */ }
   }
 
   return (
@@ -750,7 +1042,7 @@ function PublishDrafts({ password }: { password: string }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handlePublish(draft.id, draft.title)}
+                    onClick={() => handlePublish(draft)}
                     disabled={publishing !== null || archiving !== null}
                     className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[13px] px-3 py-1.5 shadow-[3px_3px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -762,6 +1054,50 @@ function PublishDrafts({ password }: { password: string }) {
           })}
         </ul>
       ) : null}
+
+      {justPublished && (
+        <div className="mt-4 border-[3px] border-neopop-black bg-neopop-cream p-4 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-[13px] font-black uppercase tracking-[0.12em]">
+              Issue #{justPublished.issueNumber} published — generate highlights email?
+            </p>
+            <button
+              type="button"
+              onClick={handleGenerateEmail}
+              disabled={emailLoading}
+              className="border-[3px] border-neopop-black bg-neopop-black text-neopop-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-red)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-red)] hover:bg-neopop-red disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {emailLoading ? '…Generating' : '✉️ Generate email'}
+            </button>
+          </div>
+
+          {emailError && (
+            <p className="text-[13px] font-bold text-neopop-red">{emailError}</p>
+          )}
+
+          {emailDraft && (
+            <div className="border-[2px] border-neopop-black bg-neopop-white flex flex-col">
+              <div className="flex items-center justify-between gap-3 border-b-[2px] border-neopop-black px-4 py-2">
+                <p className="text-[12px] font-black uppercase tracking-[0.15em]">Generated email</p>
+                <button type="button" onClick={handleCopyEmail}
+                  className="text-[12px] font-black uppercase tracking-wide border-[2px] border-neopop-black px-3 py-1 hover:bg-neopop-cream">
+                  {emailCopied ? '✓ Copied!' : '📋 Copy'}
+                </button>
+              </div>
+              <div className="px-4 py-3 flex flex-col gap-3">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Subject</p>
+                  <p className="text-[14px] font-bold">{emailDraft.subject}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Body</p>
+                  <pre className="text-[13px] font-sans whitespace-pre-wrap leading-relaxed">{emailDraft.body}</pre>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-4 pt-3 border-t-[2px] border-neopop-black/20 flex items-center justify-between flex-wrap gap-2">
         <p className="text-[12px] text-neopop-black/70">
@@ -853,6 +1189,16 @@ export default function AdminPage() {
 
   // ── Copy as email
   const [copiedEmail, setCopiedEmail] = useState(false)
+
+  // ── Generate email highlights
+  const [emailDraft, setEmailDraft] = useState<{ subject: string; body: string } | null>(null)
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [copiedEmailDraft, setCopiedEmailDraft] = useState(false)
+
+  // ── Duplicate check
+  const [duplicates, setDuplicates] = useState<{ url: string; issueNumber: number; issueDate: string; issueTitle: string }[]>([])
+  const [duplicateLoading, setDuplicateLoading] = useState(false)
+  const [duplicateChecked, setDuplicateChecked] = useState(false)
 
   const passwordRef = useRef<HTMLInputElement>(null)
 
@@ -1089,6 +1435,56 @@ export default function AdminPage() {
     } catch { /* clipboard blocked */ }
   }
 
+  // ── Generate email highlights
+  async function handleGenerateEmail() {
+    if (!result || !hasSummaryContent(resultSummaries)) return
+    setEmailLoading(true)
+    setEmailDraft(null)
+    try {
+      const issueUrl = currentWeekDraft?.issueDate
+        ? `${process.env.NEXT_PUBLIC_BASE_URL}/issues/${currentWeekDraft.issueDate}`
+        : undefined
+      const res = await fetch('/api/generate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, summaries: resultSummaries, issueNumber: result.issueNumber, issueUrl }),
+      })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setEmailDraft(data)
+    } catch { /* silent */ }
+    finally { setEmailLoading(false) }
+  }
+
+  async function handleCopyEmailDraft() {
+    if (!emailDraft) return
+    try {
+      await navigator.clipboard.writeText(`Subject: ${emailDraft.subject}\n\n${emailDraft.body}`)
+      setCopiedEmailDraft(true)
+      setTimeout(() => setCopiedEmailDraft(false), 2500)
+    } catch { /* clipboard blocked */ }
+  }
+
+  // ── Check for duplicate URLs across past issues
+  async function handleCheckDuplicates() {
+    const allUrls = SECTION_KEYS.flatMap(k => parseUrlLines(sections[k]))
+    if (allUrls.length === 0) return
+    setDuplicateLoading(true)
+    setDuplicates([])
+    setDuplicateChecked(false)
+    try {
+      const res = await fetch('/api/check-duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, urls: allUrls }),
+      })
+      const data = await res.json()
+      setDuplicates(data.duplicates ?? [])
+      setDuplicateChecked(true)
+    } catch { /* silent */ }
+    finally { setDuplicateLoading(false) }
+  }
+
   // ── Session restore
   function handleRestoreSession() {
     if (!savedSession) return
@@ -1123,6 +1519,8 @@ export default function AdminPage() {
     setExpandedSections({ ...ALL_COLLAPSED })
     setResult(null); setResultSummaries({ ...EMPTY_SUMMARIES })
     setApiError(null); setCreateLog([]); setCreateValidationError(null); setCopiedEmail(false)
+    setEmailDraft(null); setEmailLoading(false); setCopiedEmailDraft(false)
+    setDuplicates([]); setDuplicateLoading(false); setDuplicateChecked(false)
     setWasUpdate(false)
   }
 
@@ -1139,11 +1537,42 @@ export default function AdminPage() {
           Open in Notion &rarr;
         </a>
         {hasSummaryContent(summaries) && (
-          <button type="button" onClick={() => handleCopyEmail(summaries)}
-            className="inline-flex items-center gap-2 border-2 border-neopop-black text-neopop-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream">
-            {copiedEmail ? '✓ Copied!' : '📋 Copy as plain text'}
-          </button>
+          <>
+            <button type="button" onClick={() => handleCopyEmail(summaries)}
+              className="inline-flex items-center gap-2 border-2 border-neopop-black text-neopop-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream">
+              {copiedEmail ? '✓ Copied!' : '📋 Copy as plain text'}
+            </button>
+            <button type="button" onClick={handleGenerateEmail} disabled={emailLoading}
+              className="inline-flex items-center gap-2 border-2 border-neopop-black text-neopop-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed">
+              {emailLoading ? '…Generating' : '✉️ Generate email'}
+            </button>
+          </>
         )}
+      </div>
+    )
+  }
+
+  function renderEmailDraft() {
+    if (!emailDraft) return null
+    return (
+      <div className="border-[3px] border-neopop-black bg-neopop-white shadow-[6px_6px_0_0_var(--color-neopop-black)]">
+        <div className="flex items-center justify-between gap-3 border-b-[3px] border-neopop-black px-5 py-3">
+          <p className="text-[13px] font-black uppercase tracking-[0.15em]">Generated email</p>
+          <button type="button" onClick={handleCopyEmailDraft}
+            className="text-[13px] font-black uppercase tracking-wide border-2 border-neopop-black px-3 py-1 hover:bg-neopop-cream">
+            {copiedEmailDraft ? '✓ Copied!' : '📋 Copy'}
+          </button>
+        </div>
+        <div className="px-5 py-4 flex flex-col gap-3">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Subject</p>
+            <p className="text-[15px] font-bold">{emailDraft.subject}</p>
+          </div>
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Body</p>
+            <pre className="text-[14px] font-sans whitespace-pre-wrap leading-relaxed">{emailDraft.body}</pre>
+          </div>
+        </div>
       </div>
     )
   }
@@ -1247,6 +1676,7 @@ export default function AdminPage() {
         </button>
 
         {renderSuccessActions(result.notionUrl, resultSummaries)}
+        {renderEmailDraft()}
         {renderSummaryPreviews(resultSummaries)}
       </div>
     )
@@ -1296,8 +1726,14 @@ export default function AdminPage() {
         </p>
       </div>
 
+      {/* Site stats */}
+      <SiteStats password={password} />
+
       {/* Publish drafts */}
       <PublishDrafts password={password} />
+
+      {/* Generate email from any previously published issue */}
+      <GenerateEmailFromPublished password={password} />
 
       {/* Issue metadata */}
       <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-4">
@@ -1366,6 +1802,48 @@ export default function AdminPage() {
             ({currentWeekDraft.issueDate}). Publish it from the list above if you want to start a fresh one.
           </p>
         )}
+
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleCheckDuplicates}
+            disabled={isFormBusy || duplicateLoading}
+            className="inline-block border-2 border-neopop-black text-neopop-black font-bold text-[15px] px-5 py-2 self-start hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {duplicateLoading ? '…Checking' : '🔍 Check for duplicates'}
+          </button>
+
+          {duplicateChecked && duplicates.length === 0 && (
+            <div className="border-2 border-neopop-black bg-neopop-white px-4 py-3">
+              <p className="text-[14px] font-bold">✓ No duplicates found in the last {12} issues.</p>
+            </div>
+          )}
+
+          {duplicates.length > 0 && (
+            <div className="border-[3px] border-neopop-yellow bg-neopop-yellow px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-2">
+              <p className="text-[13px] font-black uppercase tracking-[0.15em]">
+                {duplicates.length} duplicate{duplicates.length > 1 ? 's' : ''} found
+              </p>
+              {duplicates.map(d => (
+                <div key={d.url} className="text-[14px]">
+                  <span className="font-bold">{new URL(d.url).hostname}</span>
+                  {' — appeared in '}
+                  <span className="font-bold">Issue #{d.issueNumber}</span>
+                  {' ('}
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_BASE_URL}/issues/${d.issueDate}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:no-underline"
+                  >
+                    {d.issueDate}
+                  </a>
+                  {')'}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <button
           type="submit"
