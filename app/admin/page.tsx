@@ -201,18 +201,18 @@ function SectionTextarea({
   }
 
   return (
-    <div className={`border-[3px] border-neopop-black bg-neopop-white ${expanded ? 'shadow-[6px_6px_0_0_var(--color-neopop-black)]' : 'shadow-[4px_4px_0_0_var(--color-neopop-black)]'} transition-shadow`}>
+    <div className={`border-[3px] border-ws-black bg-ws-white ${expanded ? 'shadow-[6px_6px_0_0_var(--color-ws-black)]' : 'shadow-[4px_4px_0_0_var(--color-ws-black)]'} transition-shadow`}>
       <button
         type="button"
         onClick={onToggle}
         disabled={disabled}
         aria-expanded={expanded}
-        className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-ws-page disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <div className="flex items-center gap-3">
           <span className="font-black uppercase tracking-wide text-[16px] text-ws-black">{label}</span>
           {urls.length > 0 && (
-            <span className="text-[12px] font-black uppercase tracking-wide text-neopop-white bg-neopop-red border-[2px] border-neopop-black px-2 py-0.5">
+            <span className="text-[12px] font-black uppercase tracking-wide text-ws-white bg-ws-accent border-[2px] border-ws-black px-2 py-0.5">
               {urls.length} URL{urls.length !== 1 ? 's' : ''}
             </span>
           )}
@@ -225,7 +225,7 @@ function SectionTextarea({
           {hasUrls ? (
             <div className="flex flex-col gap-2">
               {/* Drag-to-reorder list */}
-              <div className="border-[2px] border-neopop-black divide-y divide-neopop-black/20">
+              <div className="border-[2px] border-ws-black divide-y divide-ws-black/20">
                 {urls.map((url, i) => (
                   <div
                     key={`${i}:${url}`}
@@ -235,9 +235,9 @@ function SectionTextarea({
                     onDrop={e => handleDrop(e, i)}
                     onDragEnd={handleDragEnd}
                     className={[
-                      'flex items-center gap-2 px-3 py-2 bg-neopop-white select-none',
+                      'flex items-center gap-2 px-3 py-2 bg-ws-white select-none',
                       dragIndex === i ? 'opacity-40' : '',
-                      dragOverIndex === i && dragIndex !== i ? 'border-t-2 !border-t-neopop-red' : '',
+                      dragOverIndex === i && dragIndex !== i ? 'border-t-2 !border-t-ws-accent' : '',
                     ].join(' ')}
                   >
                     {/* Drag handle — desktop only hint */}
@@ -315,14 +315,14 @@ function SectionTextarea({
                     placeholder="Paste URL(s) to add…"
                     disabled={disabled}
                     autoFocus
-                    className="border-2 border-neopop-black px-3 py-2 text-[15px] font-mono resize-none w-full focus-visible:outline-none focus-visible:border-neopop-red"
+                    className="border-2 border-ws-black px-3 py-2 text-[15px] font-mono resize-none w-full focus-visible:outline-none focus-visible:border-ws-accent"
                   />
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={handleAddMoreSubmit}
                       disabled={!addText.trim()}
-                      className="text-[13px] font-bold bg-neopop-red text-white px-3 py-1 hover:bg-neopop-red-dark disabled:opacity-50"
+                      className="text-[13px] font-bold bg-ws-accent text-white px-3 py-1 hover:bg-ws-accent-hover disabled:opacity-50"
                     >Add</button>
                     <button
                       type="button"
@@ -342,7 +342,7 @@ function SectionTextarea({
                 onPaste={e => applySmartPaste(e, value, onChange)}
                 disabled={disabled}
                 placeholder={placeholder ?? 'Paste one URL per line — or paste any text and URLs are extracted automatically'}
-                className="border-2 border-neopop-black px-3 py-2 text-[17px] text-ws-black font-mono resize-y w-full focus-visible:outline-none focus-visible:ring-0 focus-visible:border-neopop-red disabled:bg-neopop-cream disabled:cursor-not-allowed"
+                className="border-2 border-ws-black px-3 py-2 text-[17px] text-ws-black font-mono resize-y w-full focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ws-accent disabled:bg-ws-page disabled:cursor-not-allowed"
               />
               <p className="text-[12px] text-ws-black/70">
                 One URL per line. Supports articles and PDFs. Paste any text and URLs are extracted automatically.
@@ -413,7 +413,7 @@ function QuickAdd({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 border-[3px] border-neopop-black bg-neopop-yellow text-ws-black font-black uppercase tracking-wide text-[14px] px-4 py-2 self-start shadow-[4px_4px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-neopop-black)]"
+        className="inline-flex items-center gap-2 border-[3px] border-ws-black bg-ws-accent-light text-ws-black font-black uppercase tracking-wide text-[14px] px-4 py-2 self-start shadow-[4px_4px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-black)]"
       >
         ✦ Quick Add a URL
       </button>
@@ -421,7 +421,7 @@ function QuickAdd({
   }
 
   return (
-    <div className="border-[3px] border-neopop-black bg-neopop-yellow p-5 flex flex-col gap-3 shadow-[6px_6px_0_0_var(--color-neopop-black)]">
+    <div className="border-[3px] border-ws-black bg-ws-accent-light p-5 flex flex-col gap-3 shadow-[6px_6px_0_0_var(--color-ws-black)]">
       <div className="flex items-center justify-between">
         <p className="font-black uppercase tracking-wide text-[14px]">Quick Add — paste a URL</p>
         <button
@@ -441,13 +441,13 @@ function QuickAdd({
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSuggest() } }}
           placeholder="https://…"
           disabled={disabled || loading}
-          className="flex-1 border-[3px] border-neopop-black px-3 py-2 text-[15px] font-mono bg-neopop-white focus-visible:outline-none focus-visible:border-neopop-red disabled:opacity-70 min-w-0"
+          className="flex-1 border-[3px] border-ws-black px-3 py-2 text-[15px] font-mono bg-ws-white focus-visible:outline-none focus-visible:border-ws-accent disabled:opacity-70 min-w-0"
         />
         <button
           type="button"
           onClick={handleSuggest}
           disabled={disabled || loading || !url.startsWith('http')}
-          className="border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[14px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[14px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
         >
           {loading ? '↻ Thinking…' : 'Suggest section'}
         </button>
@@ -465,7 +465,7 @@ function QuickAdd({
           <select
             value={activeSection}
             onChange={e => setOverrideSection(e.target.value as SectionKey)}
-            className="border-[3px] border-neopop-black px-3 py-2 text-[14px] font-bold bg-neopop-white focus-visible:outline-none focus-visible:border-neopop-red"
+            className="border-[3px] border-ws-black px-3 py-2 text-[14px] font-bold bg-ws-white focus-visible:outline-none focus-visible:border-ws-accent"
           >
             {SECTION_KEYS.map(k => (
               <option key={k} value={k}>{SECTION_LABELS[k]}</option>
@@ -477,7 +477,7 @@ function QuickAdd({
           <button
             type="button"
             onClick={handleAdd}
-            className="border-[3px] border-neopop-black bg-neopop-black text-neopop-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-red)] hover:bg-neopop-red shrink-0"
+            className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-accent)] hover:bg-ws-accent shrink-0"
           >
             ✓ Add to {SECTION_LABELS[activeSection]}
           </button>
@@ -505,12 +505,12 @@ function SummaryPreview({
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="font-bold text-[16px] text-ws-black border-b border-neopop-black/30 pb-1">{label}</h3>
+      <h3 className="font-bold text-[16px] text-ws-black border-b border-ws-black/30 pb-1">{label}</h3>
       {summaries.map(({ url, title, publishedDate, imageUrl, summary }) => {
         const isEditing = editingUrl === url
         const isRegenerating = regeneratingUrl === url
         return (
-          <div key={url} className="border-l-4 border-neopop-black/30 pl-3 flex flex-col gap-1.5">
+          <div key={url} className="border-l-4 border-ws-black/30 pl-3 flex flex-col gap-1.5">
             {imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={imageUrl} alt={title ?? ''} className="w-full max-h-40 object-cover rounded mb-1" />
@@ -527,13 +527,13 @@ function SummaryPreview({
                   onChange={e => setEditText(e.target.value)}
                   rows={4}
                   autoFocus
-                  className="border-2 border-neopop-red px-3 py-2 text-[15px] text-ws-black resize-y w-full focus-visible:outline-none"
+                  className="border-2 border-ws-accent px-3 py-2 text-[15px] text-ws-black resize-y w-full focus-visible:outline-none"
                 />
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <span className="text-[12px] text-ws-black/70">{editText.length} chars</span>
                   <div className="flex gap-3">
                     <button type="button" onClick={() => { onEdit(url, editText); setEditingUrl(null) }}
-                      className="text-[13px] font-bold bg-neopop-red text-white px-3 py-1 hover:bg-neopop-red-dark">
+                      className="text-[13px] font-bold bg-ws-accent text-white px-3 py-1 hover:bg-ws-accent-hover">
                       Save
                     </button>
                     <button type="button" onClick={() => setEditingUrl(null)}
@@ -606,7 +606,7 @@ function SiteStats({ password }: { password: string }) {
   }, [password])
 
   return (
-    <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
+    <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
       <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70 mb-4">Site stats</p>
 
       {loading && <p className="text-[14px] text-ws-black/70">Loading…</p>}
@@ -614,19 +614,19 @@ function SiteStats({ password }: { password: string }) {
 
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
+          <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
             <p className="text-[32px] font-black leading-none">{stats.totalPublished}</p>
             <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Published issues</p>
           </div>
-          <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
+          <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
             <p className="text-[32px] font-black leading-none">{stats.recentPublished}</p>
             <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Issues last 30 days</p>
           </div>
-          <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
+          <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
             <p className="text-[32px] font-black leading-none">{stats.draftsCount}</p>
             <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Drafts in queue</p>
           </div>
-          <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
+          <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
             {stats.latestIssue ? (
               <>
                 <p className="text-[32px] font-black leading-none">#{stats.latestIssue.issueNumber}</p>
@@ -738,13 +738,13 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
 
   if (!open) {
     return (
-      <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
+      <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Generate email from published issue</p>
           <button
             type="button"
             onClick={handleOpen}
-            className="border-[3px] border-neopop-black bg-neopop-black text-neopop-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-red)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-red)] hover:bg-neopop-red"
+            className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
           >
             ✉️ Generate email
           </button>
@@ -754,7 +754,7 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
   }
 
   return (
-    <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-4">
+    <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Generate email from published issue</p>
         <button type="button" onClick={() => setOpen(false)}
@@ -774,7 +774,7 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
           <select
             value={selectedId}
             onChange={e => { setSelectedId(e.target.value); setEmailDraft(null); setEmailError(null) }}
-            className="flex-1 border-[3px] border-neopop-black px-3 py-2 text-[14px] font-bold bg-neopop-white focus-visible:outline-none focus-visible:border-neopop-red"
+            className="flex-1 border-[3px] border-ws-black px-3 py-2 text-[14px] font-bold bg-ws-white focus-visible:outline-none focus-visible:border-ws-accent"
           >
             {issues.map(i => (
               <option key={i.id} value={i.id}>
@@ -786,7 +786,7 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
             type="button"
             onClick={handleGenerate}
             disabled={emailLoading || !selectedId}
-            className="border-[3px] border-neopop-black bg-neopop-black text-neopop-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-red)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-red)] hover:bg-neopop-red disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
             {emailLoading ? '…Generating' : '✉️ Generate'}
           </button>
@@ -796,11 +796,11 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
       {emailError && <p className="text-[13px] font-bold text-ws-accent">{emailError}</p>}
 
       {emailDraft && (
-        <div className="border-[2px] border-neopop-black bg-neopop-white flex flex-col">
-          <div className="flex items-center justify-between gap-3 border-b-[2px] border-neopop-black px-4 py-2">
+        <div className="border-[2px] border-ws-black bg-ws-white flex flex-col">
+          <div className="flex items-center justify-between gap-3 border-b-[2px] border-ws-black px-4 py-2">
             <p className="text-[12px] font-black uppercase tracking-[0.15em]">Generated email</p>
             <button type="button" onClick={handleCopy}
-              className="text-[12px] font-black uppercase tracking-wide border-[2px] border-neopop-black px-3 py-1 hover:bg-neopop-cream">
+              className="text-[12px] font-black uppercase tracking-wide border-[2px] border-ws-black px-3 py-1 hover:bg-ws-page">
               {emailCopied ? '✓ Copied!' : '📋 Copy'}
             </button>
           </div>
@@ -980,7 +980,7 @@ function PublishDrafts({ password }: { password: string }) {
   }
 
   return (
-    <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
+    <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
       <div className="flex items-center justify-between mb-3">
         <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Drafts ready to publish</p>
         <button
@@ -1014,7 +1014,7 @@ function PublishDrafts({ password }: { password: string }) {
             return (
               <li
                 key={draft.id}
-                className="flex items-center justify-between gap-3 flex-wrap border-[2px] border-neopop-black/30 px-3 py-2 hover:bg-neopop-cream"
+                className="flex items-center justify-between gap-3 flex-wrap border-[2px] border-ws-black/30 px-3 py-2 hover:bg-ws-page"
               >
                 <a
                   href={notionUrl}
@@ -1035,7 +1035,7 @@ function PublishDrafts({ password }: { password: string }) {
                     type="button"
                     onClick={() => handleArchive(draft.id, draft.title)}
                     disabled={publishing !== null || archiving !== null}
-                    className="border-[2px] border-neopop-black bg-neopop-white text-ws-black font-bold uppercase tracking-wide text-[12px] px-2 py-1.5 hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="border-[2px] border-ws-black bg-ws-white text-ws-black font-bold uppercase tracking-wide text-[12px] px-2 py-1.5 hover:bg-ws-page disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Move to Notion trash"
                   >
                     {archiving === draft.id ? 'Deleting…' : 'Delete'}
@@ -1044,7 +1044,7 @@ function PublishDrafts({ password }: { password: string }) {
                     type="button"
                     onClick={() => handlePublish(draft)}
                     disabled={publishing !== null || archiving !== null}
-                    className="border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[13px] px-3 py-1.5 shadow-[3px_3px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[13px] px-3 py-1.5 shadow-[3px_3px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {publishing === draft.id ? 'Publishing…' : 'Publish'}
                   </button>
@@ -1056,7 +1056,7 @@ function PublishDrafts({ password }: { password: string }) {
       ) : null}
 
       {justPublished && (
-        <div className="mt-4 border-[3px] border-neopop-black bg-neopop-cream p-4 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-3">
+        <div className="mt-4 border-[3px] border-ws-black bg-ws-page p-4 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-[13px] font-black uppercase tracking-[0.12em]">
               Issue #{justPublished.issueNumber} published — generate highlights email?
@@ -1065,7 +1065,7 @@ function PublishDrafts({ password }: { password: string }) {
               type="button"
               onClick={handleGenerateEmail}
               disabled={emailLoading}
-              className="border-[3px] border-neopop-black bg-neopop-black text-neopop-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-red)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-red)] hover:bg-neopop-red disabled:opacity-50 disabled:cursor-not-allowed"
+              className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {emailLoading ? '…Generating' : '✉️ Generate email'}
             </button>
@@ -1076,11 +1076,11 @@ function PublishDrafts({ password }: { password: string }) {
           )}
 
           {emailDraft && (
-            <div className="border-[2px] border-neopop-black bg-neopop-white flex flex-col">
-              <div className="flex items-center justify-between gap-3 border-b-[2px] border-neopop-black px-4 py-2">
+            <div className="border-[2px] border-ws-black bg-ws-white flex flex-col">
+              <div className="flex items-center justify-between gap-3 border-b-[2px] border-ws-black px-4 py-2">
                 <p className="text-[12px] font-black uppercase tracking-[0.15em]">Generated email</p>
                 <button type="button" onClick={handleCopyEmail}
-                  className="text-[12px] font-black uppercase tracking-wide border-[2px] border-neopop-black px-3 py-1 hover:bg-neopop-cream">
+                  className="text-[12px] font-black uppercase tracking-wide border-[2px] border-ws-black px-3 py-1 hover:bg-ws-page">
                   {emailCopied ? '✓ Copied!' : '📋 Copy'}
                 </button>
               </div>
@@ -1099,7 +1099,7 @@ function PublishDrafts({ password }: { password: string }) {
         </div>
       )}
 
-      <div className="mt-4 pt-3 border-t-[2px] border-neopop-black/20 flex items-center justify-between flex-wrap gap-2">
+      <div className="mt-4 pt-3 border-t-[2px] border-ws-black/20 flex items-center justify-between flex-wrap gap-2">
         <p className="text-[12px] text-ws-black/70">
           Edited a typo on an already-published issue?
         </p>
@@ -1126,7 +1126,7 @@ function StatusLog({ items }: { items: string[] }) {
   if (items.length === 0) return null
   return (
     <ul ref={logRef}
-      className="border border-neopop-black/30 bg-neopop-cream max-h-48 overflow-y-auto font-mono text-[13px] text-ws-black p-2 flex flex-col gap-0.5">
+      className="border border-ws-black/30 bg-ws-page max-h-48 overflow-y-auto font-mono text-[13px] text-ws-black p-2 flex flex-col gap-0.5">
       {items.map((item, i) => <li key={i}>{item}</li>)}
     </ul>
   )
@@ -1145,7 +1145,7 @@ function SummaryLengthPicker({ value, onChange, disabled }: {
           <label key={l} className="flex items-center gap-2 cursor-pointer">
             <input type="radio" name="summaryLength" value={l} checked={value === l}
               onChange={() => onChange(l)} disabled={disabled}
-              className="accent-neopop-black cursor-pointer" />
+              className="accent-ws-black cursor-pointer" />
             <span className="text-[14px]">{SUMMARY_LENGTH_LABELS[l]}</span>
           </label>
         ))}
@@ -1533,17 +1533,17 @@ export default function AdminPage() {
     return (
       <div className="flex flex-wrap gap-3">
         <a href={notionUrl} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 bg-neopop-red text-white font-bold text-[17px] px-5 py-3 hover:bg-neopop-red-dark no-underline">
+          className="inline-flex items-center gap-2 bg-ws-accent text-white font-bold text-[17px] px-5 py-3 hover:bg-ws-accent-hover no-underline">
           Open in Notion &rarr;
         </a>
         {hasSummaryContent(summaries) && (
           <>
             <button type="button" onClick={() => handleCopyEmail(summaries)}
-              className="inline-flex items-center gap-2 border-2 border-neopop-black text-ws-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream">
+              className="inline-flex items-center gap-2 border-2 border-ws-black text-ws-black font-bold text-[17px] px-5 py-3 hover:bg-ws-page">
               {copiedEmail ? '✓ Copied!' : '📋 Copy as plain text'}
             </button>
             <button type="button" onClick={handleGenerateEmail} disabled={emailLoading}
-              className="inline-flex items-center gap-2 border-2 border-neopop-black text-ws-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed">
+              className="inline-flex items-center gap-2 border-2 border-ws-black text-ws-black font-bold text-[17px] px-5 py-3 hover:bg-ws-page disabled:opacity-50 disabled:cursor-not-allowed">
               {emailLoading ? '…Generating' : '✉️ Generate email'}
             </button>
           </>
@@ -1555,11 +1555,11 @@ export default function AdminPage() {
   function renderEmailDraft() {
     if (!emailDraft) return null
     return (
-      <div className="border-[3px] border-neopop-black bg-neopop-white shadow-[6px_6px_0_0_var(--color-neopop-black)]">
-        <div className="flex items-center justify-between gap-3 border-b-[3px] border-neopop-black px-5 py-3">
+      <div className="border-[3px] border-ws-black bg-ws-white shadow-[6px_6px_0_0_var(--color-ws-black)]">
+        <div className="flex items-center justify-between gap-3 border-b-[3px] border-ws-black px-5 py-3">
           <p className="text-[13px] font-black uppercase tracking-[0.15em]">Generated email</p>
           <button type="button" onClick={handleCopyEmailDraft}
-            className="text-[13px] font-black uppercase tracking-wide border-2 border-neopop-black px-3 py-1 hover:bg-neopop-cream">
+            className="text-[13px] font-black uppercase tracking-wide border-2 border-ws-black px-3 py-1 hover:bg-ws-page">
             {copiedEmailDraft ? '✓ Copied!' : '📋 Copy'}
           </button>
         </div>
@@ -1608,7 +1608,7 @@ export default function AdminPage() {
           Admin sign in
         </h1>
         <div className="w-16 h-[3px] bg-ws-accent mb-8" aria-hidden="true" />
-        <div className="border-[3px] border-neopop-black bg-neopop-white p-6 shadow-[8px_8px_0_0_var(--color-neopop-black)]">
+        <div className="border-[3px] border-ws-black bg-ws-white p-6 shadow-[8px_8px_0_0_var(--color-ws-black)]">
           <form onSubmit={handleSignIn} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="password" className="text-[13px] font-black uppercase tracking-wide">
@@ -1622,7 +1622,7 @@ export default function AdminPage() {
                 onChange={e => setPassword(e.target.value)}
                 disabled={authLoading}
                 required
-                className="border-[3px] border-neopop-black px-3 py-3 text-[17px] font-mono w-full focus-visible:outline-none focus-visible:border-neopop-red disabled:bg-neopop-cream"
+                className="border-[3px] border-ws-black px-3 py-3 text-[17px] font-mono w-full focus-visible:outline-none focus-visible:border-ws-accent disabled:bg-ws-page"
               />
               {authError && (
                 <p className="text-[14px] font-bold text-ws-accent" role="alert">{authError}</p>
@@ -1631,7 +1631,7 @@ export default function AdminPage() {
             <button
               type="submit"
               disabled={authLoading || !password}
-              className="border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[15px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed"
+              className="border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[15px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {authLoading ? 'Signing in…' : 'Sign in'}
             </button>
@@ -1657,7 +1657,7 @@ export default function AdminPage() {
             Sign out
           </button>
         </div>
-        <div className="border-[3px] border-neopop-black bg-neopop-yellow p-5 shadow-[6px_6px_0_0_var(--color-neopop-black)]">
+        <div className="border-[3px] border-ws-black bg-ws-accent-light p-5 shadow-[6px_6px_0_0_var(--color-ws-black)]">
           <p className="text-[13px] font-black uppercase tracking-[0.15em] mb-2">
             {wasUpdate ? '✓ URLs added' : '✓ Draft created'}
           </p>
@@ -1670,7 +1670,7 @@ export default function AdminPage() {
         <button
           type="button"
           onClick={handleReset}
-          className="inline-block border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)]"
+          className="inline-block border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-ws-black)]"
         >
           + Add more URLs to this issue
         </button>
@@ -1708,7 +1708,7 @@ export default function AdminPage() {
 
       {/* Session restore banner */}
       {savedSession && (
-        <div className="border-[3px] border-neopop-black bg-neopop-yellow px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex items-start sm:items-center justify-between gap-4 flex-wrap">
+        <div className="border-[3px] border-ws-black bg-ws-accent-light px-4 py-3 shadow-[4px_4px_0_0_var(--color-ws-black)] flex items-start sm:items-center justify-between gap-4 flex-wrap">
           <p className="text-[15px]">
             <strong className="uppercase tracking-wide">In-progress issue</strong> from {formatSavedAt(savedSession.savedAt)} — restore your URLs?
           </p>
@@ -1720,7 +1720,7 @@ export default function AdminPage() {
       )}
 
       {/* AI notice */}
-      <div className="border-[3px] border-neopop-black bg-neopop-cream px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
+      <div className="border-[3px] border-ws-black bg-ws-page px-4 py-3 shadow-[4px_4px_0_0_var(--color-ws-black)]">
         <p className="text-[14px] font-bold">
           <span className="uppercase tracking-wide">Heads up —</span> All summaries are AI-generated. Review official sources. Minor editing happens prior to publishing.
         </p>
@@ -1736,7 +1736,7 @@ export default function AdminPage() {
       <GenerateEmailFromPublished password={password} />
 
       {/* Issue metadata */}
-      <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-4">
+      <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-4">
         <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Issue details</p>
         <p className="text-[17px]">
           <span className="font-bold">Date:</span> {nextFriday()}
@@ -1745,7 +1745,7 @@ export default function AdminPage() {
         </p>
         <label className="flex items-center gap-3 cursor-pointer self-start">
           <input type="checkbox" checked={includeImages} onChange={e => setIncludeImages(e.target.checked)}
-            className="w-5 h-5 border-2 border-neopop-black accent-neopop-black cursor-pointer" />
+            className="w-5 h-5 border-2 border-ws-black accent-ws-black cursor-pointer" />
           <span className="text-[15px] font-bold">Include images</span>
           <span className="text-[13px] text-ws-black/70">(og:image from each article)</span>
         </label>
@@ -1773,12 +1773,12 @@ export default function AdminPage() {
         ))}
 
         {createValidationError && (
-          <div className="border-[3px] border-neopop-red bg-neopop-white px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-red)]" role="alert">
+          <div className="border-[3px] border-ws-accent bg-ws-white px-4 py-3 shadow-[4px_4px_0_0_var(--color-ws-accent)]" role="alert">
             <p className="text-[15px] font-bold text-ws-accent">{createValidationError}</p>
           </div>
         )}
         {apiError && (
-          <div className="border-[3px] border-neopop-red bg-neopop-white px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-red)]" role="alert">
+          <div className="border-[3px] border-ws-accent bg-ws-white px-4 py-3 shadow-[4px_4px_0_0_var(--color-ws-accent)]" role="alert">
             <p className="text-[14px] font-black uppercase tracking-wide text-ws-accent">Error</p>
             <p className="text-[15px] text-ws-black">{apiError}</p>
           </div>
@@ -1808,19 +1808,19 @@ export default function AdminPage() {
             type="button"
             onClick={handleCheckDuplicates}
             disabled={isFormBusy || duplicateLoading}
-            className="inline-block border-2 border-neopop-black text-ws-black font-bold text-[15px] px-5 py-2 self-start hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-block border-2 border-ws-black text-ws-black font-bold text-[15px] px-5 py-2 self-start hover:bg-ws-page disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {duplicateLoading ? '…Checking' : '🔍 Check for duplicates'}
           </button>
 
           {duplicateChecked && duplicates.length === 0 && (
-            <div className="border-2 border-neopop-black bg-neopop-white px-4 py-3">
+            <div className="border-2 border-ws-black bg-ws-white px-4 py-3">
               <p className="text-[14px] font-bold">✓ No duplicates found in the last {12} issues.</p>
             </div>
           )}
 
           {duplicates.length > 0 && (
-            <div className="border-[3px] border-neopop-yellow bg-neopop-yellow px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-2">
+            <div className="border-[3px] border-ws-accent-light bg-ws-accent-light px-4 py-3 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-2">
               <p className="text-[13px] font-black uppercase tracking-[0.15em]">
                 {duplicates.length} duplicate{duplicates.length > 1 ? 's' : ''} found
               </p>
@@ -1848,7 +1848,7 @@ export default function AdminPage() {
         <button
           type="submit"
           disabled={isFormBusy}
-          className="inline-block border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)] disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+          className="inline-block border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-ws-black)] disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
         >
           {loading
             ? (currentWeekDraft ? 'Appending…' : 'Generating draft…')

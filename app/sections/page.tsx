@@ -23,7 +23,7 @@ export default function SectionsPage() {
           <li key={section.slug}>
             <Link
               href={`/sections/${section.slug}`}
-              className="flex items-center gap-4 border-[3px] border-neopop-black bg-neopop-white px-6 py-4 no-underline shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 ease-out hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)]"
+              className="flex items-center gap-4 border-[3px] border-ws-black bg-ws-white px-6 py-4 no-underline shadow-[6px_6px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 ease-out hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-ws-black)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-ws-black)]"
             >
               <span className="text-[28px]" aria-hidden="true">{section.emoji}</span>
               <span className="text-[20px] font-black uppercase tracking-wide text-ws-black">

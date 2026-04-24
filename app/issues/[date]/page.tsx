@@ -93,7 +93,7 @@ export default async function IssuePage({ params }: Props) {
           {/* Prev / Next navigation */}
           <nav
             aria-label="Issue navigation"
-            className="border-t-[3px] border-neopop-black mt-12 pt-8 grid grid-cols-2 gap-4"
+            className="border-t-[3px] border-ws-black mt-12 pt-8 grid grid-cols-2 gap-4"
           >
             <div>
               {adjacent.prev && (

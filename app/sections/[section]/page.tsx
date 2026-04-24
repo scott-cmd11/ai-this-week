@@ -43,7 +43,7 @@ export default async function SectionPage({ params }: Props) {
       <div className="mb-4">
         <Link
           href="/sections"
-          className="text-[14px] font-black uppercase tracking-wide no-underline border-b-[3px] border-transparent hover:border-neopop-red"
+          className="text-[14px] font-black uppercase tracking-wide no-underline border-b-[3px] border-transparent hover:border-ws-accent"
         >
           ← All sections
         </Link>

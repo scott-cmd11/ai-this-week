@@ -41,7 +41,7 @@ function RichText({ segments, fallback }: { segments?: RichTextSegment[]; fallba
             <a
               key={i}
               href={seg.href}
-              className="text-ws-black underline font-bold hover:text-ws-accent focus:outline-none focus:bg-neopop-yellow"
+              className="text-ws-black underline font-bold hover:text-ws-accent focus:outline-none focus:bg-ws-accent-light"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -113,7 +113,7 @@ function Block({ block }: { block: NotionBlock }) {
         </p>
       )
     case 'divider':
-      return <hr className="border-t-[3px] border-neopop-black my-10 w-20" aria-hidden="true" />
+      return <hr className="border-t-[3px] border-ws-black my-10 w-20" aria-hidden="true" />
     default:
       return null
   }

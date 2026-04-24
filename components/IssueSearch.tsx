@@ -38,7 +38,7 @@ export function IssueSearch({ issues }: Props) {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Filter by title or topic…"
-          className="w-full max-w-md border-[3px] border-neopop-black px-4 py-3 text-[17px] text-ws-black bg-neopop-white shadow-[4px_4px_0_0_var(--color-neopop-black)] focus:outline-none focus:shadow-[6px_6px_0_0_var(--color-neopop-red)] focus:border-neopop-red placeholder:text-ws-black/50"
+          className="w-full max-w-md border-[3px] border-ws-black px-4 py-3 text-[17px] text-ws-black bg-ws-white shadow-[4px_4px_0_0_var(--color-ws-black)] focus:outline-none focus:shadow-[6px_6px_0_0_var(--color-ws-accent)] focus:border-ws-accent placeholder:text-ws-black/50"
           aria-controls="issue-list"
           autoComplete="off"
           spellCheck={false}
