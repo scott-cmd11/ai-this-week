@@ -52,7 +52,7 @@ export default async function SectionPage({ params }: Props) {
       <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black uppercase leading-[0.95] tracking-tight mt-4 mb-2">
         <span aria-hidden="true">{meta.emoji} </span>{meta.label}
       </h1>
-      <div className="w-20 h-[6px] bg-neopop-red mb-6" aria-hidden="true" />
+      <div className="w-16 h-[3px] bg-ws-accent mb-6" aria-hidden="true" />
       <p className="text-[15px] font-bold uppercase tracking-wide mb-10">
         {articles.length} pick{articles.length === 1 ? '' : 's'} across all issues
       </p>
@@ -70,7 +70,7 @@ export default async function SectionPage({ params }: Props) {
                 <div className="flex gap-3 text-[13px] font-bold uppercase tracking-wide mb-2">
                   <Link
                     href={`/issues/${article.issueSlug}`}
-                    className="underline hover:no-underline hover:text-neopop-red"
+                    className="underline hover:no-underline hover:text-ws-accent"
                   >
                     Issue {article.issueNumber}
                   </Link>
@@ -80,11 +80,11 @@ export default async function SectionPage({ params }: Props) {
 
                 {/* Article title */}
                 {article.articleTitle && (
-                  <h2 className="text-[22px] font-black leading-tight mb-3 text-neopop-black">
+                  <h2 className="text-[22px] font-black leading-tight mb-3 text-ws-black">
                     {article.articleUrl ? (
                       <a
                         href={article.articleUrl}
-                        className="text-neopop-black hover:text-neopop-red underline hover:no-underline"
+                        className="text-ws-black hover:text-ws-accent underline hover:no-underline"
                         target="_blank"
                         rel="noopener noreferrer"
                       >

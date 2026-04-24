@@ -15,7 +15,7 @@ export function NotionRenderer({ blocks }: Props) {
           return (
             <ul key={item[0].id} className="list-disc pl-6 mb-4 space-y-2">
               {item.map(block => (
-                <li key={block.id} className="text-[19px] text-neopop-black leading-[1.5]">
+                <li key={block.id} className="text-[19px] text-ws-black leading-[1.5]">
                   <RichText segments={block.richText} fallback={block.content} />
                 </li>
               ))}
@@ -41,7 +41,7 @@ function RichText({ segments, fallback }: { segments?: RichTextSegment[]; fallba
             <a
               key={i}
               href={seg.href}
-              className="text-neopop-black underline font-bold hover:text-neopop-red focus:outline-none focus:bg-neopop-yellow"
+              className="text-ws-black underline font-bold hover:text-ws-accent focus:outline-none focus:bg-neopop-yellow"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -62,20 +62,20 @@ function Block({ block }: { block: NotionBlock }) {
       return (
         <h2
           id={block.headingId}
-          className="text-[28px] font-black uppercase tracking-tight text-neopop-black mt-10 mb-4 leading-tight"
+          className="text-[28px] font-black uppercase tracking-tight text-ws-black mt-10 mb-4 leading-tight"
         >
           {block.content}
         </h2>
       )
     case 'heading_3':
       return (
-        <h3 className="text-[22px] font-black text-neopop-black mt-6 mb-3 leading-tight">
+        <h3 className="text-[22px] font-black text-ws-black mt-6 mb-3 leading-tight">
           {block.content}
         </h3>
       )
     case 'paragraph':
       return block.content ? (
-        <p className="text-[19px] text-neopop-black leading-[1.5] mb-4">
+        <p className="text-[19px] text-ws-black leading-[1.5] mb-4">
           <RichText segments={block.richText} fallback={block.content} />
         </p>
       ) : null

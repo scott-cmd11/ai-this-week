@@ -1,35 +1,34 @@
 @import "tailwindcss";
 
 @theme {
-  --color-govuk-black: #0b0c0c;
-  --color-govuk-blue: #1d70b8;
-  --color-govuk-yellow: #ffdd00;
-  --color-govuk-light-grey: #f3f2f1;
-  --color-govuk-mid-grey: #b1b4b6;
-  --color-govuk-dark-grey: #505a5f;
-  /* Dark-mode surface — not exposed as a Tailwind colour, used directly below */
+  --color-ws-black: #2D2D2A;
+  --color-ws-text: #2D2D2A;
+  --color-ws-muted: #5C5C57;
+  --color-ws-border: #D4D2CA;
+  --color-ws-surface: #FFFFFF;
+  --color-ws-page: #FAFAF8;
+  --color-ws-accent: #1A7A6D;
+  --color-ws-accent-hover: #145F55;
+  --color-ws-accent-light: #E1F0ED;
+  --color-ws-white: #FFFFFF;
 
-  /* NeoPop prototype tokens (used only on /neopop route) — Canadian palette */
-  --color-neopop-black: #0c0c0c;
-  --color-neopop-white: #ffffff;
-  --color-neopop-red: #d52b1e;         /* Canada flag red, 1965 spec */
-  --color-neopop-red-dark: #a52015;    /* Pressed/hover state for red CTAs */
-  --color-neopop-yellow: #ffdd00;      /* Prairie wheat / accent */
-  --color-neopop-cream: #f5f1e8;       /* Slightly warmer off-white background */
+  --color-neopop-black: #2D2D2A;
+  --color-neopop-white: #FFFFFF;
+  --color-neopop-red: #1A7A6D;
+  --color-neopop-red-dark: #145F55;
+  --color-neopop-yellow: #E1F0ED;
+  --color-neopop-cream: #FAFAF8;
 
-  /* Hard-offset shadows — no blur. Used via shadow-[var(--shadow-neopop)] */
-  --shadow-neopop: 8px 8px 0 0 #0c0c0c;
-  --shadow-neopop-sm: 4px 4px 0 0 #0c0c0c;
-  --shadow-neopop-pressed: 2px 2px 0 0 #0c0c0c;
+  --color-focus: #D4A017;
+  --color-focus-text: #2D2D2A;
 }
 
-/* ── Skip link ───────────────────────────────────────────────── */
 .skip-link {
   position: absolute;
   top: -100%;
   left: 0;
-  background: #ffdd00;
-  color: #0b0c0c;
+  background: var(--color-focus);
+  color: var(--color-focus-text);
   font-size: 19px;
   font-weight: 700;
   padding: 8px 16px;
@@ -41,18 +40,16 @@
   top: 0;
 }
 
-/* ── Focus style (NeoPop) ────────────────────────────────────── */
 *:focus-visible {
-  outline: 3px solid #ffdd00;
+  outline: 3px solid var(--color-focus);
   outline-offset: 0;
-  box-shadow: 0 -2px #ffdd00, 0 4px #0c0c0c;
+  box-shadow: 0 -2px var(--color-focus), 0 4px var(--color-ws-black);
 }
 
-/* ── Base ────────────────────────────────────────────────────── */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, sans-serif;
   font-size: 19px;
   line-height: 1.5;
-  color: #0c0c0c;
-  background: #f5f1e8; /* neopop-cream */
+  color: var(--color-ws-text);
+  background: var(--color-ws-page);
 }

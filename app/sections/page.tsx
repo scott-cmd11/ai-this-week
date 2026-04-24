@@ -13,7 +13,7 @@ export default function SectionsPage() {
       <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
         Browse by section
       </h1>
-      <div className="w-20 h-[6px] bg-neopop-red mb-6" aria-hidden="true" />
+      <div className="w-16 h-[3px] bg-ws-accent mb-6" aria-hidden="true" />
       <p className="text-[19px] mb-10 max-w-xl">
         Every issue is organised into sections. Browse all picks from a single section across
         every edition.
@@ -26,7 +26,7 @@ export default function SectionsPage() {
               className="flex items-center gap-4 border-[3px] border-neopop-black bg-neopop-white px-6 py-4 no-underline shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 ease-out hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)]"
             >
               <span className="text-[28px]" aria-hidden="true">{section.emoji}</span>
-              <span className="text-[20px] font-black uppercase tracking-wide text-neopop-black">
+              <span className="text-[20px] font-black uppercase tracking-wide text-ws-black">
                 {section.label}
               </span>
             </Link>

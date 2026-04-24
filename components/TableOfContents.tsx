@@ -64,8 +64,8 @@ export function TableOfContents({ entries }: Props) {
               className={[
                 'block text-[14px] leading-[1.4] py-1 border-l-[4px] pl-3 no-underline',
                 activeId === id
-                  ? 'border-neopop-red text-neopop-black font-black'
-                  : 'border-transparent text-neopop-black hover:border-neopop-red',
+                  ? 'border-neopop-red text-ws-black font-black'
+                  : 'border-transparent text-ws-black hover:border-neopop-red',
               ].join(' ')}
             >
               {label}

@@ -10,7 +10,7 @@ function MapleLeaf({ className }: { className?: string }) {
       viewBox="0 0 512 512"
       className={className}
       // Inline fill with CSS variable — doesn't depend on Tailwind generating
-      // a text-neopop-red utility for this specific use.
+      // a text-ws-accent utility for this specific use.
       style={{ fill: 'var(--color-neopop-red)' }}
     >
       <path d="M256 28l-30 56-30-18 12 90-68-12 24 58-42 18 78 74-14 36 80-14v106h20V316l80 14-14-36 78-74-42-18 24-58-68 12 12-90-30 18z" />
@@ -23,14 +23,14 @@ function MapleLeaf({ className }: { className?: string }) {
 // is showing an alternative visual language.
 export function NeoPopHeader() {
   const navClass =
-    'text-[16px] font-bold uppercase tracking-wide no-underline border-b-[3px] border-transparent hover:border-neopop-red focus-visible:outline-none focus-visible:bg-neopop-yellow focus-visible:text-neopop-black'
+    'text-[16px] font-bold uppercase tracking-wide no-underline border-b-[3px] border-transparent hover:border-neopop-red focus-visible:outline-none focus-visible:bg-neopop-yellow focus-visible:text-ws-black'
 
   return (
     <header className="bg-neopop-white border-b-[4px] border-neopop-black" role="banner">
       <div className="max-w-4xl mx-auto px-4 py-5 flex items-center justify-between">
         <Link
           href="/neopop"
-          className="flex items-center gap-2 text-neopop-black font-black text-[22px] uppercase tracking-tight no-underline hover:text-neopop-red"
+          className="flex items-center gap-2 text-ws-black font-black text-[22px] uppercase tracking-tight no-underline hover:text-ws-accent"
         >
           <MapleLeaf className="w-7 h-7" />
           AI This Week
@@ -38,7 +38,7 @@ export function NeoPopHeader() {
         <nav aria-label="Prototype navigation">
           <ul className="flex gap-6 list-none m-0 p-0 items-center">
             <li>
-              <Link href="/" className={`${navClass} text-neopop-black`}>
+              <Link href="/" className={`${navClass} text-ws-black`}>
                 ← Original site
               </Link>
             </li>
