@@ -78,7 +78,7 @@ export default function AboutPage() {
           </p>
           <a
             href="/contact"
-            className="inline-block border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[15px] px-5 py-3 shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark no-underline"
+            className="inline-block border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[15px] px-5 py-3 shadow-[6px_6px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover no-underline"
           >
             ✦ Open contact form
           </a>
