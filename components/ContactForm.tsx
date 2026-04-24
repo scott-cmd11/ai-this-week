@@ -95,7 +95,7 @@ export function ContactForm() {
           rows={8}
           className={`${inputClass} resize-y font-sans leading-[1.5]`}
         />
-        <p className="text-[12px] text-neopop-black/70">{message.length} / 5000</p>
+        <p className="text-[12px] text-ws-black/70">{message.length} / 5000</p>
       </div>
 
       {/* Honeypot — hidden from users, label warns bots who read it anyway. */}
@@ -113,15 +113,15 @@ export function ContactForm() {
 
       {errorMessage && (
         <div className="border-[3px] border-neopop-red bg-neopop-white px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-red)]" role="alert">
-          <p className="text-[14px] font-black uppercase tracking-wide text-neopop-red">Error</p>
-          <p className="text-[15px] text-neopop-black">{errorMessage}</p>
+          <p className="text-[14px] font-black uppercase tracking-wide text-ws-accent">Error</p>
+          <p className="text-[15px] text-ws-black">{errorMessage}</p>
         </div>
       )}
 
       <button
         type="submit"
         disabled={isSending}
-        className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSending ? 'Sending…' : '✦ Send message'}
       </button>

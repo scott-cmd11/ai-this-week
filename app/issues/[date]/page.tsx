@@ -80,7 +80,7 @@ export default async function IssuePage({ params }: Props) {
           <h1 className="text-[40px] sm:text-[52px] font-black uppercase leading-[0.95] tracking-tight mb-4 mt-2 break-words">
             {nonBreakingDate(issue.title)}
           </h1>
-          <div className="w-20 h-[6px] bg-neopop-red mb-8" aria-hidden="true" />
+          <div className="w-16 h-[3px] bg-ws-accent mb-8" aria-hidden="true" />
 
           <NotionRenderer blocks={blocks} />
 
@@ -101,7 +101,7 @@ export default async function IssuePage({ params }: Props) {
                   <p className="text-[12px] font-black uppercase tracking-wide mb-1">← Older</p>
                   <Link
                     href={`/issues/${adjacent.prev.slug}`}
-                    className="text-[17px] font-bold underline hover:text-neopop-red hover:no-underline"
+                    className="text-[17px] font-bold underline hover:text-ws-accent hover:no-underline"
                   >
                     {adjacent.prev.title}
                   </Link>
@@ -114,7 +114,7 @@ export default async function IssuePage({ params }: Props) {
                   <p className="text-[12px] font-black uppercase tracking-wide mb-1">Newer →</p>
                   <Link
                     href={`/issues/${adjacent.next.slug}`}
-                    className="text-[17px] font-bold underline hover:text-neopop-red hover:no-underline"
+                    className="text-[17px] font-bold underline hover:text-ws-accent hover:no-underline"
                   >
                     {adjacent.next.title}
                   </Link>

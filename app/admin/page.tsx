@@ -210,14 +210,14 @@ function SectionTextarea({
         className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <div className="flex items-center gap-3">
-          <span className="font-black uppercase tracking-wide text-[16px] text-neopop-black">{label}</span>
+          <span className="font-black uppercase tracking-wide text-[16px] text-ws-black">{label}</span>
           {urls.length > 0 && (
             <span className="text-[12px] font-black uppercase tracking-wide text-neopop-white bg-neopop-red border-[2px] border-neopop-black px-2 py-0.5">
               {urls.length} URL{urls.length !== 1 ? 's' : ''}
             </span>
           )}
         </div>
-        <span className="text-[13px] font-black uppercase tracking-wide text-neopop-black/70">
+        <span className="text-[13px] font-black uppercase tracking-wide text-ws-black/70">
           {expanded ? '− Hide' : '＋ Add URL'}
         </span>
       </button>
@@ -242,12 +242,12 @@ function SectionTextarea({
                   >
                     {/* Drag handle — desktop only hint */}
                     <span
-                      className="text-neopop-black/50 cursor-grab text-[18px] leading-none shrink-0 hidden sm:block"
+                      className="text-ws-black/50 cursor-grab text-[18px] leading-none shrink-0 hidden sm:block"
                       title="Drag to reorder"
                     >⠿</span>
 
                     {/* Hostname */}
-                    <span className="text-[14px] text-neopop-black font-medium truncate flex-1 min-w-0">
+                    <span className="text-[14px] text-ws-black font-medium truncate flex-1 min-w-0">
                       {urlHostname(url)}
                     </span>
 
@@ -256,7 +256,7 @@ function SectionTextarea({
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[12px] text-neopop-black/70 underline hover:no-underline hidden md:block truncate max-w-[160px]"
+                      className="text-[12px] text-ws-black/70 underline hover:no-underline hidden md:block truncate max-w-[160px]"
                       title={url}
                     >
                       {url}
@@ -268,7 +268,7 @@ function SectionTextarea({
                         type="button"
                         onClick={() => moveUrl(i, -1)}
                         disabled={disabled || i === 0}
-                        className="text-neopop-black/50 hover:text-neopop-black disabled:opacity-20 px-1 text-[14px] leading-none"
+                        className="text-ws-black/50 hover:text-ws-black disabled:opacity-20 px-1 text-[14px] leading-none"
                         title="Move up"
                         aria-label="Move up"
                       >↑</button>
@@ -276,7 +276,7 @@ function SectionTextarea({
                         type="button"
                         onClick={() => moveUrl(i, 1)}
                         disabled={disabled || i === urls.length - 1}
-                        className="text-neopop-black/50 hover:text-neopop-black disabled:opacity-20 px-1 text-[14px] leading-none"
+                        className="text-ws-black/50 hover:text-ws-black disabled:opacity-20 px-1 text-[14px] leading-none"
                         title="Move down"
                         aria-label="Move down"
                       >↓</button>
@@ -287,7 +287,7 @@ function SectionTextarea({
                       type="button"
                       onClick={() => removeUrl(i)}
                       disabled={disabled}
-                      className="text-neopop-black/70 hover:text-red-700 disabled:opacity-40 ml-1 text-[15px] leading-none shrink-0"
+                      className="text-ws-black/70 hover:text-red-700 disabled:opacity-40 ml-1 text-[15px] leading-none shrink-0"
                       title={`Remove ${url}`}
                       aria-label={`Remove ${urlHostname(url)}`}
                     >✕</button>
@@ -301,7 +301,7 @@ function SectionTextarea({
                   type="button"
                   onClick={() => setShowAddMore(true)}
                   disabled={disabled}
-                  className="text-[14px] text-neopop-red underline hover:no-underline self-start disabled:opacity-50"
+                  className="text-[14px] text-ws-accent underline hover:no-underline self-start disabled:opacity-50"
                 >
                   + Add another URL
                 </button>
@@ -327,7 +327,7 @@ function SectionTextarea({
                     <button
                       type="button"
                       onClick={() => { setShowAddMore(false); setAddText('') }}
-                      className="text-[13px] text-neopop-black/70 underline hover:no-underline"
+                      className="text-[13px] text-ws-black/70 underline hover:no-underline"
                     >Cancel</button>
                   </div>
                 </div>
@@ -342,9 +342,9 @@ function SectionTextarea({
                 onPaste={e => applySmartPaste(e, value, onChange)}
                 disabled={disabled}
                 placeholder={placeholder ?? 'Paste one URL per line — or paste any text and URLs are extracted automatically'}
-                className="border-2 border-neopop-black px-3 py-2 text-[17px] text-neopop-black font-mono resize-y w-full focus-visible:outline-none focus-visible:ring-0 focus-visible:border-neopop-red disabled:bg-neopop-cream disabled:cursor-not-allowed"
+                className="border-2 border-neopop-black px-3 py-2 text-[17px] text-ws-black font-mono resize-y w-full focus-visible:outline-none focus-visible:ring-0 focus-visible:border-neopop-red disabled:bg-neopop-cream disabled:cursor-not-allowed"
               />
-              <p className="text-[12px] text-neopop-black/70">
+              <p className="text-[12px] text-ws-black/70">
                 One URL per line. Supports articles and PDFs. Paste any text and URLs are extracted automatically.
               </p>
             </>
@@ -413,7 +413,7 @@ function QuickAdd({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 border-[3px] border-neopop-black bg-neopop-yellow text-neopop-black font-black uppercase tracking-wide text-[14px] px-4 py-2 self-start shadow-[4px_4px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-neopop-black)]"
+        className="inline-flex items-center gap-2 border-[3px] border-neopop-black bg-neopop-yellow text-ws-black font-black uppercase tracking-wide text-[14px] px-4 py-2 self-start shadow-[4px_4px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-neopop-black)]"
       >
         ✦ Quick Add a URL
       </button>
@@ -447,13 +447,13 @@ function QuickAdd({
           type="button"
           onClick={handleSuggest}
           disabled={disabled || loading || !url.startsWith('http')}
-          className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[14px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[14px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
         >
           {loading ? '↻ Thinking…' : 'Suggest section'}
         </button>
       </div>
 
-      {error && <p className="text-[14px] font-bold text-neopop-red" role="alert">{error}</p>}
+      {error && <p className="text-[14px] font-bold text-ws-accent" role="alert">{error}</p>}
 
       {added && (
         <p className="text-[14px] font-black uppercase tracking-wide">✓ Added to {SECTION_LABELS[activeSection]}</p>
@@ -472,7 +472,7 @@ function QuickAdd({
             ))}
           </select>
           {suggestion.title && (
-            <span className="text-[13px] text-neopop-black/70 truncate max-w-xs">— {suggestion.title}</span>
+            <span className="text-[13px] text-ws-black/70 truncate max-w-xs">— {suggestion.title}</span>
           )}
           <button
             type="button"
@@ -505,7 +505,7 @@ function SummaryPreview({
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="font-bold text-[16px] text-neopop-black border-b border-neopop-black/30 pb-1">{label}</h3>
+      <h3 className="font-bold text-[16px] text-ws-black border-b border-neopop-black/30 pb-1">{label}</h3>
       {summaries.map(({ url, title, publishedDate, imageUrl, summary }) => {
         const isEditing = editingUrl === url
         const isRegenerating = regeneratingUrl === url
@@ -515,10 +515,10 @@ function SummaryPreview({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={imageUrl} alt={title ?? ''} className="w-full max-h-40 object-cover rounded mb-1" />
             )}
-            <a href={url} target="_blank" rel="noopener noreferrer" className="font-bold text-[15px] text-neopop-black underline hover:no-underline">
+            <a href={url} target="_blank" rel="noopener noreferrer" className="font-bold text-[15px] text-ws-black underline hover:no-underline">
               {title ?? url}
             </a>
-            {publishedDate && <p className="text-[13px] text-neopop-black/70">Published: {publishedDate}</p>}
+            {publishedDate && <p className="text-[13px] text-ws-black/70">Published: {publishedDate}</p>}
 
             {isEditing ? (
               <div className="flex flex-col gap-1.5">
@@ -527,17 +527,17 @@ function SummaryPreview({
                   onChange={e => setEditText(e.target.value)}
                   rows={4}
                   autoFocus
-                  className="border-2 border-neopop-red px-3 py-2 text-[15px] text-neopop-black resize-y w-full focus-visible:outline-none"
+                  className="border-2 border-neopop-red px-3 py-2 text-[15px] text-ws-black resize-y w-full focus-visible:outline-none"
                 />
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <span className="text-[12px] text-neopop-black/70">{editText.length} chars</span>
+                  <span className="text-[12px] text-ws-black/70">{editText.length} chars</span>
                   <div className="flex gap-3">
                     <button type="button" onClick={() => { onEdit(url, editText); setEditingUrl(null) }}
                       className="text-[13px] font-bold bg-neopop-red text-white px-3 py-1 hover:bg-neopop-red-dark">
                       Save
                     </button>
                     <button type="button" onClick={() => setEditingUrl(null)}
-                      className="text-[13px] text-neopop-black/70 underline hover:no-underline">
+                      className="text-[13px] text-ws-black/70 underline hover:no-underline">
                       Cancel
                     </button>
                   </div>
@@ -545,17 +545,17 @@ function SummaryPreview({
               </div>
             ) : (
               <div className="flex flex-col gap-1.5">
-                <p className="text-[15px] text-neopop-black">{summary}</p>
+                <p className="text-[15px] text-ws-black">{summary}</p>
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <span className="text-[12px] text-neopop-black/70">{summary.length} chars</span>
+                  <span className="text-[12px] text-ws-black/70">{summary.length} chars</span>
                   <div className="flex gap-3">
                     <button type="button" onClick={() => { setEditingUrl(url); setEditText(summary) }}
-                      className="text-[13px] text-neopop-red underline hover:no-underline">
+                      className="text-[13px] text-ws-accent underline hover:no-underline">
                       Edit
                     </button>
                     <button type="button" onClick={() => onRegenerate(url)}
                       disabled={isRegenerating || regeneratingUrl !== null}
-                      className="text-[13px] text-neopop-red underline hover:no-underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline">
+                      className="text-[13px] text-ws-accent underline hover:no-underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline">
                       {isRegenerating ? '↻ Regenerating…' : '↻ Regenerate'}
                     </button>
                   </div>
@@ -564,7 +564,7 @@ function SummaryPreview({
             )}
 
             <a href={url} target="_blank" rel="noopener noreferrer"
-              className="text-[13px] text-neopop-black/70 underline hover:no-underline break-all">
+              className="text-[13px] text-ws-black/70 underline hover:no-underline break-all">
               {url}
             </a>
           </div>
@@ -607,36 +607,36 @@ function SiteStats({ password }: { password: string }) {
 
   return (
     <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
-      <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70 mb-4">Site stats</p>
+      <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70 mb-4">Site stats</p>
 
-      {loading && <p className="text-[14px] text-neopop-black/70">Loading…</p>}
-      {error && <p className="text-[14px] text-neopop-red font-bold">{error}</p>}
+      {loading && <p className="text-[14px] text-ws-black/70">Loading…</p>}
+      {error && <p className="text-[14px] text-ws-accent font-bold">{error}</p>}
 
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
             <p className="text-[32px] font-black leading-none">{stats.totalPublished}</p>
-            <p className="text-[12px] font-black uppercase tracking-wide text-neopop-black/70">Published issues</p>
+            <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Published issues</p>
           </div>
           <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
             <p className="text-[32px] font-black leading-none">{stats.recentPublished}</p>
-            <p className="text-[12px] font-black uppercase tracking-wide text-neopop-black/70">Issues last 30 days</p>
+            <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Issues last 30 days</p>
           </div>
           <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
             <p className="text-[32px] font-black leading-none">{stats.draftsCount}</p>
-            <p className="text-[12px] font-black uppercase tracking-wide text-neopop-black/70">Drafts in queue</p>
+            <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Drafts in queue</p>
           </div>
           <div className="border-[2px] border-neopop-black px-4 py-3 flex flex-col gap-1">
             {stats.latestIssue ? (
               <>
                 <p className="text-[32px] font-black leading-none">#{stats.latestIssue.issueNumber}</p>
-                <p className="text-[12px] font-black uppercase tracking-wide text-neopop-black/70">Latest issue</p>
-                <p className="text-[11px] text-neopop-black/50">{stats.latestIssue.issueDate}</p>
+                <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Latest issue</p>
+                <p className="text-[11px] text-ws-black/50">{stats.latestIssue.issueDate}</p>
               </>
             ) : (
               <>
                 <p className="text-[32px] font-black leading-none">—</p>
-                <p className="text-[12px] font-black uppercase tracking-wide text-neopop-black/70">Latest issue</p>
+                <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Latest issue</p>
               </>
             )}
           </div>
@@ -644,13 +644,13 @@ function SiteStats({ password }: { password: string }) {
       )}
 
       {stats && (
-        <p className="text-[12px] text-neopop-black/50 mt-3">
+        <p className="text-[12px] text-ws-black/50 mt-3">
           Visitor data →{' '}
           <a
             href="https://vercel.com/dashboard"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:no-underline hover:text-neopop-red"
+            className="underline hover:no-underline hover:text-ws-accent"
           >
             Vercel Analytics dashboard
           </a>
@@ -740,7 +740,7 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
     return (
       <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70">Generate email from published issue</p>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Generate email from published issue</p>
           <button
             type="button"
             onClick={handleOpen}
@@ -756,17 +756,17 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
   return (
     <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70">Generate email from published issue</p>
+        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Generate email from published issue</p>
         <button type="button" onClick={() => setOpen(false)}
-          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-neopop-red">
+          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent">
           Hide
         </button>
       </div>
 
-      {loading && <p className="text-[14px] text-neopop-black/70">Loading issues…</p>}
+      {loading && <p className="text-[14px] text-ws-black/70">Loading issues…</p>}
 
       {issues && issues.length === 0 && (
-        <p className="text-[14px] text-neopop-black/70">No published issues found.</p>
+        <p className="text-[14px] text-ws-black/70">No published issues found.</p>
       )}
 
       {issues && issues.length > 0 && (
@@ -793,7 +793,7 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
         </div>
       )}
 
-      {emailError && <p className="text-[13px] font-bold text-neopop-red">{emailError}</p>}
+      {emailError && <p className="text-[13px] font-bold text-ws-accent">{emailError}</p>}
 
       {emailDraft && (
         <div className="border-[2px] border-neopop-black bg-neopop-white flex flex-col">
@@ -806,11 +806,11 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
           </div>
           <div className="px-4 py-3 flex flex-col gap-3">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Subject</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.15em] text-ws-black/50 mb-1">Subject</p>
               <p className="text-[14px] font-bold">{emailDraft.subject}</p>
             </div>
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Body</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.15em] text-ws-black/50 mb-1">Body</p>
               <pre className="text-[13px] font-sans whitespace-pre-wrap leading-relaxed">{emailDraft.body}</pre>
             </div>
           </div>
@@ -982,28 +982,28 @@ function PublishDrafts({ password }: { password: string }) {
   return (
     <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)]">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70">Drafts ready to publish</p>
+        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Drafts ready to publish</p>
         <button
           type="button"
           onClick={loadDrafts}
           disabled={loading}
-          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-neopop-red disabled:opacity-50"
+          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
         >
           {loading ? '↻ Loading…' : '↻ Refresh list'}
         </button>
       </div>
 
       {message && (
-        <p className="text-[14px] font-bold text-neopop-black mb-3">{message}</p>
+        <p className="text-[14px] font-bold text-ws-black mb-3">{message}</p>
       )}
       {error && (
-        <p className="text-[14px] font-bold text-neopop-red mb-3">{error}</p>
+        <p className="text-[14px] font-bold text-ws-accent mb-3">{error}</p>
       )}
 
       {loading && !drafts ? (
-        <p className="text-[14px] text-neopop-black/70">Loading drafts…</p>
+        <p className="text-[14px] text-ws-black/70">Loading drafts…</p>
       ) : drafts && drafts.length === 0 ? (
-        <p className="text-[14px] text-neopop-black/70">
+        <p className="text-[14px] text-ws-black/70">
           No unpublished drafts. Generate one below to start a new issue.
         </p>
       ) : drafts && drafts.length > 0 ? (
@@ -1023,10 +1023,10 @@ function PublishDrafts({ password }: { password: string }) {
                   className="min-w-0 flex-1 no-underline group"
                   title="Open draft in Notion"
                 >
-                  <p className="text-[14px] font-bold truncate group-hover:text-neopop-red group-hover:underline">
+                  <p className="text-[14px] font-bold truncate group-hover:text-ws-accent group-hover:underline">
                     {draft.title} ↗
                   </p>
-                  <p className="text-[12px] text-neopop-black/70 uppercase tracking-wide">
+                  <p className="text-[12px] text-ws-black/70 uppercase tracking-wide">
                     Issue {draft.issueNumber} · {draft.issueDate}
                   </p>
                 </a>
@@ -1035,7 +1035,7 @@ function PublishDrafts({ password }: { password: string }) {
                     type="button"
                     onClick={() => handleArchive(draft.id, draft.title)}
                     disabled={publishing !== null || archiving !== null}
-                    className="border-[2px] border-neopop-black bg-neopop-white text-neopop-black font-bold uppercase tracking-wide text-[12px] px-2 py-1.5 hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="border-[2px] border-neopop-black bg-neopop-white text-ws-black font-bold uppercase tracking-wide text-[12px] px-2 py-1.5 hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Move to Notion trash"
                   >
                     {archiving === draft.id ? 'Deleting…' : 'Delete'}
@@ -1044,7 +1044,7 @@ function PublishDrafts({ password }: { password: string }) {
                     type="button"
                     onClick={() => handlePublish(draft)}
                     disabled={publishing !== null || archiving !== null}
-                    className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[13px] px-3 py-1.5 shadow-[3px_3px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[13px] px-3 py-1.5 shadow-[3px_3px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {publishing === draft.id ? 'Publishing…' : 'Publish'}
                   </button>
@@ -1072,7 +1072,7 @@ function PublishDrafts({ password }: { password: string }) {
           </div>
 
           {emailError && (
-            <p className="text-[13px] font-bold text-neopop-red">{emailError}</p>
+            <p className="text-[13px] font-bold text-ws-accent">{emailError}</p>
           )}
 
           {emailDraft && (
@@ -1086,11 +1086,11 @@ function PublishDrafts({ password }: { password: string }) {
               </div>
               <div className="px-4 py-3 flex flex-col gap-3">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Subject</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.15em] text-ws-black/50 mb-1">Subject</p>
                   <p className="text-[14px] font-bold">{emailDraft.subject}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Body</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.15em] text-ws-black/50 mb-1">Body</p>
                   <pre className="text-[13px] font-sans whitespace-pre-wrap leading-relaxed">{emailDraft.body}</pre>
                 </div>
               </div>
@@ -1100,14 +1100,14 @@ function PublishDrafts({ password }: { password: string }) {
       )}
 
       <div className="mt-4 pt-3 border-t-[2px] border-neopop-black/20 flex items-center justify-between flex-wrap gap-2">
-        <p className="text-[12px] text-neopop-black/70">
+        <p className="text-[12px] text-ws-black/70">
           Edited a typo on an already-published issue?
         </p>
         <button
           type="button"
           onClick={handleRefreshSite}
           disabled={refreshing}
-          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-neopop-red disabled:opacity-50"
+          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
         >
           {refreshing ? '↻ Refreshing…' : '↻ Refresh public site'}
         </button>
@@ -1126,7 +1126,7 @@ function StatusLog({ items }: { items: string[] }) {
   if (items.length === 0) return null
   return (
     <ul ref={logRef}
-      className="border border-neopop-black/30 bg-neopop-cream max-h-48 overflow-y-auto font-mono text-[13px] text-neopop-black p-2 flex flex-col gap-0.5">
+      className="border border-neopop-black/30 bg-neopop-cream max-h-48 overflow-y-auto font-mono text-[13px] text-ws-black p-2 flex flex-col gap-0.5">
       {items.map((item, i) => <li key={i}>{item}</li>)}
     </ul>
   )
@@ -1139,7 +1139,7 @@ function SummaryLengthPicker({ value, onChange, disabled }: {
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-[13px] font-black uppercase tracking-wide text-neopop-black/70">Summary length</p>
+      <p className="text-[13px] font-black uppercase tracking-wide text-ws-black/70">Summary length</p>
       <div className="flex flex-wrap gap-x-5 gap-y-1.5">
         {(['brief', 'standard', 'detailed'] as const).map(l => (
           <label key={l} className="flex items-center gap-2 cursor-pointer">
@@ -1539,11 +1539,11 @@ export default function AdminPage() {
         {hasSummaryContent(summaries) && (
           <>
             <button type="button" onClick={() => handleCopyEmail(summaries)}
-              className="inline-flex items-center gap-2 border-2 border-neopop-black text-neopop-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream">
+              className="inline-flex items-center gap-2 border-2 border-neopop-black text-ws-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream">
               {copiedEmail ? '✓ Copied!' : '📋 Copy as plain text'}
             </button>
             <button type="button" onClick={handleGenerateEmail} disabled={emailLoading}
-              className="inline-flex items-center gap-2 border-2 border-neopop-black text-neopop-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed">
+              className="inline-flex items-center gap-2 border-2 border-neopop-black text-ws-black font-bold text-[17px] px-5 py-3 hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed">
               {emailLoading ? '…Generating' : '✉️ Generate email'}
             </button>
           </>
@@ -1565,11 +1565,11 @@ export default function AdminPage() {
         </div>
         <div className="px-5 py-4 flex flex-col gap-3">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Subject</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-ws-black/50 mb-1">Subject</p>
             <p className="text-[15px] font-bold">{emailDraft.subject}</p>
           </div>
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-neopop-black/50 mb-1">Body</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-ws-black/50 mb-1">Body</p>
             <pre className="text-[14px] font-sans whitespace-pre-wrap leading-relaxed">{emailDraft.body}</pre>
           </div>
         </div>
@@ -1582,8 +1582,8 @@ export default function AdminPage() {
     return (
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-[22px] font-bold text-neopop-black">Generated summaries</h2>
-          <p className="text-[13px] text-neopop-black/70">Click Edit or ↻ Regenerate on any summary to modify it.</p>
+          <h2 className="text-[22px] font-bold text-ws-black">Generated summaries</h2>
+          <p className="text-[13px] text-ws-black/70">Click Edit or ↻ Regenerate on any summary to modify it.</p>
         </div>
         {SECTION_KEYS.map(key => (
           <SummaryPreview
@@ -1607,7 +1607,7 @@ export default function AdminPage() {
         <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
           Admin sign in
         </h1>
-        <div className="w-20 h-[6px] bg-neopop-red mb-8" aria-hidden="true" />
+        <div className="w-16 h-[3px] bg-ws-accent mb-8" aria-hidden="true" />
         <div className="border-[3px] border-neopop-black bg-neopop-white p-6 shadow-[8px_8px_0_0_var(--color-neopop-black)]">
           <form onSubmit={handleSignIn} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
@@ -1625,13 +1625,13 @@ export default function AdminPage() {
                 className="border-[3px] border-neopop-black px-3 py-3 text-[17px] font-mono w-full focus-visible:outline-none focus-visible:border-neopop-red disabled:bg-neopop-cream"
               />
               {authError && (
-                <p className="text-[14px] font-bold text-neopop-red" role="alert">{authError}</p>
+                <p className="text-[14px] font-bold text-ws-accent" role="alert">{authError}</p>
               )}
             </div>
             <button
               type="submit"
               disabled={authLoading || !password}
-              className="border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[15px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed"
+              className="border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[15px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {authLoading ? 'Signing in…' : 'Sign in'}
             </button>
@@ -1649,11 +1649,11 @@ export default function AdminPage() {
         <div className="flex items-center justify-between gap-4">
           <button
             onClick={handleReset}
-            className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-neopop-red"
+            className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
           >
             ← Back to admin
           </button>
-          <button onClick={handleSignOut} className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-neopop-red">
+          <button onClick={handleSignOut} className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent">
             Sign out
           </button>
         </div>
@@ -1670,7 +1670,7 @@ export default function AdminPage() {
         <button
           type="button"
           onClick={handleReset}
-          className="inline-block border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)]"
+          className="inline-block border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)]"
         >
           + Add more URLs to this issue
         </button>
@@ -1695,11 +1695,11 @@ export default function AdminPage() {
             <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
               Admin
             </h1>
-            <div className="w-20 h-[6px] bg-neopop-red" aria-hidden="true" />
+            <div className="w-16 h-[3px] bg-ws-accent" aria-hidden="true" />
           </div>
           <button
             onClick={handleSignOut}
-            className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-neopop-red mt-4"
+            className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent mt-4"
           >
             Sign out
           </button>
@@ -1714,7 +1714,7 @@ export default function AdminPage() {
           </p>
           <div className="flex gap-4 shrink-0">
             <button onClick={handleRestoreSession} className="text-[14px] font-black uppercase tracking-wide underline hover:no-underline">Restore</button>
-            <button onClick={handleDismissSession} className="text-[14px] text-neopop-black/70 underline hover:no-underline">Dismiss</button>
+            <button onClick={handleDismissSession} className="text-[14px] text-ws-black/70 underline hover:no-underline">Dismiss</button>
           </div>
         </div>
       )}
@@ -1737,17 +1737,17 @@ export default function AdminPage() {
 
       {/* Issue metadata */}
       <div className="border-[3px] border-neopop-black bg-neopop-white p-5 shadow-[4px_4px_0_0_var(--color-neopop-black)] flex flex-col gap-4">
-        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-neopop-black/70">Issue details</p>
+        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Issue details</p>
         <p className="text-[17px]">
           <span className="font-bold">Date:</span> {nextFriday()}
-          <span className="mx-3 text-neopop-black/40">·</span>
+          <span className="mx-3 text-ws-black/40">·</span>
           <span className="font-bold">Number:</span> auto
         </p>
         <label className="flex items-center gap-3 cursor-pointer self-start">
           <input type="checkbox" checked={includeImages} onChange={e => setIncludeImages(e.target.checked)}
             className="w-5 h-5 border-2 border-neopop-black accent-neopop-black cursor-pointer" />
           <span className="text-[15px] font-bold">Include images</span>
-          <span className="text-[13px] text-neopop-black/70">(og:image from each article)</span>
+          <span className="text-[13px] text-ws-black/70">(og:image from each article)</span>
         </label>
         <SummaryLengthPicker value={summaryLength} onChange={setSummaryLength} disabled={isFormBusy} />
       </div>
@@ -1774,13 +1774,13 @@ export default function AdminPage() {
 
         {createValidationError && (
           <div className="border-[3px] border-neopop-red bg-neopop-white px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-red)]" role="alert">
-            <p className="text-[15px] font-bold text-neopop-red">{createValidationError}</p>
+            <p className="text-[15px] font-bold text-ws-accent">{createValidationError}</p>
           </div>
         )}
         {apiError && (
           <div className="border-[3px] border-neopop-red bg-neopop-white px-4 py-3 shadow-[4px_4px_0_0_var(--color-neopop-red)]" role="alert">
-            <p className="text-[14px] font-black uppercase tracking-wide text-neopop-red">Error</p>
-            <p className="text-[15px] text-neopop-black">{apiError}</p>
+            <p className="text-[14px] font-black uppercase tracking-wide text-ws-accent">Error</p>
+            <p className="text-[15px] text-ws-black">{apiError}</p>
           </div>
         )}
 
@@ -1789,13 +1789,13 @@ export default function AdminPage() {
         {/* Smart Generate button — tells you whether it'll create or append
             so you know before clicking */}
         {currentWeekDraft && !loading && (
-          <p className="text-[13px] font-bold text-neopop-black">
+          <p className="text-[13px] font-bold text-ws-black">
             <span className="uppercase tracking-wide">↪ Will append to</span>{' '}
             <a
               href={`https://notion.so/${currentWeekDraft.id.replace(/-/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:no-underline hover:text-neopop-red"
+              className="underline hover:no-underline hover:text-ws-accent"
             >
               Issue #{currentWeekDraft.issueNumber}
             </a>{' '}
@@ -1808,7 +1808,7 @@ export default function AdminPage() {
             type="button"
             onClick={handleCheckDuplicates}
             disabled={isFormBusy || duplicateLoading}
-            className="inline-block border-2 border-neopop-black text-neopop-black font-bold text-[15px] px-5 py-2 self-start hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-block border-2 border-neopop-black text-ws-black font-bold text-[15px] px-5 py-2 self-start hover:bg-neopop-cream disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {duplicateLoading ? '…Checking' : '🔍 Check for duplicates'}
           </button>
@@ -1848,7 +1848,7 @@ export default function AdminPage() {
         <button
           type="submit"
           disabled={isFormBusy}
-          className="inline-block border-[3px] border-neopop-black bg-neopop-red text-neopop-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)] disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+          className="inline-block border-[3px] border-neopop-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[17px] px-6 py-3 self-start shadow-[6px_6px_0_0_var(--color-neopop-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-neopop-black)] hover:bg-neopop-red-dark active:translate-x-[4px] active:translate-y-[4px] active:shadow-[2px_2px_0_0_var(--color-neopop-black)] disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
         >
           {loading
             ? (currentWeekDraft ? 'Appending…' : 'Generating draft…')

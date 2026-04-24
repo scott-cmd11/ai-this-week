@@ -30,7 +30,7 @@ export default async function HomePage() {
           <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
             AI news for people who aren&apos;t AI people.
           </h1>
-          <div className="w-20 h-[6px] bg-neopop-red mb-5" aria-hidden="true" />
+          <div className="w-16 h-[3px] bg-ws-accent mb-5" aria-hidden="true" />
           <p className="text-[22px] leading-[1.4] max-w-2xl font-medium">
             Every week: Canadian AI news, trending global stories, and new research —
             written for professional, non-technical readers. No hype, no jargon.
@@ -41,7 +41,7 @@ export default async function HomePage() {
       {/* Latest issue */}
       {latest && (
         <section aria-label="Latest issue" className="mb-14">
-          <p className="text-[14px] font-black uppercase tracking-[0.15em] mb-4 inline-block bg-neopop-red text-neopop-white px-3 py-1">
+          <p className="text-[14px] font-black uppercase tracking-[0.15em] mb-4 inline-block bg-ws-accent text-ws-white px-3 py-1">
             Latest issue
           </p>
           <NeoPopCard bg="white">
@@ -51,7 +51,7 @@ export default async function HomePage() {
               <time dateTime={latest.issueDate}>{formatDate(latest.issueDate)}</time>
             </div>
             <h2 className="text-[36px] font-black uppercase leading-[1.05] tracking-tight mb-4">
-              <Link href={`/issues/${latest.slug}`} className="text-neopop-black hover:text-neopop-red no-underline">
+              <Link href={`/issues/${latest.slug}`} className="text-ws-black hover:text-ws-accent no-underline">
                 {nonBreakingDate(latest.title)}
               </Link>
             </h2>
@@ -78,11 +78,11 @@ export default async function HomePage() {
                     <span aria-hidden="true">·</span>
                     <time dateTime={issue.issueDate}>{formatDate(issue.issueDate)}</time>
                   </div>
-                  <h3 className="text-[24px] font-black leading-tight mb-2 text-neopop-black">
+                  <h3 className="text-[24px] font-black leading-tight mb-2 text-ws-black">
                     {nonBreakingDate(issue.title)}
                   </h3>
                   {issue.summary && (
-                    <p className="text-[17px] leading-[1.5] text-neopop-black">{issue.summary}</p>
+                    <p className="text-[17px] leading-[1.5] text-ws-black">{issue.summary}</p>
                   )}
                 </NeoPopCard>
               </li>

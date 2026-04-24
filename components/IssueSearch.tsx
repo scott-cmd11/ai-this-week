@@ -28,7 +28,7 @@ export function IssueSearch({ issues }: Props) {
       <div className="mb-10">
         <label
           htmlFor={inputId}
-          className="block text-[15px] font-black uppercase tracking-wide text-neopop-black mb-2"
+          className="block text-[15px] font-black uppercase tracking-wide text-ws-black mb-2"
         >
           Search issues
         </label>
@@ -38,7 +38,7 @@ export function IssueSearch({ issues }: Props) {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Filter by title or topic…"
-          className="w-full max-w-md border-[3px] border-neopop-black px-4 py-3 text-[17px] text-neopop-black bg-neopop-white shadow-[4px_4px_0_0_var(--color-neopop-black)] focus:outline-none focus:shadow-[6px_6px_0_0_var(--color-neopop-red)] focus:border-neopop-red placeholder:text-neopop-black/50"
+          className="w-full max-w-md border-[3px] border-neopop-black px-4 py-3 text-[17px] text-ws-black bg-neopop-white shadow-[4px_4px_0_0_var(--color-neopop-black)] focus:outline-none focus:shadow-[6px_6px_0_0_var(--color-neopop-red)] focus:border-neopop-red placeholder:text-ws-black/50"
           aria-controls="issue-list"
           autoComplete="off"
           spellCheck={false}
@@ -62,7 +62,7 @@ export function IssueSearch({ issues }: Props) {
       </ul>
 
       {filtered.length === 0 && !query.trim() && (
-        <p className="text-[19px] font-bold text-neopop-black">No issues published yet.</p>
+        <p className="text-[19px] font-bold text-ws-black">No issues published yet.</p>
       )}
     </div>
   )

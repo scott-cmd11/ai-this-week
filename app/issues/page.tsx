@@ -17,7 +17,7 @@ export default async function IssuesPage() {
       <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
         All Issues
       </h1>
-      <div className="w-20 h-[6px] bg-neopop-red mb-10" aria-hidden="true" />
+      <div className="w-16 h-[3px] bg-ws-accent mb-10" aria-hidden="true" />
       <IssueSearch issues={issues} />
     </>
   )
