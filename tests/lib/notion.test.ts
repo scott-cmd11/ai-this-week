@@ -6,7 +6,7 @@ describe('mapPageToIssue', () => {
     const fakePage = {
       id: 'page-123',
       properties: {
-        Title: { title: [{ plain_text: 'AI This Week — Apr 14, 2026' }] },
+        Title: { title: [{ plain_text: 'AI Today — Apr 14, 2026' }] },
         'Issue Date': { date: { start: '2026-04-14' } },
         'Issue Number': { number: 42 },
         Published: { checkbox: true },
@@ -19,7 +19,7 @@ describe('mapPageToIssue', () => {
 
     expect(issue).toEqual({
       id: 'page-123',
-      title: 'AI This Week — Apr 14, 2026',
+      title: 'AI Today — Apr 14, 2026',
       issueDate: '2026-04-14',
       issueNumber: 42,
       published: true,

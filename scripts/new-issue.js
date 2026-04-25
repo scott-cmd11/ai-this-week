@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * new-issue.js
- * Creates a new AI This Week issue in Notion with all sections pre-populated.
+ * Creates a new AI Today issue in Notion with all sections pre-populated.
  * Optionally fetches article URLs and generates AI summaries via Claude.
  *
  * Usage:
@@ -307,7 +307,7 @@ async function main() {
 
   const issueDate = nextFriday()
   const issueNumber = await getNextIssueNumber()
-  const title = `AI This Week — ${formatDate(issueDate)}`
+  const title = `AI Today — ${formatDate(issueDate)}`
 
   console.log(`\n📝  Creating Issue #${issueNumber}: ${title}`)
   console.log(`    Date: ${issueDate}`)

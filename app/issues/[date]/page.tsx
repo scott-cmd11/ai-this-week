@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const issue = await getIssueByDate(date)
   if (!issue) return {}
   return {
-    title: `${issue.title} | AI This Week`,
+    title: `${issue.title} | AI Today`,
     description: issue.summary,
   }
 }

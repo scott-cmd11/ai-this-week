@@ -26,7 +26,7 @@ export default async function OgImage({ params }: Props) {
   const { date } = await params
   const issue = await getIssueByDate(date)
 
-  const title = issue?.title ?? 'AI This Week'
+  const title = issue?.title ?? 'AI Today'
   const meta = issue
     ? `Issue ${issue.issueNumber} · ${formatDate(issue.issueDate)}`
     : 'Weekly AI news for non-technical professionals'
@@ -62,7 +62,7 @@ export default async function OgImage({ params }: Props) {
               padding: '8px 16px',
             }}
           >
-            AI This Week
+            AI Today
           </div>
         </div>
 

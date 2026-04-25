@@ -26,8 +26,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const meta = SECTIONS.find(s => s.slug === section)
   if (!meta) return {}
   return {
-    title: `${meta.label} | AI This Week`,
-    description: `All ${meta.label} picks from AI This Week.`,
+    title: `${meta.label} | AI Today`,
+    description: `All ${meta.label} picks from AI Today.`,
   }
 }
 

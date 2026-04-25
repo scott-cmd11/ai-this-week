@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { SECTIONS } from '@/lib/notion'
 
 export const metadata: Metadata = {
-  title: 'Browse by Section | AI This Week',
+  title: 'Browse by Section | AI Today',
   description: 'Explore all Tool of the Week picks, Deep Dives, Bright Spots, and more across every issue.',
 }
 

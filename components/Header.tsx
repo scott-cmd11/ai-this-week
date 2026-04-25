@@ -25,7 +25,7 @@ export function Header() {
           className="flex items-center gap-2 text-ws-black font-bold text-[20px] sm:text-[22px] tracking-tight no-underline hover:text-ws-accent focus-visible:outline-none focus-visible:bg-[var(--color-focus)] focus-visible:px-1"
         >
           <MapleLeaf className="w-6 h-6 sm:w-7 sm:h-7" />
-          AI This Week
+          AI Today
         </Link>
 
         <nav aria-label="Main navigation">

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { NeoPopCard } from '@/components/NeoPop/NeoPopCard'
 
 export const metadata: Metadata = {
-  title: 'About | AI This Week',
+  title: 'About | AI Today',
   description:
     'A weekly newsletter on Canadian AI news, trending global stories, and new research — written for non-technical professionals.',
 }
@@ -11,7 +11,7 @@ export default function AboutPage() {
   return (
     <>
       <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
-        About AI This Week
+        About AI Today
       </h1>
       <div className="w-16 h-[3px] bg-ws-accent mb-10" aria-hidden="true" />
 
@@ -19,7 +19,7 @@ export default function AboutPage() {
         <NeoPopCard bg="white" interactive={false}>
           <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">What is this?</h2>
           <p className="text-[19px] leading-[1.5] mb-4">
-            AI This Week is a weekly newsletter on artificial intelligence, written for
+            AI Today is a weekly newsletter on artificial intelligence, written for
             professionals working in or alongside AI. It covers three things each week:
           </p>
           <ul className="text-[19px] leading-[1.5] mb-4 list-none pl-0 space-y-3">

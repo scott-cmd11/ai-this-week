@@ -33,7 +33,7 @@ export function NeoPopHeader() {
           className="flex items-center gap-2 text-ws-black font-black text-[22px] uppercase tracking-tight no-underline hover:text-ws-accent"
         >
           <MapleLeaf className="w-7 h-7" />
-          AI This Week
+          AI Today
         </Link>
         <nav aria-label="Prototype navigation">
           <ul className="flex gap-6 list-none m-0 p-0 items-center">

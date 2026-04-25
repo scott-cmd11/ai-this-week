@@ -26,12 +26,12 @@ export function ArticleJsonLd({ issue, baseUrl }: Props) {
     image: [imageUrl],
     author: {
       '@type': 'Organization',
-      name: 'AI This Week',
+      name: 'AI Today',
       url: baseUrl,
     },
     publisher: {
       '@type': 'Organization',
-      name: 'AI This Week',
+      name: 'AI Today',
       url: baseUrl,
     },
     mainEntityOfPage: {

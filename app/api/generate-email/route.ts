@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   const summaryContent = summaryLines.join('\n').trim()
   const issueUrlLine = body.issueUrl ? `\nIssue URL: ${body.issueUrl}` : ''
 
-  const prompt = `You are writing a short weekly email to subscribers of "AI This Week", a curated AI newsletter.
+  const prompt = `You are writing a short weekly email to subscribers of "AI Today", a curated AI newsletter.
 
 Here are the summaries from Issue #${body.issueNumber}:${issueUrlLine}
 
@@ -84,7 +84,7 @@ Keep the whole email under 200 words. Plain text only, no HTML or markdown forma
     })
     const text = response.choices[0]?.message?.content?.trim() ?? ''
     const subjectMatch = text.match(/^Subject:\s*(.+)$/m)
-    const subject = subjectMatch?.[1]?.trim() ?? `AI This Week — Issue #${body.issueNumber}`
+    const subject = subjectMatch?.[1]?.trim() ?? `AI Today — Issue #${body.issueNumber}`
     const emailBody = text.replace(/^Subject:.*$/m, '').trim()
     return NextResponse.json({ subject, body: emailBody })
   } catch {

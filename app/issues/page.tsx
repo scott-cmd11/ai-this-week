@@ -5,8 +5,8 @@ import { IssueSearch } from '@/components/IssueSearch'
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: 'All Issues | AI This Week',
-  description: 'Browse every edition of AI This Week.',
+  title: 'All Issues | AI Today',
+  description: 'Browse every edition of AI Today.',
 }
 
 export default async function IssuesPage() {

@@ -6,7 +6,7 @@
  * Replaces the two spaces inside the date with NO-BREAK SPACE (U+00A0)
  * so the browser still breaks after the em-dash but keeps the date glued.
  *
- * "AI This Week — Apr 27, 2026" → "AI This Week — Apr\u00A027,\u00A02026"
+ * "AI Today — Apr 27, 2026" → "AI Today — Apr\u00A027,\u00A02026"
  */
 export function nonBreakingDate(title: string): string {
   return title.replace(/([A-Z][a-z]+) (\d+), (\d{4})/, '$1\u00A0$2,\u00A0$3')

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client } from '@notionhq/client'
 import OpenAI from 'openai'
-import { createRequire } from 'module'
 import { SYSTEM_PROMPTS, type SummaryLength } from '@/lib/prompts'
+import { fetchArticle, hostnameFallback } from '@/lib/article-fetcher'
+import { block, richText, formatIsoDate } from '@/lib/notion-blocks'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -30,73 +31,20 @@ interface RequestBody {
   summaryLength?: SummaryLength
 }
 
-// ─── Notion block helpers ───────────────────────────────────────────────────────
-
-function richText(content: string) {
-  return [{ type: 'text' as const, text: { content } }]
-}
-
-const block = {
-  h2: (content: string) => ({
-    object: 'block' as const,
-    type: 'heading_2' as const,
-    heading_2: { rich_text: richText(content) },
-  }),
-  h3: (content: string) => ({
-    object: 'block' as const,
-    type: 'heading_3' as const,
-    heading_3: { rich_text: richText(content) },
-  }),
-  paragraph: (content: string) => ({
-    object: 'block' as const,
-    type: 'paragraph' as const,
-    paragraph: { rich_text: richText(content) },
-  }),
-  bullet: (content: string) => ({
-    object: 'block' as const,
-    type: 'bulleted_list_item' as const,
-    bulleted_list_item: { rich_text: richText(content) },
-  }),
-  divider: () => ({
-    object: 'block' as const,
-    type: 'divider' as const,
-    divider: {},
-  }),
-  bookmark: (url: string) => ({
-    object: 'block' as const,
-    type: 'bookmark' as const,
-    bookmark: { url, caption: [] as never[] },
-  }),
-  image: (imageUrl: string) => ({
-    object: 'block' as const,
-    type: 'image' as const,
-    image: { type: 'external' as const, external: { url: imageUrl } },
-  }),
-}
-
 // ─── Date helpers ───────────────────────────────────────────────────────────────
 
 function nextFriday(): string {
   const today = new Date()
-  const day = today.getDay() // 0 = Sun, 1 = Mon, … 5 = Fri, 6 = Sat
-  // If today IS Friday, target next week's Friday, not today.
+  const day = today.getDay()
   const daysUntil = day === 5 ? 7 : day < 5 ? 5 - day : 6
   const friday = new Date(today)
   friday.setDate(today.getDate() + daysUntil)
   return friday.toISOString().split('T')[0]
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
-
 // ─── Notion helpers ─────────────────────────────────────────────────────────────
 
-async function getNextIssueNumber(notion: Client, databaseId: string): Promise<number> {
+export async function getNextIssueNumber(notion: Client, databaseId: string): Promise<number> {
   const response = await notion.databases.query({
     database_id: databaseId,
     sorts: [{ property: 'Issue Number', direction: 'descending' }],
@@ -114,216 +62,7 @@ async function getNextIssueNumber(notion: Client, databaseId: string): Promise<n
 
 function parseUrls(input: string): string[] {
   if (!input || !input.trim()) return []
-  return input
-    .split(/[\s\n]+/)
-    .map(u => u.trim())
-    .filter(u => u.startsWith('http'))
-}
-
-// ─── Article fetching ───────────────────────────────────────────────────────────
-
-interface FetchResult {
-  text: string | null
-  title: string | null
-  publishedDate: string | null
-  imageUrl: string | null
-}
-
-function extractOgImage(html: string): string | null {
-  const patterns = [
-    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
-    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i,
-  ]
-  for (const pattern of patterns) {
-    const match = html.match(pattern)
-    if (match?.[1]?.startsWith('http')) return match[1]
-  }
-  return null
-}
-
-function extractPublishedDate(html: string): string | null {
-  // Try meta tags in order of reliability
-  const patterns = [
-    /<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']article:published_time["']/i,
-    /<meta[^>]+itemprop=["']datePublished["'][^>]+content=["']([^"']+)["']/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+itemprop=["']datePublished["']/i,
-    /<meta[^>]+name=["']date["'][^>]+content=["']([^"']+)["']/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']date["']/i,
-  ]
-
-  for (const pattern of patterns) {
-    const match = html.match(pattern)
-    if (match?.[1]) {
-      const date = new Date(match[1])
-      if (!isNaN(date.getTime())) {
-        return date.toLocaleDateString('en-GB', {
-          day: 'numeric', month: 'short', year: 'numeric',
-        })
-      }
-    }
-  }
-
-  // Try JSON-LD structured data
-  const jsonLdMatch = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)
-  if (jsonLdMatch) {
-    for (const block of jsonLdMatch) {
-      try {
-        const content = block.replace(/<script[^>]*>|<\/script>/gi, '')
-        const data = JSON.parse(content)
-        const entries = Array.isArray(data) ? data : [data]
-        for (const entry of entries) {
-          const raw = entry?.datePublished ?? entry?.dateCreated
-          if (raw) {
-            const date = new Date(raw)
-            if (!isNaN(date.getTime())) {
-              return date.toLocaleDateString('en-GB', {
-                day: 'numeric', month: 'short', year: 'numeric',
-              })
-            }
-          }
-        }
-      } catch { /* skip malformed JSON-LD */ }
-    }
-  }
-
-  return null
-}
-
-// Last-resort title when nothing else worked — "cbc.ca" is worse than a real
-// headline but miles better than no heading at all.
-function hostnameFallback(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return 'Untitled article'
-  }
-}
-
-function extractTitle(html: string): string | null {
-  // Order of preference:
-  //   1. <title> — most reliable for server-rendered pages
-  //   2. og:title — set even when <title> is empty (common on SPA shells)
-  //   3. twitter:title — same idea, alternate tag some sites prefer
-  let raw: string | null = null
-
-  const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-  if (titleTag) raw = titleTag[1]
-
-  if (!raw) {
-    const metaCandidates = [
-      html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i),
-      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i),
-      html.match(/<meta[^>]+name=["']twitter:title["'][^>]+content=["']([^"']+)["']/i),
-      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:title["']/i),
-    ]
-    raw = metaCandidates.find(m => m && m[1]?.trim())?.[1] ?? null
-  }
-
-  if (!raw) return null
-
-  return raw
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim()
-    // Strip common site-name suffixes like " | TechCrunch" or " - The Verge"
-    .replace(/\s*[\|\-–—]\s*[^|\-–—]{2,40}$/, '')
-    .trim() || null
-}
-
-// Jina Reader fallback — handles Cloudflare-protected and JS-heavy sites.
-// Free, no API key needed. Returns clean article text.
-async function fetchViaJina(url: string): Promise<FetchResult> {
-  try {
-    const res = await fetch(`https://r.jina.ai/${url}`, {
-      headers: { Accept: 'text/plain', 'X-Return-Format': 'text' },
-      signal: AbortSignal.timeout(30_000),
-    })
-    if (!res.ok) return { text: null, title: null, publishedDate: null, imageUrl: null }
-    const raw = await res.text()
-    const titleMatch = raw.match(/^Title:\s*(.+)$/m)
-    const title = titleMatch?.[1]?.trim() ?? null
-    const text = raw.replace(/^(Title|URL Source|Published Time):.*$/gm, '').trim().slice(0, 6000)
-    // Treat access-denied / bot-challenge responses as failures
-    const isBlocked = !text || text.length < 200 || /access denied|you don't have permission|enable javascript/i.test(text.slice(0, 300))
-    return { text: isBlocked ? null : text, title, publishedDate: null, imageUrl: null }
-  } catch {
-    return { text: null, title: null, publishedDate: null, imageUrl: null }
-  }
-}
-
-async function fetchArticle(
-  url: string,
-  onPdf?: () => void
-): Promise<FetchResult> {
-  try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; AI-This-Week-Bot/1.0)',
-        Accept: 'text/html,application/xhtml+xml,application/pdf,*/*',
-      },
-      signal: AbortSignal.timeout(20_000),
-    })
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-
-    const contentType = res.headers.get('content-type') ?? ''
-    const isPdf =
-      contentType.includes('application/pdf') ||
-      url.toLowerCase().endsWith('.pdf')
-
-    if (isPdf) {
-      onPdf?.()
-      const buffer = Buffer.from(await res.arrayBuffer())
-      try {
-        const require = createRequire(import.meta.url)
-        const { PDFParse } = require('pdf-parse')
-        const parser = new PDFParse({ data: buffer, verbosity: 0 })
-        const result = await parser.getText({ maxPages: 5 })
-        const text = (result.text as string).replace(/\s{2,}/g, ' ').trim().slice(0, 6000)
-        // Use hostname as title for PDFs since there's no <title> tag
-        return { text, title: new URL(url).hostname.replace('www.', ''), publishedDate: null, imageUrl: null }
-      } catch {
-        return { text: null, title: null, publishedDate: null, imageUrl: null }
-      }
-    }
-
-    const html = await res.text()
-    const title = extractTitle(html)
-    const publishedDate = extractPublishedDate(html)
-    const imageUrl = extractOgImage(html)
-
-    const mainMatch = html.match(/<(?:article|main)[^>]*>([\s\S]*?)<\/(?:article|main)>/i)
-    const source = mainMatch ? mainMatch[1] : html
-
-    const text = source
-      .replace(/<script[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[\s\S]*?<\/style>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&nbsp;/g, ' ')
-      .replace(/\s{2,}/g, ' ')
-      .trim()
-      .slice(0, 6000)
-
-    // If text is suspiciously short it's likely a bot-challenge page — fall back to Jina
-    if (text.length < 200) throw new Error('Content too short — likely bot challenge')
-
-    return { text, title, publishedDate, imageUrl }
-  } catch {
-    // Fallback: Jina Reader handles Cloudflare-protected and JS-rendered pages
-    return fetchViaJina(url)
-  }
+  return input.split(/[\s\n]+/).map(u => u.trim()).filter(u => u.startsWith('http'))
 }
 
 // ─── OpenAI summarisation ───────────────────────────────────────────────────────
@@ -355,10 +94,7 @@ async function summariseUrlWithEvents(
       max_tokens: 400,
       messages: [
         { role: 'system', content: SYSTEM_PROMPTS[summaryLength] ?? SYSTEM_PROMPTS.standard },
-        {
-          role: 'user',
-          content: `Please summarise this article:\n\nURL: ${url}\n\n---\n\n${articleText}`,
-        },
+        { role: 'user', content: `Please summarise this article:\n\nURL: ${url}\n\n---\n\n${articleText}` },
       ],
     })
     const summary =
@@ -387,7 +123,6 @@ function topStoriesBlocks(summaries: SectionSummary[], includeImages: boolean) {
   const blocks = []
   for (const { url, title, publishedDate, imageUrl, summary } of summaries) {
     if (includeImages && imageUrl) blocks.push(block.image(imageUrl))
-    // Always emit a heading — fall back to hostname so articles aren't headless.
     blocks.push(block.h3(title || hostnameFallback(url)))
     if (publishedDate) blocks.push(block.paragraph(`Published: ${publishedDate}`))
     blocks.push(block.paragraph(`🔹 ${summary}`))
@@ -396,18 +131,14 @@ function topStoriesBlocks(summaries: SectionSummary[], includeImages: boolean) {
 
   const remaining = Math.max(0, 3 - summaries.length)
   for (let i = 0; i < remaining; i++) {
-    blocks.push(
-      block.bullet('🔹 [Story title] — [AI-generated summary. Review for accuracy and edit before publishing.]')
-    )
+    blocks.push(block.bullet('🔹 [Story title] — [AI-generated summary. Review for accuracy and edit before publishing.]'))
   }
 
   return blocks
 }
 
 function singleSectionBlocks(summaries: SectionSummary[], placeholder: string, includeImages: boolean) {
-  if (summaries.length === 0) {
-    return [block.paragraph(placeholder)]
-  }
+  if (summaries.length === 0) return [block.paragraph(placeholder)]
   const { url, title, publishedDate, imageUrl, summary } = summaries[0]
   return [
     ...(includeImages && imageUrl ? [block.image(imageUrl)] : []),
@@ -427,10 +158,7 @@ export async function POST(request: NextRequest) {
   const openaiApiKey = process.env.OPENAI_API_KEY
 
   if (!adminPassword || !notionToken || !notionDatabaseId || !openaiApiKey) {
-    return NextResponse.json(
-      { error: 'Server configuration error: missing environment variables.' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Server configuration error: missing environment variables.' }, { status: 500 })
   }
 
   let body: RequestBody
@@ -459,7 +187,7 @@ export async function POST(request: NextRequest) {
 
         const issueDate = nextFriday()
         const issueNumber = await getNextIssueNumber(notion, notionDatabaseId)
-        const title = `AI This Week — ${formatDate(issueDate)}`
+        const title = `AI Today — ${formatIsoDate(issueDate)}`
 
         const topUrls = parseUrls(sections.top)
         const brightUrls = parseUrls(sections.bright)
@@ -478,16 +206,10 @@ export async function POST(request: NextRequest) {
         ]
 
         const summaryMap: Record<string, SectionSummary[]> = {
-          top: [],
-          bright: [],
-          tool: [],
-          podcast: [],
-          learning: [],
-          deep: [],
+          top: [], bright: [], tool: [], podcast: [], learning: [], deep: [],
         }
 
         const totalUrls = allSections.reduce((n, s) => n + s.urls.length, 0)
-
         if (totalUrls === 0) {
           emit(JSON.stringify({ type: 'error', message: 'No URLs provided in any section.' }))
           controller.close()
@@ -521,59 +243,25 @@ export async function POST(request: NextRequest) {
             block.paragraph('⚠️ AI-generated summaries below — review and edit each one before publishing.'),
             ...topStoriesBlocks(summaryMap.top, includeImages),
             block.divider(),
-
             block.h2('🌟 Bright Spot of the Week'),
-            ...singleSectionBlocks(
-              summaryMap.bright,
-              '[AI-generated summary. Review for accuracy and edit before publishing.]',
-              includeImages
-            ),
+            ...singleSectionBlocks(summaryMap.bright, '[AI-generated summary. Review for accuracy and edit before publishing.]', includeImages),
             block.divider(),
-
             block.h2('🔧 Tool of the Week'),
-            ...singleSectionBlocks(
-              summaryMap.tool,
-              '[AI-generated summary. Review for accuracy and edit before publishing.]',
-              includeImages
-            ),
+            ...singleSectionBlocks(summaryMap.tool, '[AI-generated summary. Review for accuracy and edit before publishing.]', includeImages),
             block.divider(),
-
             block.h2('🎙️ Podcast of the Week'),
-            ...singleSectionBlocks(
-              summaryMap.podcast,
-              '[AI-generated summary. Review for accuracy and edit before publishing.]',
-              includeImages
-            ),
+            ...singleSectionBlocks(summaryMap.podcast, '[AI-generated summary. Review for accuracy and edit before publishing.]', includeImages),
             block.divider(),
-
             block.h2('💡 Learning'),
-            ...singleSectionBlocks(
-              summaryMap.learning,
-              '[AI-generated summary. Review for accuracy and edit before publishing.]',
-              includeImages
-            ),
+            ...singleSectionBlocks(summaryMap.learning, '[AI-generated summary. Review for accuracy and edit before publishing.]', includeImages),
             block.divider(),
-
             block.h2('📖 Deep Dive'),
-            ...singleSectionBlocks(
-              summaryMap.deep,
-              '[AI-generated summary. Review for accuracy and edit before publishing.]',
-              includeImages
-            ),
+            ...singleSectionBlocks(summaryMap.deep, '[AI-generated summary. Review for accuracy and edit before publishing.]', includeImages),
           ],
         })
 
-        const notionUrl =
-          'url' in page && typeof page.url === 'string' ? page.url : ''
-
-        emit(
-          JSON.stringify({
-            type: 'complete',
-            notionUrl,
-            issueNumber,
-            summaries: summaryMap,
-          })
-        )
+        const notionUrl = 'url' in page && typeof page.url === 'string' ? page.url : ''
+        emit(JSON.stringify({ type: 'complete', notionUrl, issueNumber, summaries: summaryMap }))
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error'
         emit(JSON.stringify({ type: 'error', message }))
@@ -584,10 +272,6 @@ export async function POST(request: NextRequest) {
   })
 
   return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    },
+    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' },
   })
 }

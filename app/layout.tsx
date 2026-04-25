@@ -7,7 +7,7 @@ import { Analytics } from '@vercel/analytics/react'
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ai-this-week.vercel.app'
 
 export const metadata: Metadata = {
-  title: 'AI This Week',
+  title: 'AI Today',
   description: 'Weekly AI news from Canada and around the world, plus trending stories and research — in plain English.',
   alternates: {
     types: {

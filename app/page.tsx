@@ -8,7 +8,7 @@ import { NeoPopButton } from '@/components/NeoPop/NeoPopButton'
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: 'AI This Week — AI news for non-technical professionals',
+  title: 'AI Today — AI news for non-technical professionals',
   description:
     'Canadian AI news, trending global stories, and new research — delivered weekly for professional, non-technical readers. No hype, no jargon.',
 }
