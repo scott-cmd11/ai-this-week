@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { categorize, CATEGORY_ORDER, CATEGORY_META, type Category } from '@/lib/category-mapping'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -503,12 +504,11 @@ function BriefingImport({ password }: { password: string }) {
     })
   }
 
-  function toggleAllInSection(source: BriefingSourceData, section: BriefingSection, on: boolean) {
+  function toggleAllInCategory(entries: { key: string }[], on: boolean) {
     setSelected(prev => {
       const next = new Set(prev)
-      for (const a of section.articles) {
-        const k = articleKey(source.sourceId, section.name, a)
-        if (on) next.add(k); else next.delete(k)
+      for (const e of entries) {
+        if (on) next.add(e.key); else next.delete(e.key)
       }
       return next
     })
@@ -596,108 +596,189 @@ function BriefingImport({ password }: { password: string }) {
 
       {loading && !data && <p className="text-[14px] text-ws-black/70">Loading briefings…</p>}
 
-      {data?.sources.map(source => (
-        <div key={source.sourceId} className="border-[2px] border-ws-black/30 p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-[15px] font-black uppercase tracking-wide">{source.sourceLabel}</p>
-            {source.briefingPageId && (
-              <a
-                href={`https://notion.so/${source.briefingPageId.replace(/-/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[12px] text-ws-accent underline hover:no-underline font-bold"
+      {/* Source-level chrome: links to Notion, errors, "no briefing yet" notes,
+          and flagged-topics callouts. Article lists themselves are categorized
+          and rendered below this strip. */}
+      {data && data.sources.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {data.sources.map(source => {
+            const articleCount = source.briefing
+              ? source.briefing.sections.reduce((n, s) => n + s.articles.length, 0)
+              : 0
+            return (
+              <div
+                key={source.sourceId}
+                className="flex items-center justify-between gap-3 flex-wrap border border-ws-black/15 px-3 py-2"
               >
-                Open briefing in Notion ↗
-              </a>
-            )}
-          </div>
-
-          {source.error && (
-            <p className="text-[13px] font-bold text-ws-accent">
-              ⚠ Can&apos;t access this page in Notion. Open the Canada AI Daily page, click Share, and make sure the &quot;AI This Week Site&quot; integration is invited.
-            </p>
-          )}
-
-          {!source.briefing && !source.error && (
-            <p className="text-[13px] text-ws-black/70">No briefing for {data.date} yet — check back once it&apos;s been generated.</p>
-          )}
-
-          {source.briefing && (
-            <>
-              {source.briefing.flaggedTopics.length > 0 && (
-                <div className="border-l-[3px] border-ws-accent pl-3 py-1">
-                  <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-accent/80 mb-1">
-                    🚩 Flagged today
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-black uppercase tracking-wide">
+                    {source.sourceLabel}
+                    {source.briefing && (
+                      <span className="ml-2 text-[12px] font-normal normal-case tracking-normal text-ws-black/50">
+                        {articleCount} article{articleCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
                   </p>
-                  <ul className="text-[13px] text-ws-black/80 list-none p-0 m-0 flex flex-col gap-0.5">
-                    {source.briefing.flaggedTopics.map((t, i) => (
-                      <li key={i}>• {t}</li>
-                    ))}
-                  </ul>
+                  {source.error && (
+                    <p className="text-[12px] font-bold text-ws-accent mt-1">
+                      ⚠ Can&apos;t access in Notion — share the page with the &quot;AI This Week Site&quot; integration.
+                    </p>
+                  )}
+                  {!source.briefing && !source.error && (
+                    <p className="text-[12px] text-ws-black/60 mt-1">No briefing for {data.date} yet.</p>
+                  )}
                 </div>
-              )}
+                {source.briefingPageId && (
+                  <a
+                    href={`https://notion.so/${source.briefingPageId.replace(/-/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-ws-accent underline hover:no-underline font-bold shrink-0"
+                  >
+                    Open in Notion ↗
+                  </a>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
-              {source.briefing.sections.length === 0 && (
-                <p className="text-[13px] text-ws-black/70">No importable articles in this briefing.</p>
-              )}
+      {/* Flagged-topic callouts (still per-source — they're advisory, not articles) */}
+      {data?.sources.some(s => s.briefing && s.briefing.flaggedTopics.length > 0) && (
+        <div className="border-l-[3px] border-ws-accent pl-3 py-1">
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-accent/80 mb-1">
+            🚩 Flagged today
+          </p>
+          <ul className="text-[13px] text-ws-black/80 list-none p-0 m-0 flex flex-col gap-0.5">
+            {data.sources.flatMap(s =>
+              s.briefing
+                ? s.briefing.flaggedTopics.map((t, i) => (
+                    <li key={`${s.sourceId}-${i}`}>
+                      • {t} <span className="text-ws-black/40">· {s.sourceLabel}</span>
+                    </li>
+                  ))
+                : []
+            )}
+          </ul>
+        </div>
+      )}
 
-              {source.briefing.sections.map(section => {
-                const allKeys = section.articles.map(a => articleKey(source.sourceId, section.name, a))
-                const allChecked = allKeys.length > 0 && allKeys.every(k => selected.has(k))
-                return (
-                  <div key={section.name} className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <p className="text-[13px] font-black uppercase tracking-[0.1em]">{section.name}</p>
-                      <button
-                        type="button"
-                        onClick={() => toggleAllInSection(source, section, !allChecked)}
-                        className="text-[11px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
-                      >
-                        {allChecked ? 'Uncheck all' : 'Check all'}
-                      </button>
+      {/* Categorized article view — articles from all sources rolled up into
+          5 canonical buckets (Canada / Policy & Regulation / Government /
+          Industry & Models / Sectors & Applications). */}
+      {data && (() => {
+        // Build flat list: every article tagged with its source + section + category
+        type Entry = {
+          key: string
+          category: Category
+          article: BriefingArticle
+          sourceLabel: string
+          sectionName: string
+        }
+        const entries: Entry[] = []
+        for (const source of data.sources) {
+          if (!source.briefing) continue
+          for (const section of source.briefing.sections) {
+            const cat = categorize(source.sourceLabel, section.name)
+            for (const a of section.articles) {
+              entries.push({
+                key: articleKey(source.sourceId, section.name, a),
+                category: cat,
+                article: a,
+                sourceLabel: source.sourceLabel,
+                sectionName: section.name,
+              })
+            }
+          }
+        }
+        if (entries.length === 0) return null
+
+        // Group by category, preserving the canonical display order
+        const byCategory = new Map<Category, Entry[]>()
+        for (const cat of CATEGORY_ORDER) byCategory.set(cat, [])
+        for (const e of entries) byCategory.get(e.category)!.push(e)
+
+        return (
+          <div className="flex flex-col gap-5 mt-2">
+            {CATEGORY_ORDER.map(cat => {
+              const bucket = byCategory.get(cat)!
+              if (bucket.length === 0) return null
+              const allChecked = bucket.every(e => selected.has(e.key))
+              const meta = CATEGORY_META[cat]
+              return (
+                <div key={cat} className="flex flex-col gap-2">
+                  <div className="flex items-start justify-between gap-3 flex-wrap border-b-[2px] border-ws-black pb-1">
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-black uppercase tracking-[0.08em]">
+                        <span className="mr-1.5" aria-hidden="true">{meta.icon}</span>
+                        {cat}
+                        <span className="ml-2 text-[12px] font-normal normal-case tracking-normal text-ws-black/50">
+                          {bucket.length} article{bucket.length !== 1 ? 's' : ''}
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-ws-black/50 mt-0.5">{meta.tagline}</p>
                     </div>
-                    <ul className="list-none p-0 m-0 flex flex-col gap-1.5">
-                      {section.articles.map(a => {
-                        const k = articleKey(source.sourceId, section.name, a)
-                        const checked = selected.has(k)
-                        const hostname = a.urls[0] ? new URL(a.urls[0]).hostname.replace(/^www\./, '') : ''
-                        return (
-                          <li key={k} className="flex gap-3 items-start border border-ws-black/10 px-2 py-2 bg-ws-page/50">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggle(k)}
-                              className="mt-1 w-4 h-4 accent-ws-black cursor-pointer shrink-0"
-                              aria-label={`Include ${a.title}`}
-                            />
-                            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                              <p className="text-[14px] font-bold leading-tight">{a.title}</p>
-                              {a.summary && (
-                                <p className="text-[12px] text-ws-black/70 line-clamp-2 leading-snug">{a.summary}</p>
-                              )}
+                    <button
+                      type="button"
+                      onClick={() => toggleAllInCategory(bucket, !allChecked)}
+                      className="text-[11px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent shrink-0"
+                    >
+                      {allChecked ? 'Uncheck all' : 'Check all'}
+                    </button>
+                  </div>
+                  <ul className="list-none p-0 m-0 flex flex-col gap-1.5">
+                    {bucket.map(e => {
+                      const checked = selected.has(e.key)
+                      const hostname = e.article.urls[0]
+                        ? new URL(e.article.urls[0]).hostname.replace(/^www\./, '')
+                        : ''
+                      return (
+                        <li
+                          key={e.key}
+                          className="flex gap-3 items-start border border-ws-black/10 px-2 py-2 bg-ws-page/50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggle(e.key)}
+                            className="mt-1 w-4 h-4 accent-ws-black cursor-pointer shrink-0"
+                            aria-label={`Include ${e.article.title}`}
+                          />
+                          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                            <p className="text-[14px] font-bold leading-tight">{e.article.title}</p>
+                            {e.article.summary && (
+                              <p className="text-[12px] text-ws-black/70 line-clamp-2 leading-snug">
+                                {e.article.summary}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 flex-wrap text-[11px] text-ws-black/50">
                               {hostname && (
                                 <a
-                                  href={a.urls[0]}
+                                  href={e.article.urls[0]}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[11px] text-ws-black/50 underline hover:no-underline truncate"
+                                  className="underline hover:no-underline truncate"
                                 >
                                   {hostname}
-                                  {a.urls.length > 1 && <span className="ml-2">+{a.urls.length - 1} more</span>}
                                 </a>
                               )}
+                              <span aria-hidden="true">·</span>
+                              <span className="truncate">
+                                {e.sourceLabel} / {e.sectionName}
+                              </span>
                             </div>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </div>
-                )
-              })}
-            </>
-          )}
-        </div>
-      ))}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
 
       {data && data.sources.some(s => s.briefing) && (
         <div className="pt-3 border-t-[2px] border-ws-black/10 flex flex-col gap-3">
