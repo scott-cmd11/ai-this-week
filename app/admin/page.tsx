@@ -150,6 +150,10 @@ function TodaysDraft({ password }: { password: string }) {
 
   useEffect(() => {
     loadDraft()
+    // Listen for sibling-panel refresh requests (e.g. BriefingImport after a successful import)
+    const handler = () => loadDraft()
+    window.addEventListener('aitoday:refresh-draft', handler)
+    return () => window.removeEventListener('aitoday:refresh-draft', handler)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -404,6 +408,325 @@ function TodaysDraft({ password }: { password: string }) {
           </button>
         </form>
       </div>
+    </div>
+  )
+}
+
+// ─── BriefingImport ──────────────────────────────────────────────────────────────
+
+interface BriefingArticle {
+  title: string
+  summary: string
+  urls: string[]
+  rawText: string
+}
+
+interface BriefingSection {
+  name: string
+  articles: BriefingArticle[]
+}
+
+interface BriefingSourceData {
+  sourceLabel: string
+  sourceId: string
+  briefingPageId: string | null
+  briefingTitle: string | null
+  briefing: { flaggedTopics: string[]; sections: BriefingSection[] } | null
+  error?: string
+}
+
+interface BriefingApiResponse {
+  date: string
+  configured: boolean
+  sources: BriefingSourceData[]
+}
+
+// Stable selection key per article — sourceId + sectionName + first URL
+function articleKey(sourceId: string, sectionName: string, article: BriefingArticle): string {
+  return `${sourceId}::${sectionName}::${article.urls[0] ?? article.title}`
+}
+
+function BriefingImport({ password }: { password: string }) {
+  const [data, setData] = useState<BriefingApiResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [importing, setImporting] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [rewriteWithAi, setRewriteWithAi] = useState(false)
+
+  async function load() {
+    setLoading(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const res = await fetch(`/api/briefing-sources?password=${encodeURIComponent(password)}`)
+      if (!res.ok) {
+        setError(res.status === 401 ? 'Session expired. Sign in again.' : `Error ${res.status}`)
+        return
+      }
+      const payload = (await res.json()) as BriefingApiResponse
+      setData(payload)
+      // Pre-check every article by default — user unchecks what they don't want
+      const initial = new Set<string>()
+      for (const source of payload.sources) {
+        if (!source.briefing) continue
+        for (const section of source.briefing.sections) {
+          for (const a of section.articles) {
+            initial.add(articleKey(source.sourceId, section.name, a))
+          }
+        }
+      }
+      setSelected(initial)
+    } catch {
+      setError('Network error.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function toggle(key: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  function toggleAllInSection(source: BriefingSourceData, section: BriefingSection, on: boolean) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      for (const a of section.articles) {
+        const k = articleKey(source.sourceId, section.name, a)
+        if (on) next.add(k); else next.delete(k)
+      }
+      return next
+    })
+  }
+
+  async function handleImport() {
+    if (!data || selected.size === 0) return
+    setImporting(true)
+    setMessage(null)
+    setError(null)
+
+    // Collect selected articles in document order
+    const toImport: { title: string; summary: string; url: string }[] = []
+    for (const source of data.sources) {
+      if (!source.briefing) continue
+      for (const section of source.briefing.sections) {
+        for (const a of section.articles) {
+          const k = articleKey(source.sourceId, section.name, a)
+          if (selected.has(k) && a.urls[0]) {
+            toImport.push({ title: a.title, summary: a.summary, url: a.urls[0] })
+          }
+        }
+      }
+    }
+
+    if (toImport.length === 0) {
+      setError('No selected articles had a usable URL.')
+      setImporting(false)
+      return
+    }
+
+    try {
+      const res = await fetch('/api/import-briefing-articles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminPassword: password, articles: toImport, rewriteWithAi }),
+      })
+      const payload = await res.json()
+      if (!res.ok) {
+        setError(payload.error ?? `Error ${res.status}`)
+        return
+      }
+      const failed = (payload.results ?? []).filter((r: { ok: boolean }) => !r.ok).length
+      setMessage(
+        failed > 0
+          ? `✓ Imported ${payload.added} of ${payload.attempted} (${failed} failed). Today's draft now has ${payload.articleCount} article${payload.articleCount === 1 ? '' : 's'}.`
+          : `✓ Imported ${payload.added} article${payload.added === 1 ? '' : 's'}. Today's draft now has ${payload.articleCount}.`,
+      )
+      // Tell TodaysDraft to refresh
+      window.dispatchEvent(new CustomEvent('aitoday:refresh-draft'))
+      // Clear selection so user doesn't accidentally double-import
+      setSelected(new Set())
+    } catch {
+      setError('Network error during import.')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  // Hide entire panel if user hasn't configured any sources — no need for clutter
+  if (data && data.configured === false) return null
+
+  return (
+    <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">
+          Import from briefing
+          {data?.date && <span className="ml-2 text-ws-black/50">({data.date})</span>}
+        </p>
+        <button
+          type="button"
+          onClick={load}
+          disabled={loading}
+          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
+        >
+          {loading ? '↻ Loading…' : '↻ Refresh'}
+        </button>
+      </div>
+
+      {error && <p className="text-[14px] font-bold text-ws-accent">{error}</p>}
+      {message && <p className="text-[14px] font-bold text-ws-black">{message}</p>}
+
+      {loading && !data && <p className="text-[14px] text-ws-black/70">Loading briefings…</p>}
+
+      {data?.sources.map(source => (
+        <div key={source.sourceId} className="border-[2px] border-ws-black/30 p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-[15px] font-black uppercase tracking-wide">{source.sourceLabel}</p>
+            {source.briefingPageId && (
+              <a
+                href={`https://notion.so/${source.briefingPageId.replace(/-/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[12px] text-ws-accent underline hover:no-underline font-bold"
+              >
+                Open briefing in Notion ↗
+              </a>
+            )}
+          </div>
+
+          {source.error && <p className="text-[13px] font-bold text-ws-accent">⚠ {source.error}</p>}
+
+          {!source.briefing && !source.error && (
+            <p className="text-[13px] text-ws-black/70">No briefing found for {data.date}.</p>
+          )}
+
+          {source.briefing && (
+            <>
+              {source.briefing.flaggedTopics.length > 0 && (
+                <div className="border-l-[3px] border-ws-accent pl-3 py-1">
+                  <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-accent/80 mb-1">
+                    🚩 Flagged today
+                  </p>
+                  <ul className="text-[13px] text-ws-black/80 list-none p-0 m-0 flex flex-col gap-0.5">
+                    {source.briefing.flaggedTopics.map((t, i) => (
+                      <li key={i}>• {t}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {source.briefing.sections.length === 0 && (
+                <p className="text-[13px] text-ws-black/70">No importable articles in this briefing.</p>
+              )}
+
+              {source.briefing.sections.map(section => {
+                const allKeys = section.articles.map(a => articleKey(source.sourceId, section.name, a))
+                const allChecked = allKeys.length > 0 && allKeys.every(k => selected.has(k))
+                return (
+                  <div key={section.name} className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-[13px] font-black uppercase tracking-[0.1em]">{section.name}</p>
+                      <button
+                        type="button"
+                        onClick={() => toggleAllInSection(source, section, !allChecked)}
+                        className="text-[11px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
+                      >
+                        {allChecked ? 'Uncheck all' : 'Check all'}
+                      </button>
+                    </div>
+                    <ul className="list-none p-0 m-0 flex flex-col gap-1.5">
+                      {section.articles.map(a => {
+                        const k = articleKey(source.sourceId, section.name, a)
+                        const checked = selected.has(k)
+                        const hostname = a.urls[0] ? new URL(a.urls[0]).hostname.replace(/^www\./, '') : ''
+                        return (
+                          <li key={k} className="flex gap-3 items-start border border-ws-black/10 px-2 py-2 bg-ws-page/50">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggle(k)}
+                              className="mt-1 w-4 h-4 accent-ws-black cursor-pointer shrink-0"
+                              aria-label={`Include ${a.title}`}
+                            />
+                            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                              <p className="text-[14px] font-bold leading-tight">{a.title}</p>
+                              {a.summary && (
+                                <p className="text-[12px] text-ws-black/70 line-clamp-2 leading-snug">{a.summary}</p>
+                              )}
+                              {hostname && (
+                                <a
+                                  href={a.urls[0]}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[11px] text-ws-black/50 underline hover:no-underline truncate"
+                                >
+                                  {hostname}
+                                  {a.urls.length > 1 && <span className="ml-2">+{a.urls.length - 1} more</span>}
+                                </a>
+                              )}
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )
+              })}
+            </>
+          )}
+        </div>
+      ))}
+
+      {data && data.sources.some(s => s.briefing) && (
+        <div className="pt-3 border-t-[2px] border-ws-black/10 flex flex-col gap-3">
+          {/* AI rewrite toggle */}
+          <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={rewriteWithAi}
+              onChange={e => setRewriteWithAi(e.target.checked)}
+              disabled={importing}
+              className="mt-0.5 w-4 h-4 accent-ws-black cursor-pointer shrink-0"
+            />
+            <span className="flex flex-col gap-0.5">
+              <span className="text-[13px] font-bold leading-tight">
+                Rewrite annotations with AI (in the AI Today voice)
+              </span>
+              <span className="text-[12px] text-ws-black/60 leading-snug">
+                Each article re-fetched and re-summarised by GPT — same as pasting a URL manually.
+                Slower (~2–3 sec per article) but consistent voice. Off = use the briefing's text as-is.
+              </span>
+            </span>
+          </label>
+
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-[13px] text-ws-black/70">{selected.size} selected</p>
+            <button
+              type="button"
+              onClick={handleImport}
+              disabled={importing || selected.size === 0}
+              className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {importing
+                ? rewriteWithAi
+                  ? `…Importing ${selected.size} (AI rewriting)`
+                  : '…Importing'
+                : `+ Import ${selected.size} into today's draft`}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1068,6 +1391,9 @@ export default function AdminPage() {
 
       {/* Today's draft — capture, preview, publish */}
       <TodaysDraft password={password} />
+
+      {/* Pull articles from configured Notion briefing pages */}
+      <BriefingImport password={password} />
 
       {/* All unpublished drafts — publish or delete */}
       <PublishDrafts password={password} />

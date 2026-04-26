@@ -4,7 +4,7 @@ import { NeoPopCard } from '@/components/NeoPop/NeoPopCard'
 export const metadata: Metadata = {
   title: 'About | AI Today',
   description:
-    'A weekly newsletter on Canadian AI news, trending global stories, and new research — written for non-technical professionals.',
+    'A daily link digest on artificial intelligence — Canadian news, global stories, and new research, written for non-technical professionals.',
 }
 
 export default function AboutPage() {
@@ -19,33 +19,12 @@ export default function AboutPage() {
         <NeoPopCard bg="white" interactive={false}>
           <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">What is this?</h2>
           <p className="text-[19px] leading-[1.5] mb-4">
-            AI Today is a weekly newsletter on artificial intelligence, written for
-            professionals working in or alongside AI. It covers three things each week:
+            AI Today is a daily link digest on artificial intelligence, written for
+            professionals working in or alongside AI. Every day there&apos;s something
+            worth reading — a policy update, a new tool, a research paper, a
+            development that changes how the industry works. This is where those
+            links land, with a short note on why they matter.
           </p>
-          <ul className="text-[19px] leading-[1.5] mb-4 list-none pl-0 space-y-3">
-            <li className="flex gap-3">
-              <span aria-hidden="true" className="text-ws-accent font-black shrink-0">▸</span>
-              <span>
-                <strong className="uppercase tracking-wide text-[17px] block">Canadian AI news</strong>
-                Policy, funding, companies, and research coming out of Canada — plus the global stories
-                that affect Canadian industry and government.
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span aria-hidden="true" className="text-ws-accent font-black shrink-0">▸</span>
-              <span>
-                <strong className="uppercase tracking-wide text-[17px] block">Trending stories</strong>
-                The biggest developments elsewhere that week, summarised without hype.
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span aria-hidden="true" className="text-ws-accent font-black shrink-0">▸</span>
-              <span>
-                <strong className="uppercase tracking-wide text-[17px] block">New research</strong>
-                Papers, tools, and technical breakthroughs explained in plain language.
-              </span>
-            </li>
-          </ul>
           <p className="text-[19px] leading-[1.5] font-bold">
             No jargon. No hype. Just what matters, in plain English.
           </p>
