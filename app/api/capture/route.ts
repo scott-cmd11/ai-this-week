@@ -14,6 +14,7 @@ interface RequestBody {
   annotation?: string
   autoAnnotate?: boolean
   imageUrl?: string
+  category?: string         // canonical category, e.g. "Canada"
 }
 
 // ─── Route handler ───────────────────────────────────────────────────────────────
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing or invalid URL.' }, { status: 400 })
   }
 
-  const { url, annotation, autoAnnotate = true, imageUrl: imageUrlOverride } = body
+  const { url, annotation, autoAnnotate = true, imageUrl: imageUrlOverride, category } = body
 
   const notion = new Client({ auth: notionToken })
   const openai = new OpenAI({ apiKey: openaiApiKey })
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
       annotation: resolvedAnnotation,
       url,
       imageUrl: imageUrlOverride ?? fetchedImageUrl ?? null,
+      category: category?.trim() || null,
     })
 
     return NextResponse.json({

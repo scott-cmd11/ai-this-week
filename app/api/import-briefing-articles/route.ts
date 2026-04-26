@@ -3,6 +3,7 @@ import { Client } from '@notionhq/client'
 import OpenAI from 'openai'
 import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/notion-capture'
 import { generateAnnotation } from '@/lib/ai-annotation'
+import { CATEGORY_ORDER } from '@/lib/category-mapping'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -11,6 +12,7 @@ interface IncomingArticle {
   summary: string         // briefing's pre-written summary (used as fallback)
   url: string
   imageUrl?: string | null
+  category?: string | null  // canonical category — articles get sorted by this
 }
 
 interface RequestBody {
@@ -68,6 +70,17 @@ export async function POST(request: NextRequest) {
   const notion = new Client({ auth: notionToken })
   const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null
 
+  // Sort articles by canonical category order so each h2 section gets all its
+  // articles in one contiguous batch (avoids duplicate "## Canada" headings
+  // when articles arrive interleaved by source).
+  const categoryRank = new Map<string, number>()
+  CATEGORY_ORDER.forEach((c, i) => categoryRank.set(c, i))
+  const sortedArticles = [...body.articles].sort((a, b) => {
+    const ra = categoryRank.get(a?.category ?? '') ?? Number.MAX_SAFE_INTEGER
+    const rb = categoryRank.get(b?.category ?? '') ?? Number.MAX_SAFE_INTEGER
+    return ra - rb
+  })
+
   // Process sequentially — preserves order in Notion AND avoids hammering
   // OpenAI/Notion rate limits when rewriteWithAi multiplies the work
   const results: ArticleResult[] = []
@@ -76,7 +89,7 @@ export async function POST(request: NextRequest) {
   let lastIssueNumber = 0
   let lastIssueDate = ''
 
-  for (const article of body.articles) {
+  for (const article of sortedArticles) {
     if (!article?.url || !article.url.startsWith('http')) {
       results.push({ url: article?.url ?? '', title: article?.title ?? '', ok: false, error: 'Invalid URL' })
       continue
@@ -104,6 +117,7 @@ export async function POST(request: NextRequest) {
       annotation,
       url: article.url.trim(),
       imageUrl: article.imageUrl?.trim() || null,
+      category: article.category?.trim() || null,
     }
 
     try {

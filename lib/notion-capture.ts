@@ -12,6 +12,8 @@ export interface CaptureArticleInput {
   annotation: string         // already-summarized text for the body paragraph
   url: string                // the source URL (becomes the bookmark)
   imageUrl?: string | null   // optional og:image / explicit override
+  category?: string | null   // canonical category name; if set, article is
+                             // placed under a "## {Category}" h2 section
 }
 
 export interface CaptureResult {
@@ -89,6 +91,40 @@ async function findOrCreateTodaysDraft(
   return { issueId: newPage.id, issueNumber }
 }
 
+/**
+ * Returns the text of the most recent heading_2 in the page, or null if none.
+ * Used to decide whether we need to insert a new h2 marker before an article.
+ */
+async function lastHeadingText(notion: Client, pageId: string): Promise<string | null> {
+  // Walk backward through paginated blocks. Notion's API doesn't expose a
+  // reverse cursor, so we fetch all and scan from the end. Issue drafts are
+  // small enough (~100 blocks max) that this is cheap.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const all: any[] = []
+  let cursor: string | undefined
+  do {
+    const res = await notion.blocks.children.list({
+      block_id: pageId,
+      page_size: 100,
+      start_cursor: cursor,
+    })
+    all.push(...res.results)
+    cursor = res.has_more ? res.next_cursor ?? undefined : undefined
+  } while (cursor)
+
+  for (let i = all.length - 1; i >= 0; i--) {
+    const b = all[i]
+    if (b.type === 'heading_2') {
+      const text = (b.heading_2?.rich_text ?? [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((r: any) => r?.plain_text ?? '')
+        .join('')
+      return text
+    }
+  }
+  return null
+}
+
 // ─── Public API ─────────────────────────────────────────────────────────────────
 
 /**
@@ -102,7 +138,13 @@ async function findOrCreateTodaysDraft(
  *    pre-summarized text via `annotation`)
  *
  * Block structure appended per article:
+ *  [h2(category) if category changed] +
  *  h3(title) + paragraph(annotation) + bookmark(url) + image?(imageUrl) + divider()
+ *
+ * If `category` is null/undefined, no h2 marker is inserted — the article
+ * appears uncategorized (legacy behavior).
+ *
+ * For bulk import, pre-sort articles by category to minimize duplicate h2s.
  */
 export async function captureArticleToTodaysDraft(
   notion: Client,
@@ -112,13 +154,23 @@ export async function captureArticleToTodaysDraft(
   const today = todayUtc()
   const { issueId, issueNumber } = await findOrCreateTodaysDraft(notion, databaseId, today)
 
-  const blocksToAppend = [
+  // Decide whether to insert a category h2. Skip if no category given,
+  // or if the most recent h2 in the doc is already the same category.
+  const blocksToAppend = []
+  if (article.category) {
+    const lastHeading = await lastHeadingText(notion, issueId)
+    if (lastHeading !== article.category) {
+      blocksToAppend.push(block.h2(article.category))
+    }
+  }
+
+  blocksToAppend.push(
     block.h3(article.title),
     block.paragraph(article.annotation),
     block.bookmark(article.url),
     ...(article.imageUrl ? [block.image(article.imageUrl)] : []),
     block.divider(),
-  ]
+  )
 
   await notion.blocks.children.append({
     block_id: issueId,
@@ -126,6 +178,74 @@ export async function captureArticleToTodaysDraft(
   })
 
   // Count h3 blocks to give the caller an updated article count
+  const allBlocks = await notion.blocks.children.list({ block_id: issueId, page_size: 100 })
+  const articleCount = allBlocks.results.filter(
+    b => 'type' in b && b.type === 'heading_3',
+  ).length
+
+  return { issueId, issueNumber, issueDate: today, articleCount }
+}
+
+// ─── Event capture ─────────────────────────────────────────────────────────────
+// Learning events have a different block shape than articles:
+//   ## Upcoming                         (h2, fixed category)
+//   ### Event title                     (h3)
+//   When: <date/time> · Where: <place>  (paragraph — meta line)
+//   <description>                       (paragraph — only if non-empty)
+//   bookmark(registerUrl)
+//   divider
+
+export interface CaptureEventInput {
+  title: string
+  /** Free-text date/time (e.g. "Apr 28, 2pm ET" or "Wednesday, May 7"). */
+  when: string
+  /** Free-text location/format (e.g. "Virtual", "Toronto", "Hybrid — Vancouver"). */
+  where: string
+  /** Optional description / blurb. */
+  description?: string | null
+  /** Registration / event URL. Becomes the bookmark. */
+  url: string
+}
+
+const EVENTS_CATEGORY = 'Upcoming'
+
+/**
+ * Append a single learning event to today's draft.
+ * Always grouped under a fixed "## Upcoming" h2 section.
+ */
+export async function captureEventToTodaysDraft(
+  notion: Client,
+  databaseId: string,
+  event: CaptureEventInput,
+): Promise<CaptureResult> {
+  const today = todayUtc()
+  const { issueId, issueNumber } = await findOrCreateTodaysDraft(notion, databaseId, today)
+
+  const lastHeading = await lastHeadingText(notion, issueId)
+  const blocksToAppend = []
+  if (lastHeading !== EVENTS_CATEGORY) {
+    blocksToAppend.push(block.h2(EVENTS_CATEGORY))
+  }
+
+  // "When: …  ·  Where: …" meta line
+  const metaParts: string[] = []
+  if (event.when.trim()) metaParts.push(`When: ${event.when.trim()}`)
+  if (event.where.trim()) metaParts.push(`Where: ${event.where.trim()}`)
+  const metaLine = metaParts.join('  ·  ')
+
+  blocksToAppend.push(
+    block.h3(event.title),
+    ...(metaLine ? [block.paragraph(metaLine)] : []),
+    ...(event.description?.trim() ? [block.paragraph(event.description.trim())] : []),
+    block.bookmark(event.url),
+    block.divider(),
+  )
+
+  await notion.blocks.children.append({
+    block_id: issueId,
+    children: blocksToAppend,
+  })
+
   const allBlocks = await notion.blocks.children.list({ block_id: issueId, page_size: 100 })
   const articleCount = allBlocks.results.filter(
     b => 'type' in b && b.type === 'heading_3',

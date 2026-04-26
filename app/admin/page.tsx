@@ -125,6 +125,7 @@ function TodaysDraft({ password }: { password: string }) {
   const [addUrl, setAddUrl] = useState('')
   const [addAnnotation, setAddAnnotation] = useState('')
   const [addImageUrl, setAddImageUrl] = useState('')
+  const [addCategory, setAddCategory] = useState<Category>('Canada')
   const [showImageField, setShowImageField] = useState(false)
   const [addLoading, setAddLoading] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
@@ -173,6 +174,7 @@ function TodaysDraft({ password }: { password: string }) {
           annotation: addAnnotation.trim() || undefined,
           imageUrl: addImageUrl.trim() || undefined,
           autoAnnotate: !addAnnotation.trim(),
+          category: addCategory,
         }),
       })
       const data = await res.json()
@@ -355,6 +357,24 @@ function TodaysDraft({ password }: { password: string }) {
             />
           </div>
 
+          {/* Category */}
+          <div>
+            <label htmlFor="today-category" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
+              Category <span className="text-ws-muted font-normal normal-case tracking-normal">(which section it goes in)</span>
+            </label>
+            <select
+              id="today-category"
+              value={addCategory}
+              onChange={e => setAddCategory(e.target.value as Category)}
+              disabled={addLoading}
+              className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+            >
+              {CATEGORY_ORDER.map(c => (
+                <option key={c} value={c}>{CATEGORY_META[c].icon} {c}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Image URL (collapsible) */}
           <div>
             <button
@@ -413,6 +433,196 @@ function TodaysDraft({ password }: { password: string }) {
           </button>
         </form>
       </div>
+    </div>
+  )
+}
+
+// ─── AddEvent ────────────────────────────────────────────────────────────────────
+// Form for adding a learning event (webinar, course, conference, meetup) to
+// today's draft. Events are stored under a fixed "## Upcoming" h2 section.
+
+function AddEvent({ password }: { password: string }) {
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState('')
+  const [when, setWhen] = useState('')
+  const [where, setWhere] = useState('')
+  const [description, setDescription] = useState('')
+  const [url, setUrl] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setSuccess(null)
+    if (!title.trim()) { setError('Event title is required.'); return }
+    if (!url.trim() || !url.trim().startsWith('http')) { setError('A valid registration URL is required.'); return }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/capture-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminPassword: password,
+          title: title.trim(),
+          when: when.trim(),
+          where: where.trim(),
+          description: description.trim(),
+          url: url.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? `Error ${res.status}`); return }
+      setSuccess(`✓ Event added to today's draft (under "Upcoming").`)
+      // Reset form
+      setTitle(''); setWhen(''); setWhere(''); setDescription(''); setUrl('')
+      // Tell TodaysDraft to refresh
+      window.dispatchEvent(new CustomEvent('aitoday:refresh-draft'))
+    } catch {
+      setError('Network error.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <div className="border-[3px] border-ws-black bg-ws-white shadow-[4px_4px_0_0_var(--color-ws-black)]">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-ws-page"
+        >
+          <div>
+            <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Add a learning event</p>
+            <p className="text-[12px] text-ws-black/50 mt-0.5">Webinar, course, conference, meetup. Goes under the &ldquo;Upcoming&rdquo; section in today&apos;s issue.</p>
+          </div>
+          <span className="text-[12px] font-bold uppercase tracking-wide text-ws-black/70 shrink-0">+ Show</span>
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Add a learning event</p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">Webinar, course, conference, meetup. Goes under the &ldquo;Upcoming&rdquo; section in today&apos;s issue.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent shrink-0"
+        >
+          Hide
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        <div>
+          <label htmlFor="event-title" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
+            Event title <span className="text-ws-accent" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="event-title"
+            type="text"
+            required
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="e.g. AI for Public Sector Leaders"
+            disabled={loading}
+            className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[16px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="event-when" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
+              When
+            </label>
+            <input
+              id="event-when"
+              type="text"
+              value={when}
+              onChange={e => setWhen(e.target.value)}
+              placeholder="e.g. May 7, 2pm ET"
+              disabled={loading}
+              className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+            />
+          </div>
+          <div>
+            <label htmlFor="event-where" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
+              Where
+            </label>
+            <input
+              id="event-where"
+              type="text"
+              value={where}
+              onChange={e => setWhere(e.target.value)}
+              placeholder="e.g. Virtual, Toronto, Hybrid…"
+              disabled={loading}
+              className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="event-desc" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
+            Description <span className="text-ws-muted font-normal normal-case tracking-normal">(optional)</span>
+          </label>
+          <textarea
+            id="event-desc"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="What it&apos;s about, who it&apos;s for, why someone should attend…"
+            rows={2}
+            disabled={loading}
+            className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] leading-[1.5] resize-y outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="event-url" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
+            Registration URL <span className="text-ws-accent" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="event-url"
+            type="url"
+            required
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            placeholder="https://…"
+            disabled={loading}
+            className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[16px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60 font-mono"
+          />
+        </div>
+
+        {error && (
+          <div role="alert" className="border-[3px] border-ws-black bg-red-50 px-3 py-2 text-[14px] font-bold text-red-700">
+            {error}
+          </div>
+        )}
+        {success && (
+          <p className="text-[14px] font-bold text-ws-black">{success}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading || !title.trim() || !url.trim()}
+          className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[14px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-accent)] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {loading ? (
+            <>
+              <span className="inline-block w-4 h-4 border-2 border-ws-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+              Adding event…
+            </>
+          ) : (
+            '+ Add event to today\'s issue'
+          )}
+        </button>
+      </form>
     </div>
   )
 }
@@ -520,15 +730,17 @@ function BriefingImport({ password }: { password: string }) {
     setMessage(null)
     setError(null)
 
-    // Collect selected articles in document order
-    const toImport: { title: string; summary: string; url: string }[] = []
+    // Collect selected articles, tagged with their canonical category so the
+    // import route can group them under the right h2 section in the draft.
+    const toImport: { title: string; summary: string; url: string; category: Category }[] = []
     for (const source of data.sources) {
       if (!source.briefing) continue
       for (const section of source.briefing.sections) {
+        const cat = categorize(source.sourceLabel, section.name)
         for (const a of section.articles) {
           const k = articleKey(source.sourceId, section.name, a)
           if (selected.has(k) && a.urls[0]) {
-            toImport.push({ title: a.title, summary: a.summary, url: a.urls[0] })
+            toImport.push({ title: a.title, summary: a.summary, url: a.urls[0], category: cat })
           }
         }
       }
@@ -1376,6 +1588,138 @@ function CaptureSettings() {
   )
 }
 
+// ─── WorkflowGuide ────────────────────────────────────────────────────────────────
+// Plain-language "how this works" panel at the top of the admin page.
+// Persists collapsed state in localStorage so daily users aren't bothered by it.
+
+function WorkflowGuide() {
+  const [open, setOpen] = useState(true)
+
+  // Restore preference (default open until user dismisses once)
+  useEffect(() => {
+    const stored = localStorage.getItem('aitoday:workflow-guide-open')
+    if (stored === 'closed') setOpen(false)
+  }, [])
+
+  function toggle() {
+    const next = !open
+    setOpen(next)
+    localStorage.setItem('aitoday:workflow-guide-open', next ? 'open' : 'closed')
+  }
+
+  return (
+    <div className="mt-6 border-[3px] border-ws-black bg-ws-page shadow-[4px_4px_0_0_var(--color-ws-black)]">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-ws-accent-light/40"
+      >
+        <div>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black">How this works</p>
+          {!open && (
+            <p className="text-[12px] text-ws-black/60 mt-0.5">
+              Import → Add extras → Publish → Email. Click to expand the full guide.
+            </p>
+          )}
+        </div>
+        <span className="text-[12px] font-bold uppercase tracking-wide text-ws-black/70 shrink-0">
+          {open ? '− Hide' : '+ Show'}
+        </span>
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 pt-1 border-t-[2px] border-ws-black/15 flex flex-col gap-5 text-[14px] leading-[1.55]">
+          <p className="text-ws-black/80">
+            Each morning your three Notion briefings auto-generate (
+            <strong>Canada AI Daily</strong>, <strong>Agriculture AI</strong>,
+            <strong> Daily News - AI</strong>). The flow below takes about 5 minutes.
+          </p>
+
+          <ol className="flex flex-col gap-4 list-none p-0 m-0">
+            <li className="flex gap-3">
+              <span className="font-black text-ws-accent text-[20px] leading-none shrink-0 w-6">1</span>
+              <div>
+                <p className="font-black text-[14px] mb-1">Pick what to publish</p>
+                <p className="text-ws-black/70">
+                  Open the <strong>Import from briefings</strong> panel. Today&apos;s articles are
+                  pre-checked and grouped into 5 categories. Uncheck anything you don&apos;t want.
+                </p>
+              </div>
+            </li>
+
+            <li className="flex gap-3">
+              <span className="font-black text-ws-accent text-[20px] leading-none shrink-0 w-6">2</span>
+              <div>
+                <p className="font-black text-[14px] mb-1">Click Import</p>
+                <p className="text-ws-black/70">
+                  Selected articles get added to today&apos;s draft, organized into category sections
+                  (🍁 Canada · ⚖️ Policy &amp; Regulation · 🏛️ Government &amp; Public Sector ·
+                  💼 Industry &amp; Models · 🌾 Sectors &amp; Applications).
+                </p>
+                <p className="text-ws-black/60 mt-1 text-[13px]">
+                  Optional toggle: <em>Rewrite summaries in the AI Today voice</em> — has GPT
+                  rewrite each summary in your house style. Slower (~2&ndash;3 sec per article) but
+                  consistent voice.
+                </p>
+              </div>
+            </li>
+
+            <li className="flex gap-3">
+              <span className="font-black text-ws-accent text-[20px] leading-none shrink-0 w-6">3</span>
+              <div>
+                <p className="font-black text-[14px] mb-1">Add anything else <span className="text-ws-black/50 font-normal text-[13px]">(optional)</span></p>
+                <ul className="text-ws-black/70 list-disc pl-5 flex flex-col gap-1">
+                  <li>
+                    <strong>Spotted a great article elsewhere?</strong> Paste the URL in
+                    <em> Today&apos;s draft</em>, pick a category, and AI writes the summary for you.
+                  </li>
+                  <li>
+                    <strong>Hosting or attending an event?</strong> Click
+                    <em> Add a learning event</em> and fill in title, when, where, and the
+                    registration URL. It lands under <em>&ldquo;Upcoming&rdquo;</em> in the issue.
+                  </li>
+                </ul>
+              </div>
+            </li>
+
+            <li className="flex gap-3">
+              <span className="font-black text-ws-accent text-[20px] leading-none shrink-0 w-6">4</span>
+              <div>
+                <p className="font-black text-[14px] mb-1">Publish</p>
+                <p className="text-ws-black/70">
+                  When today&apos;s draft looks right, scroll to the <strong>Publish</strong> panel and
+                  click Publish next to today&apos;s draft. The issue goes live on the public site
+                  immediately.
+                </p>
+              </div>
+            </li>
+
+            <li className="flex gap-3">
+              <span className="font-black text-ws-accent text-[20px] leading-none shrink-0 w-6">5</span>
+              <div>
+                <p className="font-black text-[14px] mb-1">Send the email</p>
+                <p className="text-ws-black/70">
+                  After publishing, the <strong>Generate the email</strong> panel appears. Click
+                  <em> Generate</em> and it&apos;ll write you a ready-to-paste newsletter. Copy
+                  it into Beehiiv / Mailchimp / your email tool of choice.
+                </p>
+              </div>
+            </li>
+          </ol>
+
+          <div className="border-t-[1px] border-ws-black/15 pt-3 text-[13px] text-ws-black/60">
+            <p>
+              <strong>Catching articles on the go?</strong> Open <em>Add articles while browsing</em>
+              at the bottom of this page for the bookmarklet, iPhone shortcut, and mobile form.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main component ─────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -1487,30 +1831,7 @@ export default function AdminPage() {
         </div>
 
         {/* Plain-language workflow guide */}
-        <div className="mt-6 border-[2px] border-ws-black/20 bg-ws-page px-5 py-4 flex flex-col gap-2">
-          <p className="text-[12px] font-black uppercase tracking-[0.12em] text-ws-black/60">How to build today&apos;s issue</p>
-          <ol className="flex flex-col sm:flex-row gap-2 sm:gap-0 text-[13px] text-ws-black/80">
-            <li className="flex items-start gap-2 sm:flex-1">
-              <span className="font-black text-ws-accent shrink-0">1</span>
-              <span>Import articles from the daily briefing</span>
-            </li>
-            <li className="hidden sm:flex items-center text-ws-black/30 px-2">→</li>
-            <li className="flex items-start gap-2 sm:flex-1">
-              <span className="font-black text-ws-accent shrink-0">2</span>
-              <span>Add any extras by pasting a URL</span>
-            </li>
-            <li className="hidden sm:flex items-center text-ws-black/30 px-2">→</li>
-            <li className="flex items-start gap-2 sm:flex-1">
-              <span className="font-black text-ws-accent shrink-0">3</span>
-              <span>Publish when you&apos;re happy with it</span>
-            </li>
-            <li className="hidden sm:flex items-center text-ws-black/30 px-2">→</li>
-            <li className="flex items-start gap-2 sm:flex-1">
-              <span className="font-black text-ws-accent shrink-0">4</span>
-              <span>Generate and copy the email</span>
-            </li>
-          </ol>
-        </div>
+        <WorkflowGuide />
       </div>
 
       {/* Site stats */}
@@ -1521,6 +1842,9 @@ export default function AdminPage() {
 
       {/* Step 2 — Today's draft: add articles manually, preview, publish */}
       <TodaysDraft password={password} />
+
+      {/* Optional — add learning events to today's draft (collapsed by default) */}
+      <AddEvent password={password} />
 
       {/* Step 3 — All unpublished drafts — publish or delete */}
       <PublishDrafts password={password} />
