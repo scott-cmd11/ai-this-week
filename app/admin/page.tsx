@@ -58,7 +58,7 @@ function SiteStats({ password }: { password: string }) {
 
   return (
     <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
-      <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70 mb-4">Site stats</p>
+      <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70 mb-4">Overview</p>
 
       {loading && <p className="text-[14px] text-ws-black/70">Loading…</p>}
       {error && <p className="text-[14px] text-ws-accent font-bold">{error}</p>}
@@ -67,15 +67,15 @@ function SiteStats({ password }: { password: string }) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
             <p className="text-[32px] font-black leading-none">{stats.totalPublished}</p>
-            <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Published issues</p>
+            <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Total published</p>
           </div>
           <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
             <p className="text-[32px] font-black leading-none">{stats.recentPublished}</p>
-            <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Issues last 30 days</p>
+            <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Last 30 days</p>
           </div>
           <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
             <p className="text-[32px] font-black leading-none">{stats.draftsCount}</p>
-            <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Drafts in queue</p>
+            <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Unpublished drafts</p>
           </div>
           <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
             {stats.latestIssue ? (
@@ -222,7 +222,10 @@ function TodaysDraft({ password }: { password: string }) {
     <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-5">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Today's issue</p>
+        <div>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Today&apos;s draft</p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">Articles imported above appear here. Add extras by pasting a URL.</p>
+        </div>
         <button
           type="button"
           onClick={loadDraft}
@@ -243,7 +246,7 @@ function TodaysDraft({ password }: { password: string }) {
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-[28px] font-black leading-none">{articles.length}</span>
                 <span className="text-[14px] font-bold text-ws-black/70">
-                  article{articles.length !== 1 ? 's' : ''} captured today
+                  article{articles.length !== 1 ? 's' : ''} in today&apos;s draft
                 </span>
                 {notionUrl && (
                   <a
@@ -257,7 +260,7 @@ function TodaysDraft({ password }: { password: string }) {
                 )}
               </div>
             ) : (
-              <p className="text-[14px] text-ws-black/70">No draft yet — add an article below to start today's issue.</p>
+              <p className="text-[14px] text-ws-black/70">Nothing here yet. Import articles from the briefing above, or paste a URL below.</p>
             )}
           </div>
 
@@ -315,7 +318,8 @@ function TodaysDraft({ password }: { password: string }) {
 
       {/* Add article form */}
       <div className="border-t-[2px] border-ws-black/20 pt-5">
-        <p className="text-[12px] font-black uppercase tracking-[0.12em] mb-4">Add article</p>
+        <p className="text-[12px] font-black uppercase tracking-[0.12em] mb-1">Add an article manually</p>
+        <p className="text-[12px] text-ws-black/50 mb-4">Paste any URL. Leave the note blank and AI writes the summary for you.</p>
         <form onSubmit={handleAddArticle} noValidate className="flex flex-col gap-4">
           {/* URL */}
           <div>
@@ -337,13 +341,13 @@ function TodaysDraft({ password }: { password: string }) {
           {/* Annotation */}
           <div>
             <label htmlFor="today-note" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
-              Note <span className="text-ws-muted font-normal normal-case tracking-normal">(optional — blank = AI annotation)</span>
+              Your note <span className="text-ws-muted font-normal normal-case tracking-normal">(optional — leave blank for AI to write it)</span>
             </label>
             <textarea
               id="today-note"
               value={addAnnotation}
               onChange={e => setAddAnnotation(e.target.value)}
-              placeholder="Add a note… or leave blank for AI annotation"
+              placeholder="Leave blank and AI writes a summary — or type your own"
               rows={2}
               disabled={addLoading}
               className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] leading-[1.5] resize-y outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
@@ -569,16 +573,19 @@ function BriefingImport({ password }: { password: string }) {
 
   return (
     <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">
-          Import from briefing
-          {data?.date && <span className="ml-2 text-ws-black/50">({data.date})</span>}
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">
+            Import from Canada AI Daily
+            {data?.date && <span className="ml-2 text-ws-black/50">({data.date})</span>}
+          </p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">Today&apos;s briefing articles, pre-checked. Uncheck anything you don&apos;t want, then click Import.</p>
+        </div>
         <button
           type="button"
           onClick={load}
           disabled={loading}
-          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
+          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50 shrink-0"
         >
           {loading ? '↻ Loading…' : '↻ Refresh'}
         </button>
@@ -605,10 +612,14 @@ function BriefingImport({ password }: { password: string }) {
             )}
           </div>
 
-          {source.error && <p className="text-[13px] font-bold text-ws-accent">⚠ {source.error}</p>}
+          {source.error && (
+            <p className="text-[13px] font-bold text-ws-accent">
+              ⚠ Can&apos;t access this page in Notion. Open the Canada AI Daily page, click Share, and make sure the &quot;AI This Week Site&quot; integration is invited.
+            </p>
+          )}
 
           {!source.briefing && !source.error && (
-            <p className="text-[13px] text-ws-black/70">No briefing found for {data.date}.</p>
+            <p className="text-[13px] text-ws-black/70">No briefing for {data.date} yet — check back once it&apos;s been generated.</p>
           )}
 
           {source.briefing && (
@@ -701,11 +712,11 @@ function BriefingImport({ password }: { password: string }) {
             />
             <span className="flex flex-col gap-0.5">
               <span className="text-[13px] font-bold leading-tight">
-                Rewrite annotations with AI (in the AI Today voice)
+                Rewrite summaries in the AI Today voice
               </span>
               <span className="text-[12px] text-ws-black/60 leading-snug">
-                Each article re-fetched and re-summarised by GPT — same as pasting a URL manually.
-                Slower (~2–3 sec per article) but consistent voice. Off = use the briefing's text as-is.
+                Uses AI to rewrite each briefing summary — same result as pasting a URL manually.
+                Slower (~2–3 sec per article). Leave off to use the briefing&apos;s text as-is (fast).
               </span>
             </span>
           </label>
@@ -803,12 +814,15 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
   if (!open) {
     return (
       <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Generate email from published issue</p>
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Generate the email</p>
+            <p className="text-[12px] text-ws-black/50 mt-0.5">After publishing, generate a newsletter email you can copy into your email tool.</p>
+          </div>
           <button
             type="button"
             onClick={handleOpen}
-            className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
+            className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent shrink-0"
           >
             ✉️ Generate email
           </button>
@@ -820,7 +834,7 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
   return (
     <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Generate email from published issue</p>
+        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Generate the email</p>
         <button type="button" onClick={() => setOpen(false)}
           className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent">
           Hide
@@ -1041,15 +1055,18 @@ function PublishDrafts({ password }: { password: string }) {
 
   return (
     <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Drafts ready to publish</p>
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Publish</p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">All unpublished drafts. When you&apos;re happy with today&apos;s articles, hit Publish to make them live.</p>
+        </div>
         <button
           type="button"
           onClick={loadDrafts}
           disabled={loading}
-          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
+          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50 shrink-0"
         >
-          {loading ? '↻ Loading…' : '↻ Refresh list'}
+          {loading ? '↻ Loading…' : '↻ Refresh'}
         </button>
       </div>
 
@@ -1060,7 +1077,7 @@ function PublishDrafts({ password }: { password: string }) {
         <p className="text-[14px] text-ws-black/70">Loading drafts…</p>
       ) : drafts && drafts.length === 0 ? (
         <p className="text-[14px] text-ws-black/70">
-          No unpublished drafts. Add articles above to start today's issue.
+          No drafts waiting. Add some articles and they&apos;ll appear here ready to publish.
         </p>
       ) : drafts && drafts.length > 0 ? (
         <ul className="list-none p-0 m-0 flex flex-col gap-2">
@@ -1153,14 +1170,14 @@ function PublishDrafts({ password }: { password: string }) {
       )}
 
       <div className="mt-4 pt-3 border-t-[2px] border-ws-black/20 flex items-center justify-between flex-wrap gap-2">
-        <p className="text-[12px] text-ws-black/70">Edited a typo on an already-published issue?</p>
+        <p className="text-[12px] text-ws-black/70">Fixed a typo on an already-published issue in Notion?</p>
         <button
           type="button"
           onClick={handleRefreshSite}
           disabled={refreshing}
           className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
         >
-          {refreshing ? '↻ Refreshing…' : '↻ Refresh public site'}
+          {refreshing ? '↻ Refreshing…' : '↻ Force-refresh public site'}
         </button>
       </div>
     </div>
@@ -1193,8 +1210,11 @@ function CaptureSettings() {
         aria-expanded={open}
         className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-ws-page"
       >
-        <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Capture setup</p>
-        <span className="text-[12px] font-bold uppercase tracking-wide text-ws-black/70">
+        <div>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Add articles while browsing</p>
+          {!open && <p className="text-[12px] text-ws-black/50 mt-0.5">Bookmarklet, iPhone shortcut, and mobile form — for capturing articles outside this admin page.</p>}
+        </div>
+        <span className="text-[12px] font-bold uppercase tracking-wide text-ws-black/70 shrink-0">
           {open ? '− Hide' : '+ Show'}
         </span>
       </button>
@@ -1203,9 +1223,9 @@ function CaptureSettings() {
         <div className="px-5 pb-5 flex flex-col gap-6 border-t-[2px] border-ws-black/20 pt-5">
           {/* Bookmarklet */}
           <div className="flex flex-col gap-3">
-            <p className="text-[13px] font-black uppercase tracking-[0.1em]">Browser bookmarklet</p>
+            <p className="text-[13px] font-black uppercase tracking-[0.1em]">On your computer — browser bookmark</p>
             <p className="text-[13px] text-ws-black/70">
-              Drag this link to your bookmarks bar. Click it on any page to open the capture form pre-filled with the URL.
+              Drag the button below to your bookmarks bar. Then while reading any article, click it — the article gets added to today&apos;s draft without coming back here.
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               {/* Draggable bookmarklet link */}
@@ -1237,9 +1257,9 @@ function CaptureSettings() {
 
           {/* iOS Shortcut */}
           <div className="flex flex-col gap-3">
-            <p className="text-[13px] font-black uppercase tracking-[0.1em]">iOS Shortcut (background capture)</p>
+            <p className="text-[13px] font-black uppercase tracking-[0.1em]">On your iPhone — share from Safari</p>
             <p className="text-[13px] text-ws-black/70">
-              Create a Share Sheet shortcut in the iOS Shortcuts app to capture directly from Safari without opening a form.
+              Set up a one-tap Share Sheet shortcut so you can add any article from Safari without opening a form — just tap Share → the shortcut and it&apos;s done.
             </p>
             <ol className="flex flex-col gap-2 text-[13px] pl-5 list-decimal">
               <li>Open <strong>Shortcuts</strong> → New shortcut → <strong>Add action</strong></li>
@@ -1264,9 +1284,9 @@ function CaptureSettings() {
 
           {/* Mobile web */}
           <div className="flex flex-col gap-2">
-            <p className="text-[13px] font-black uppercase tracking-[0.1em]">Mobile web form</p>
+            <p className="text-[13px] font-black uppercase tracking-[0.1em]">On your phone — paste a link</p>
             <p className="text-[13px] text-ws-black/70">
-              Open <a href="/capture" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline font-bold">{origin}/capture</a> on any device. Your capture token is stored in the browser's local storage after first login.
+              Open <a href="/capture" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline font-bold">{origin}/capture</a> on any device and paste a URL. Simpler than the shortcut — no setup needed.
             </p>
           </div>
         </div>
@@ -1384,24 +1404,50 @@ export default function AdminPage() {
             Sign out
           </button>
         </div>
+
+        {/* Plain-language workflow guide */}
+        <div className="mt-6 border-[2px] border-ws-black/20 bg-ws-page px-5 py-4 flex flex-col gap-2">
+          <p className="text-[12px] font-black uppercase tracking-[0.12em] text-ws-black/60">How to build today&apos;s issue</p>
+          <ol className="flex flex-col sm:flex-row gap-2 sm:gap-0 text-[13px] text-ws-black/80">
+            <li className="flex items-start gap-2 sm:flex-1">
+              <span className="font-black text-ws-accent shrink-0">1</span>
+              <span>Import articles from the daily briefing</span>
+            </li>
+            <li className="hidden sm:flex items-center text-ws-black/30 px-2">→</li>
+            <li className="flex items-start gap-2 sm:flex-1">
+              <span className="font-black text-ws-accent shrink-0">2</span>
+              <span>Add any extras by pasting a URL</span>
+            </li>
+            <li className="hidden sm:flex items-center text-ws-black/30 px-2">→</li>
+            <li className="flex items-start gap-2 sm:flex-1">
+              <span className="font-black text-ws-accent shrink-0">3</span>
+              <span>Publish when you&apos;re happy with it</span>
+            </li>
+            <li className="hidden sm:flex items-center text-ws-black/30 px-2">→</li>
+            <li className="flex items-start gap-2 sm:flex-1">
+              <span className="font-black text-ws-accent shrink-0">4</span>
+              <span>Generate and copy the email</span>
+            </li>
+          </ol>
+        </div>
       </div>
 
       {/* Site stats */}
       <SiteStats password={password} />
 
-      {/* Today's draft — capture, preview, publish */}
-      <TodaysDraft password={password} />
-
-      {/* Pull articles from configured Notion briefing pages */}
+      {/* Step 1 — Pull articles from configured Notion briefing pages */}
       <BriefingImport password={password} />
 
-      {/* All unpublished drafts — publish or delete */}
+      {/* Step 2 — Today's draft: add articles manually, preview, publish */}
+      <TodaysDraft password={password} />
+
+      {/* Step 3 — All unpublished drafts — publish or delete */}
       <PublishDrafts password={password} />
 
-      {/* Generate email from any previously published issue */}
+      {/* Step 4 — Generate email from any previously published issue */}
       <GenerateEmailFromPublished password={password} />
 
-      {/* Capture setup — bookmarklet, iOS shortcut, mobile web */}
+      {/* Capture tools — bookmarklet, iOS shortcut, mobile web */}
       <CaptureSettings />
     </div>
   )
