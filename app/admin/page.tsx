@@ -576,10 +576,10 @@ function BriefingImport({ password }: { password: string }) {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">
-            Import from Canada AI Daily
+            Import from briefings
             {data?.date && <span className="ml-2 text-ws-black/50">({data.date})</span>}
           </p>
-          <p className="text-[12px] text-ws-black/50 mt-0.5">Today&apos;s briefing articles, pre-checked. Uncheck anything you don&apos;t want, then click Import.</p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">Today&apos;s articles from each connected source, pre-checked. Uncheck anything you don&apos;t want, then click Import.</p>
         </div>
         <button
           type="button"
