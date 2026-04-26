@@ -4,14 +4,20 @@ import { parseBriefingBlocks, type ParsedBriefing } from '@/lib/briefing-parser'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
+type SourceType = 'page' | 'database'
+
 interface SourceConfig {
-  id: string       // Notion page ID (parent page containing dated child briefings)
-  label: string    // Human-readable label shown in admin UI
+  id: string                 // Notion page ID OR database ID
+  label: string              // Human-readable label shown in admin UI
+  type: SourceType           // 'page' = parent page with date-named child pages
+                             // 'database' = database with date property + per-row body
+  dateProperty?: string      // Database-only: name of the date property to filter on (default 'Date')
 }
 
 interface SourceResult {
   sourceLabel: string
   sourceId: string
+  sourceType: SourceType
   briefingPageId: string | null
   briefingTitle: string | null
   briefing: ParsedBriefing | null
@@ -27,25 +33,30 @@ function parseSourcesEnv(raw: string | undefined): SourceConfig[] {
     if (!Array.isArray(parsed)) return []
     return parsed
       .filter(s => s && typeof s === 'object' && typeof s.id === 'string' && typeof s.label === 'string')
-      .map(s => ({ id: s.id as string, label: s.label as string }))
+      .map(s => ({
+        id: s.id as string,
+        label: s.label as string,
+        // Default to 'page' for backward compat with existing config
+        type: (s.type === 'database' ? 'database' : 'page') as SourceType,
+        dateProperty: typeof s.dateProperty === 'string' ? s.dateProperty : undefined,
+      }))
   } catch {
     return []
   }
 }
 
 /**
- * List all child_page blocks under a parent page and find the one whose title
- * contains the given date string (YYYY-MM-DD).
+ * Page-source resolver: list all child_page blocks under a parent page and
+ * find the one whose title contains the given date string (YYYY-MM-DD).
  *
  * Briefing pages are named like "AI Adoption in Canada — Daily Briefing (2026-04-25)"
  * — we just look for the date substring anywhere in the title.
  */
-async function findBriefingForDate(
+async function findPageBriefingForDate(
   notion: Client,
   parentPageId: string,
   date: string,
 ): Promise<{ id: string; title: string } | null> {
-  // Page through children — briefings can accumulate over time
   let cursor: string | undefined
   do {
     const res = await notion.blocks.children.list({
@@ -62,6 +73,42 @@ async function findBriefingForDate(
     cursor = res.has_more ? res.next_cursor ?? undefined : undefined
   } while (cursor)
   return null
+}
+
+/**
+ * Database-source resolver: query the database for a row whose date property
+ * matches the given date. Returns the first match.
+ */
+async function findDatabaseBriefingForDate(
+  notion: Client,
+  databaseId: string,
+  date: string,
+  dateProperty: string,
+): Promise<{ id: string; title: string } | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const res: any = await notion.databases.query({
+    database_id: databaseId,
+    filter: {
+      property: dateProperty,
+      date: { equals: date },
+    },
+    page_size: 5,
+  })
+  const row = res.results?.[0]
+  if (!row || !row.id) return null
+  // Title comes from the row's title-type property (could be 'Name', 'Title', etc.)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const props: Record<string, any> = row.properties ?? {}
+  let title = ''
+  for (const key of Object.keys(props)) {
+    const p = props[key]
+    if (p?.type === 'title' && Array.isArray(p.title) && p.title.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      title = p.title.map((t: any) => t.plain_text ?? '').join('')
+      break
+    }
+  }
+  return { id: row.id, title: title || `(row ${date})` }
 }
 
 /**
@@ -118,11 +165,15 @@ export async function GET(request: NextRequest) {
   const results: SourceResult[] = await Promise.all(
     sources.map(async (source): Promise<SourceResult> => {
       try {
-        const briefingPage = await findBriefingForDate(notion, source.id, date)
+        const briefingPage = source.type === 'database'
+          ? await findDatabaseBriefingForDate(notion, source.id, date, source.dateProperty ?? 'Date')
+          : await findPageBriefingForDate(notion, source.id, date)
+
         if (!briefingPage) {
           return {
             sourceLabel: source.label,
             sourceId: source.id,
+            sourceType: source.type,
             briefingPageId: null,
             briefingTitle: null,
             briefing: null,
@@ -133,6 +184,7 @@ export async function GET(request: NextRequest) {
         return {
           sourceLabel: source.label,
           sourceId: source.id,
+          sourceType: source.type,
           briefingPageId: briefingPage.id,
           briefingTitle: briefingPage.title,
           briefing,
@@ -141,6 +193,7 @@ export async function GET(request: NextRequest) {
         return {
           sourceLabel: source.label,
           sourceId: source.id,
+          sourceType: source.type,
           briefingPageId: null,
           briefingTitle: null,
           briefing: null,

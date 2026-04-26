@@ -1,18 +1,19 @@
 // ─── Briefing parser ────────────────────────────────────────────────────────────
 // Pure function: takes Notion block array → returns structured articles.
 //
-// The parser knows the briefing-page convention used by sources like the
-// "🇨🇦 Canada AI - Daily" briefings:
+// The parser handles two related briefing-page conventions:
 //
-//   ## Overview              ← skipped (intro paragraph)
-//   ## Flagged Items         ← topics flagged as notable, no URLs
-//   ## [Category Name]       ← a categorized section
-//     - **Title.** Summary text. ([Source 1](url1)) ([Source 2](url2))
-//     - **Title.** Summary text. ([Source](url))
+// 1. Canada AI Daily style — title is bold, source links come after:
+//      ## [Category Name]
+//        - **Title.** Summary text. ([Source 1](url1)) ([Source 2](url2))
+//
+// 2. Google Alerts Digest style (Agriculture AI, Daily News - AI databases) —
+//    title is BOLD AND a link, source attribution follows in parens:
+//      ## [Category Name]
+//        - [**Title**](url) ([source.com](http://source.com)) — Summary text
 //
 // A bulleted_list_item is treated as an article when it contains at least one
-// bold segment (the title) AND at least one rich_text with a link annotation
-// (the source URL we'll bookmark).
+// bold segment (the title) AND at least one URL we can bookmark.
 
 // ─── Public types ──────────────────────────────────────────────────────────────
 
@@ -57,51 +58,90 @@ function normalizeRichText(richText: any[]): RichTextLite[] {
  * Returns null if no bold segment found (treat as non-article noise).
  *
  * Algorithm:
- *  1. Find the first contiguous run of bold (non-link) segments → title
- *     (skipping leading non-bold prefix like "🚩 ", since flagged items
- *     start with an emoji before the bold)
- *  2. After the bold ends, accumulate non-link text → summary, until we
- *     encounter the first linked segment
- *  3. From the first link onward, collect URLs but ignore any plain text
- *     between them (they're just the "(" and ")" wrapping the citations)
+ *  1. Find the first bold segment (with or without link) → that's the title.
+ *     If the bold segment also has a link, that link is the primary source URL.
+ *  2. After the title, accumulate plain-text → summary, until the first
+ *     non-title link appears (a source attribution like "(grainews.ca)")
+ *  3. From there onward, collect URLs but ignore the parens/whitespace text
+ *     between them
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseBullet(richText: any[]): ParsedArticle | null {
   const segments = normalizeRichText(richText)
-  const firstBoldIdx = segments.findIndex(s => s.bold && !s.link)
-  if (firstBoldIdx === -1) return null
+  const firstBoldIdx = segments.findIndex(s => s.bold)
+  const firstLinkIdx = segments.findIndex(s => s.link)
 
-  // Title: contiguous bold (non-link) segments starting at firstBoldIdx
+  // Title-detection priority:
+  //   1. First bold segment(s)               — Canada AI Daily, Agriculture
+  //   2. First link segment(s) (no bold)     — Daily News - AI
+  //   3. Otherwise: not an article
+  let titleStartIdx: number
+  let detectByLink = false
+  if (firstBoldIdx !== -1) {
+    titleStartIdx = firstBoldIdx
+  } else if (firstLinkIdx !== -1) {
+    titleStartIdx = firstLinkIdx
+    detectByLink = true
+  } else {
+    return null
+  }
+
+  // Title: contiguous segments matching the detection criterion
   let title = ''
-  let i = firstBoldIdx
-  while (i < segments.length && segments[i].bold && !segments[i].link) {
+  const urls: string[] = []
+  let i = titleStartIdx
+  while (i < segments.length && (detectByLink ? !!segments[i].link : segments[i].bold)) {
     title += segments[i].text
+    if (segments[i].link) urls.push(segments[i].link as string)
     i++
   }
 
-  // After title: summary until first link; URLs collected from links onward
-  let summary = ''
-  const urls: string[] = []
+  // After the title, summary text can sit in TWO places depending on format:
+  //   • Canada AI Daily: summary BEFORE the first source link, citations after
+  //   • Agriculture/Daily News: title-link first, citations next, summary AFTER
+  // Track both candidates and pick the substantive one.
+  let textBeforeFirstNonTitleLink = ''
+  let textAfterLastLink = ''
+  let sawNonTitleLink = false
   for (; i < segments.length; i++) {
     const seg = segments[i]
     if (seg.link) {
       urls.push(seg.link)
+      sawNonTitleLink = true
+      textAfterLastLink = '' // reset — we're back inside citations
       continue
     }
-    if (urls.length === 0) summary += seg.text
-    // else: parens/whitespace between citations → ignore
+    if (!sawNonTitleLink) textBeforeFirstNonTitleLink += seg.text
+    else textAfterLastLink += seg.text
   }
+
+  const before = cleanSummary(textBeforeFirstNonTitleLink)
+  const after = cleanSummary(textAfterLastLink)
+  // Pick whichever is substantive; prefer "before" when both exist (more common)
+  const summary = before.length >= 30 ? before : (after.length >= 30 ? after : (before || after))
 
   return {
     title: title.trim().replace(/[.\s]+$/, '') || '(untitled)',
-    summary: summary
-      .trim()
-      .replace(/^[\s—–-]+/, '')        // strip leading em/en dashes
-      .replace(/\s*\(\s*$/, '')        // strip dangling " (" from before citations
-      .trim(),
+    summary,
     urls,
     rawText: segments.map(s => s.text).join(''),
   }
+}
+
+/** Strip leading/trailing punctuation, emoji-only fragments, dangling parens.
+ *  Also strips a leading short parenthetical that looks like a source
+ *  attribution — "(Reuters) — " or "(BBC) " — when it appears right at the
+ *  start of the summary candidate. */
+function cleanSummary(s: string): string {
+  return s
+    .replace(/\s*\(\s*\)\s*/g, ' ')                       // empty parens
+    .replace(/\s+/g, ' ')                                 // collapse whitespace
+    .trim()
+    .replace(/^\s*\([^)]{1,40}\)\s*[—–-]?\s*/, '')        // leading "(Source) — " attribution
+    .replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+\s*/u, '') // leading emoji run
+    .replace(/^[\s\-–—()]+/, '')                          // leading dashes, parens, whitespace
+    .replace(/\s*\(\s*$/, '')                             // dangling " (" before citations
+    .trim()
 }
 
 // ─── Public API ─────────────────────────────────────────────────────────────────
