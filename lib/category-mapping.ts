@@ -12,6 +12,7 @@ export type Category =
   | 'Government & Public Sector'
   | 'Industry & Models'
   | 'Sectors & Applications'
+  | 'Research'
 
 /** Display order for category sections in the admin UI. */
 export const CATEGORY_ORDER: Category[] = [
@@ -20,6 +21,7 @@ export const CATEGORY_ORDER: Category[] = [
   'Government & Public Sector',
   'Industry & Models',
   'Sectors & Applications',
+  'Research',
 ]
 
 /** Per-category icon + short tagline for headers in the admin UI. */
@@ -29,6 +31,7 @@ export const CATEGORY_META: Record<Category, { icon: string; tagline: string }> 
   'Government & Public Sector': { icon: '🏛️', tagline: 'Federal use, public-sector AI, sovereign compute' },
   'Industry & Models': { icon: '💼', tagline: 'Investment, M&A, models, agents, coding, ASI/AGI' },
   'Sectors & Applications': { icon: '🌾', tagline: 'Agriculture, environment, jobs, applied AI' },
+  'Research': { icon: '🔬', tagline: 'Trending AI research papers from arXiv and Hugging Face' },
 }
 
 /**

@@ -2,6 +2,44 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { categorize, CATEGORY_ORDER, CATEGORY_META, type Category } from '@/lib/category-mapping'
+import { normalizeUrl } from '@/lib/url-normalize'
+
+// ─── Shared hook: known URLs from recent issues ─────────────────────────────────
+// Used by both BriefingImport and ResearchImport to flag and pre-uncheck
+// articles whose URL has already been published in the last N days.
+
+function useKnownUrls(password: string, days = 30) {
+  const [urls, setUrls] = useState<Set<string>>(new Set())
+  const [windowDays, setWindowDays] = useState(days)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/known-urls?password=${encodeURIComponent(password)}&days=${days}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (cancelled) return
+        setUrls(new Set<string>(data.urls ?? []))
+        setWindowDays(data.windowDays ?? days)
+      } catch {
+        // Silent — dedup is a nice-to-have, not critical to the import flow
+      } finally {
+        if (!cancelled) setLoaded(true)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [password, days])
+
+  // Helper: is this URL already in a recent issue?
+  function isKnown(url: string | null | undefined): boolean {
+    if (!url) return false
+    return urls.has(normalizeUrl(url))
+  }
+
+  return { urls, windowDays, loaded, isKnown }
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -227,7 +265,7 @@ function TodaysDraft({ password }: { password: string }) {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Today&apos;s draft</p>
-          <p className="text-[12px] text-ws-black/50 mt-0.5">Articles imported above appear here. Add extras by pasting a URL.</p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">Everything imported above lands here. Paste a URL to add anything extra. Click <strong>Publish now</strong> when ready.</p>
         </div>
         <button
           type="button"
@@ -263,7 +301,7 @@ function TodaysDraft({ password }: { password: string }) {
                 )}
               </div>
             ) : (
-              <p className="text-[14px] text-ws-black/70">Nothing here yet. Import articles from the briefing above, or paste a URL below.</p>
+              <p className="text-[14px] text-ws-black/70">Nothing here yet. Import articles, papers, or events from the panels above — or paste a URL below.</p>
             )}
           </div>
 
@@ -451,6 +489,37 @@ function AddEvent({ password }: { password: string }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  // Auto-fill from URL
+  const [autofillUrl, setAutofillUrl] = useState('')
+  const [autofilling, setAutofilling] = useState(false)
+  const [autofillError, setAutofillError] = useState<string | null>(null)
+
+  async function handleAutofill() {
+    const trimmed = autofillUrl.trim()
+    if (!trimmed.startsWith('http')) { setAutofillError('Paste a full URL starting with https://'); return }
+    setAutofilling(true)
+    setAutofillError(null)
+    try {
+      const res = await fetch('/api/extract-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminPassword: password, url: trimmed }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setAutofillError(data.error ?? `Error ${res.status}`); return }
+      const ev = data.event
+      if (ev.title) setTitle(ev.title)
+      if (ev.when) setWhen(ev.when)
+      if (ev.where) setWhere(ev.where)
+      if (ev.description) setDescription(ev.description)
+      // Pre-fill the registration URL with the same URL
+      if (!url) setUrl(trimmed)
+    } catch {
+      setAutofillError('Network error.')
+    } finally {
+      setAutofilling(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -518,6 +587,43 @@ function AddEvent({ password }: { password: string }) {
         >
           Hide
         </button>
+      </div>
+
+      {/* ── Auto-fill from URL ─────────────────────────────────────────── */}
+      <div className="border-[2px] border-ws-black/20 bg-ws-page p-4 flex flex-col gap-3">
+        <p className="text-[12px] font-black uppercase tracking-[0.1em]">
+          Auto-fill from event URL
+        </p>
+        <p className="text-[12px] text-ws-black/60">
+          Paste the event or registration page URL — AI will extract the title, date, location, and description for you.
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <input
+            type="url"
+            value={autofillUrl}
+            onChange={e => setAutofillUrl(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAutofill() } }}
+            placeholder="https://…"
+            disabled={autofilling}
+            className="flex-1 min-w-0 border-[2px] border-ws-black bg-ws-white px-3 py-2 text-[14px] font-mono outline-none focus-visible:border-ws-accent disabled:opacity-60"
+          />
+          <button
+            type="button"
+            onClick={handleAutofill}
+            disabled={autofilling || !autofillUrl.trim()}
+            className="border-[2px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[12px] px-4 py-2 hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 shrink-0 transition-colors"
+          >
+            {autofilling ? (
+              <>
+                <span className="inline-block w-3 h-3 border-2 border-ws-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                Extracting…
+              </>
+            ) : '✦ Auto-fill'}
+          </button>
+        </div>
+        {autofillError && (
+          <p className="text-[13px] font-bold text-ws-accent">{autofillError}</p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
@@ -627,6 +733,368 @@ function AddEvent({ password }: { password: string }) {
   )
 }
 
+// ─── ResearchImport ──────────────────────────────────────────────────────────────
+// Fetches today's AI research papers from the Notion "AI Research Papers" database
+// and lets the editor import selected papers into today's draft under ## Research.
+
+interface ResearchPaperItem {
+  id: string
+  title: string
+  summary: string | null
+  keyFindings: string | null
+  url: string | null
+  hfUrl: string | null
+  area: string[]
+  authors: string | null
+  source: string | null
+  arXivId: string | null
+  date: string | null
+}
+
+interface ResearchApiResponse {
+  papers: ResearchPaperItem[]
+  date: string
+  configured: boolean
+  error?: string
+}
+
+const NOTION_RESEARCH_DB_URL = 'https://www.notion.so/ce3aae7fc2b743869113af0425febe68'
+
+function todayIso(): string {
+  return new Date().toISOString().split('T')[0]
+}
+
+function ResearchImport({ password }: { password: string }) {
+  const [data, setData] = useState<ResearchApiResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [importing, setImporting] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const dateInputRef = useRef<HTMLInputElement>(null)
+  const { isKnown, windowDays } = useKnownUrls(password)
+
+  // Always read from the DOM ref so we get the real current value regardless
+  // of whether the native date-picker popup triggered a React onChange event.
+  function currentDate(): string {
+    return dateInputRef.current?.value || todayIso()
+  }
+
+  async function load(targetDate = currentDate()) {
+    setLoading(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const params = new URLSearchParams({ password, date: targetDate })
+      const res = await fetch(`/api/research-papers?${params}`)
+      if (!res.ok) {
+        setError(res.status === 401 ? 'Session expired. Sign in again.' : `Error ${res.status}`)
+        return
+      }
+      const payload = (await res.json()) as ResearchApiResponse
+      setData(payload)
+      // Pre-check every paper EXCEPT ones already in a recent issue
+      setSelected(new Set(payload.papers.filter(p => !isKnown(p.url)).map(p => p.id)))
+    } catch {
+      setError('Network error.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function toggle(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  async function handleImport() {
+    if (!data || selected.size === 0) return
+    setImporting(true)
+    setMessage(null)
+    setError(null)
+
+    const toImport = data.papers
+      .filter(p => selected.has(p.id) && p.url)
+      .map(p => ({
+        title: p.title,
+        summary: p.summary ?? p.keyFindings ?? '[Add annotation]',
+        url: p.url as string,
+        imageUrl: null,
+        category: 'Research' as Category,
+      }))
+
+    if (toImport.length === 0) {
+      setError('No selected papers had a usable URL.')
+      setImporting(false)
+      return
+    }
+
+    try {
+      const res = await fetch('/api/import-briefing-articles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminPassword: password, articles: toImport }),
+      })
+      const payload = await res.json()
+      if (!res.ok) {
+        setError(payload.error ?? `Error ${res.status}`)
+        return
+      }
+      const failed = (payload.results ?? []).filter((r: { ok: boolean }) => !r.ok).length
+      setMessage(
+        failed > 0
+          ? `✓ Imported ${payload.added} of ${payload.attempted} (${failed} failed). Draft now has ${payload.articleCount} items.`
+          : `✓ Imported ${payload.added} paper${payload.added === 1 ? '' : 's'}. Draft now has ${payload.articleCount} items.`,
+      )
+      window.dispatchEvent(new CustomEvent('aitoday:refresh-draft'))
+      setSelected(new Set())
+    } catch {
+      setError('Network error during import.')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  // Hide if env var not configured
+  if (data && data.configured === false) return null
+
+  return (
+    <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">
+            🔬 Import research papers
+          </p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">
+            Trending AI papers from arXiv and Hugging Face, pulled from your Notion research database.
+            Pre-checked — uncheck anything you don&apos;t want.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          <a
+            href={NOTION_RESEARCH_DB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] text-ws-accent underline hover:no-underline font-bold"
+          >
+            Open in Notion ↗
+          </a>
+          <button
+            type="button"
+            onClick={() => load(currentDate())}
+            disabled={loading}
+            className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
+          >
+            {loading ? '↻ Loading…' : '↻ Refresh'}
+          </button>
+        </div>
+      </div>
+
+      {/* Date picker — lets you load papers from any day, not just today */}
+      <div className="flex items-center gap-2">
+        <label htmlFor="research-date" className="text-[12px] font-black uppercase tracking-[0.1em] shrink-0">
+          Date
+        </label>
+        <input
+          ref={dateInputRef}
+          id="research-date"
+          type="date"
+          defaultValue={todayIso()}
+          className="border-[2px] border-ws-black px-2 py-1 text-[13px] font-mono outline-none focus-visible:border-ws-accent"
+        />
+        <button
+          type="button"
+          onClick={() => load(currentDate())}
+          disabled={loading}
+          className="border-[2px] border-ws-black bg-ws-page px-3 py-1 text-[12px] font-black uppercase tracking-wide hover:bg-ws-black hover:text-ws-white disabled:opacity-50 transition-colors"
+        >
+          Load
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const t = todayIso()
+            if (dateInputRef.current) dateInputRef.current.value = t
+            load(t)
+          }}
+          disabled={loading}
+          className="text-[12px] text-ws-black/50 underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
+        >
+          Today
+        </button>
+      </div>
+
+      {error && <p className="text-[14px] font-bold text-ws-accent">{error}</p>}
+      {message && <p className="text-[14px] font-bold text-ws-black">{message}</p>}
+
+      {loading && !data && <p className="text-[14px] text-ws-black/70">Loading research papers…</p>}
+
+      {data && !loading && data.papers.length === 0 && (
+        <div className="border border-ws-black/15 px-4 py-5 text-center flex flex-col gap-2">
+          <p className="text-[14px] font-black uppercase tracking-wide">No papers for {data.date} yet</p>
+          <p className="text-[13px] text-ws-black/60">
+            Papers will appear here once they&apos;re added to the Notion database with today&apos;s date.
+          </p>
+          <a
+            href={NOTION_RESEARCH_DB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[13px] text-ws-accent underline hover:no-underline font-bold"
+          >
+            Open research database in Notion ↗
+          </a>
+        </div>
+      )}
+
+      {data && data.papers.length > 0 && (
+        <>
+          {/* Select-all / deselect-all */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSelected(new Set(data.papers.map(p => p.id)))}
+              className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
+            >
+              Select all
+            </button>
+            <span className="text-ws-black/30">·</span>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
+            >
+              Deselect all
+            </button>
+            <span className="text-ws-black/50 text-[12px] ml-auto">{selected.size} of {data.papers.length} selected</span>
+          </div>
+
+          {/* Duplicate banner */}
+          {(() => {
+            const dupeCount = data.papers.filter(p => isKnown(p.url)).length
+            if (dupeCount === 0) return null
+            return (
+              <p className="text-[12px] bg-ws-accent-light/30 border border-ws-black/20 px-3 py-2">
+                <strong>{dupeCount} paper{dupeCount === 1 ? '' : 's'}</strong> already published in the last {windowDays} days — pre-unchecked. Re-check any you want to include anyway.
+              </p>
+            )
+          })()}
+
+          {/* Paper list */}
+          <div className="flex flex-col gap-3">
+            {data.papers.map(paper => {
+              const checked = selected.has(paper.id)
+              const dupe = isKnown(paper.url)
+              return (
+                <label
+                  key={paper.id}
+                  className={`flex gap-3 p-3 border-[2px] cursor-pointer transition-colors ${
+                    checked ? 'border-ws-black bg-ws-white' : 'border-ws-black/20 bg-ws-page opacity-60'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggle(paper.id)}
+                    className="mt-1 shrink-0 w-4 h-4 accent-ws-accent"
+                  />
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <p className="text-[14px] font-black leading-snug">
+                      {paper.title}
+                      {dupe && (
+                        <span className="ml-2 text-[10px] font-black uppercase tracking-wide text-ws-accent border border-ws-accent px-1.5 py-0.5 align-middle">
+                          ⚠ Already published
+                        </span>
+                      )}
+                    </p>
+
+                    {/* Area tags */}
+                    {paper.area.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {paper.area.map(tag => (
+                          <span
+                            key={tag}
+                            className="text-[10px] font-black uppercase tracking-wide px-1.5 py-0.5 border border-ws-black/30 text-ws-black/60"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Summary / Key Findings */}
+                    {(paper.summary || paper.keyFindings) && (
+                      <p className="text-[13px] text-ws-black/70 leading-snug line-clamp-3">
+                        {paper.summary ?? paper.keyFindings}
+                      </p>
+                    )}
+
+                    {/* Authors + source link */}
+                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                      {paper.authors && (
+                        <span className="text-[11px] text-ws-black/50 truncate max-w-[260px]">{paper.authors}</span>
+                      )}
+                      {paper.url && (
+                        <a
+                          href={paper.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="text-[11px] text-ws-accent underline hover:no-underline font-bold shrink-0"
+                        >
+                          {paper.arXivId ? `arXiv:${paper.arXivId}` : paper.source ?? 'View paper'} ↗
+                        </a>
+                      )}
+                      {paper.hfUrl && paper.arXivId && (
+                        <a
+                          href={paper.hfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="text-[11px] text-ws-black/50 underline hover:no-underline hover:text-ws-accent shrink-0"
+                        >
+                          HF ↗
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </label>
+              )
+            })}
+          </div>
+
+          {/* Import button */}
+          <div className="flex items-center gap-4 flex-wrap border-t border-ws-black/10 pt-4">
+            <button
+              type="button"
+              onClick={handleImport}
+              disabled={importing || selected.size === 0}
+              className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[14px] px-5 py-3 shadow-[4px_4px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-accent)] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {importing ? (
+                <>
+                  <span className="inline-block w-4 h-4 border-2 border-ws-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                  Importing…
+                </>
+              ) : (
+                `Import ${selected.size} paper${selected.size === 1 ? '' : 's'} → Research section`
+              )}
+            </button>
+            <p className="text-[12px] text-ws-black/50">Added under <strong>## Research</strong> in today&apos;s draft.</p>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── BriefingImport ──────────────────────────────────────────────────────────────
 
 interface BriefingArticle {
@@ -669,6 +1137,7 @@ function BriefingImport({ password }: { password: string }) {
   const [importing, setImporting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [rewriteWithAi, setRewriteWithAi] = useState(false)
+  const { isKnown, windowDays } = useKnownUrls(password)
 
   async function load() {
     setLoading(true)
@@ -682,12 +1151,14 @@ function BriefingImport({ password }: { password: string }) {
       }
       const payload = (await res.json()) as BriefingApiResponse
       setData(payload)
-      // Pre-check every article by default — user unchecks what they don't want
+      // Pre-check every article by default — user unchecks what they don't want.
+      // Skip articles whose first URL is already in a recent issue (dupe).
       const initial = new Set<string>()
       for (const source of payload.sources) {
         if (!source.briefing) continue
         for (const section of source.briefing.sections) {
           for (const a of section.articles) {
+            if (a.urls[0] && isKnown(a.urls[0])) continue
             initial.add(articleKey(source.sourceId, section.name, a))
           }
         }
@@ -807,6 +1278,26 @@ function BriefingImport({ password }: { password: string }) {
       {message && <p className="text-[14px] font-bold text-ws-black">{message}</p>}
 
       {loading && !data && <p className="text-[14px] text-ws-black/70">Loading briefings…</p>}
+
+      {/* Duplicate banner — count articles across all sources whose URL is
+          already in a recent issue. Pre-unchecked to avoid re-publishing. */}
+      {data && (() => {
+        let dupeCount = 0
+        for (const source of data.sources) {
+          if (!source.briefing) continue
+          for (const section of source.briefing.sections) {
+            for (const a of section.articles) {
+              if (a.urls[0] && isKnown(a.urls[0])) dupeCount++
+            }
+          }
+        }
+        if (dupeCount === 0) return null
+        return (
+          <p className="text-[12px] bg-ws-accent-light/30 border border-ws-black/20 px-3 py-2">
+            <strong>{dupeCount} article{dupeCount === 1 ? '' : 's'}</strong> already published in the last {windowDays} days — pre-unchecked. Re-check any you want to include anyway.
+          </p>
+        )
+      })()}
 
       {/* Source-level chrome: links to Notion, errors, "no briefing yet" notes,
           and flagged-topics callouts. Article lists themselves are categorized
@@ -942,6 +1433,7 @@ function BriefingImport({ password }: { password: string }) {
                   <ul className="list-none p-0 m-0 flex flex-col gap-1.5">
                     {bucket.map(e => {
                       const checked = selected.has(e.key)
+                      const dupe = isKnown(e.article.urls[0])
                       const hostname = e.article.urls[0]
                         ? new URL(e.article.urls[0]).hostname.replace(/^www\./, '')
                         : ''
@@ -958,7 +1450,14 @@ function BriefingImport({ password }: { password: string }) {
                             aria-label={`Include ${e.article.title}`}
                           />
                           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                            <p className="text-[14px] font-bold leading-tight">{e.article.title}</p>
+                            <p className="text-[14px] font-bold leading-tight">
+                              {e.article.title}
+                              {dupe && (
+                                <span className="ml-2 text-[10px] font-black uppercase tracking-wide text-ws-accent border border-ws-accent px-1.5 py-0.5 align-middle whitespace-nowrap">
+                                  ⚠ Already published
+                                </span>
+                              )}
+                            </p>
                             {e.article.summary && (
                               <p className="text-[12px] text-ws-black/70 line-clamp-2 leading-snug">
                                 {e.article.summary}
@@ -1110,7 +1609,7 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Generate the email</p>
-            <p className="text-[12px] text-ws-black/50 mt-0.5">After publishing, generate a newsletter email you can copy into your email tool.</p>
+            <p className="text-[12px] text-ws-black/50 mt-0.5">Pick any published issue and generate a newsletter email you can copy into Beehiiv / Mailchimp / your email tool.</p>
           </div>
           <button
             type="button"
@@ -1350,8 +1849,8 @@ function PublishDrafts({ password }: { password: string }) {
     <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Publish</p>
-          <p className="text-[12px] text-ws-black/50 mt-0.5">All unpublished drafts. When you&apos;re happy with today&apos;s articles, hit Publish to make them live.</p>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">All unpublished drafts</p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">Every unpublished draft, including today&apos;s. Faster to publish today&apos;s from the panel above — this list mostly catches drafts from earlier days you didn&apos;t finish.</p>
         </div>
         <button
           type="button"
@@ -1505,7 +2004,7 @@ function CaptureSettings() {
       >
         <div>
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Add articles while browsing</p>
-          {!open && <p className="text-[12px] text-ws-black/50 mt-0.5">Bookmarklet, iPhone shortcut, and mobile form — for capturing articles outside this admin page.</p>}
+          {!open && <p className="text-[12px] text-ws-black/50 mt-0.5">Scan a QR code to capture from your phone, or grab the desktop bookmarklet. Set up once, capture anywhere.</p>}
         </div>
         <span className="text-[12px] font-bold uppercase tracking-wide text-ws-black/70 shrink-0">
           {open ? '− Hide' : '+ Show'}
@@ -1514,14 +2013,49 @@ function CaptureSettings() {
 
       {open && (
         <div className="px-5 pb-5 flex flex-col gap-6 border-t-[2px] border-ws-black/20 pt-5">
-          {/* Bookmarklet */}
+          {/* Easiest: mobile capture page + QR code */}
           <div className="flex flex-col gap-3">
-            <p className="text-[13px] font-black uppercase tracking-[0.1em]">On your computer — browser bookmark</p>
+            <p className="text-[13px] font-black uppercase tracking-[0.1em]">📱 Easiest — on your phone</p>
             <p className="text-[13px] text-ws-black/70">
-              Drag the button below to your bookmarks bar. Then while reading any article, click it — the article gets added to today&apos;s draft without coming back here.
+              Scan the QR code with your phone camera. The capture page opens — paste any article URL and tap Save.
+              <br />
+              <strong>Pro tip:</strong> in Safari, tap <em>Share</em> → <em>Add to Home Screen</em> for one-tap access from your home screen.
+            </p>
+            <div className="flex items-start gap-4 flex-wrap">
+              {origin && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=4&data=${encodeURIComponent(`${origin}/capture`)}`}
+                  alt="QR code to capture page"
+                  width={180}
+                  height={180}
+                  className="border-[2px] border-ws-black shrink-0"
+                />
+              )}
+              <div className="flex flex-col gap-2 min-w-0 flex-1">
+                <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/60">Or open this URL on any device:</p>
+                <a
+                  href="/capture"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[14px] font-mono break-all underline hover:no-underline text-ws-accent font-bold"
+                >
+                  {origin}/capture
+                </a>
+                <p className="text-[12px] text-ws-black/60 mt-1">
+                  No setup, no token, no shortcut to configure. Just paste a URL and Save — same flow as the manual paste box on this page.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bookmarklet — also easy */}
+          <div className="flex flex-col gap-3 border-t border-ws-black/15 pt-5">
+            <p className="text-[13px] font-black uppercase tracking-[0.1em]">💻 Desktop — one-click bookmarklet</p>
+            <p className="text-[13px] text-ws-black/70">
+              Drag the button below to your browser&apos;s bookmarks bar. Then while reading any article, click it — done.
             </p>
             <div className="flex items-center gap-3 flex-wrap">
-              {/* Draggable bookmarklet link */}
               <a
                 href={bookmarkletCode}
                 onClick={e => e.preventDefault()}
@@ -1538,50 +2072,44 @@ function CaptureSettings() {
                 {bookmarkletCopied ? '✓ Copied!' : '📋 Copy code'}
               </button>
             </div>
-            <details className="text-[12px]">
-              <summary className="cursor-pointer text-ws-black/70 hover:text-ws-black font-bold uppercase tracking-wide">
-                Show raw code
-              </summary>
-              <pre className="mt-2 p-3 bg-ws-page border border-ws-black/20 text-[11px] font-mono overflow-x-auto whitespace-pre-wrap break-all">
-                {bookmarkletCode}
-              </pre>
-            </details>
           </div>
 
-          {/* iOS Shortcut */}
-          <div className="flex flex-col gap-3">
-            <p className="text-[13px] font-black uppercase tracking-[0.1em]">On your iPhone — share from Safari</p>
-            <p className="text-[13px] text-ws-black/70">
-              Set up a one-tap Share Sheet shortcut so you can add any article from Safari without opening a form — just tap Share → the shortcut and it&apos;s done.
-            </p>
-            <ol className="flex flex-col gap-2 text-[13px] pl-5 list-decimal">
-              <li>Open <strong>Shortcuts</strong> → New shortcut → <strong>Add action</strong></li>
-              <li>Search for <strong>"Get URLs from Input"</strong> — enable <em>Show in Share Sheet</em></li>
-              <li>Add action: <strong>"Get Contents of URL"</strong></li>
-              <li>
-                Set URL to <code className="font-mono bg-ws-page px-1">{origin}/api/capture</code>
-              </li>
-              <li>Method: <strong>POST</strong> · Request body: <strong>JSON</strong></li>
-              <li>
-                Add fields:<br />
-                <code className="font-mono bg-ws-page px-1 text-[12px]">token</code> → your <code className="font-mono bg-ws-page px-1 text-[12px]">CAPTURE_TOKEN</code> value<br />
-                <code className="font-mono bg-ws-page px-1 text-[12px]">url</code> → <em>URLs</em> (from step 1)<br />
-                <code className="font-mono bg-ws-page px-1 text-[12px]">autoAnnotate</code> → <code className="font-mono bg-ws-page px-1 text-[12px]">true</code>
-              </li>
-              <li>Optional: add <strong>"Show Result"</strong> to display the returned article title</li>
-            </ol>
-            <p className="text-[12px] text-ws-black/50">
-              The <code className="font-mono bg-ws-page px-1">CAPTURE_TOKEN</code> is set in your Vercel environment variables. Check <strong>Settings → Environment Variables</strong> in your Vercel project.
-            </p>
-          </div>
-
-          {/* Mobile web */}
-          <div className="flex flex-col gap-2">
-            <p className="text-[13px] font-black uppercase tracking-[0.1em]">On your phone — paste a link</p>
-            <p className="text-[13px] text-ws-black/70">
-              Open <a href="/capture" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline font-bold">{origin}/capture</a> on any device and paste a URL. Simpler than the shortcut — no setup needed.
-            </p>
-          </div>
+          {/* iOS Shortcut — hidden behind a disclosure */}
+          <details className="border-t border-ws-black/15 pt-4">
+            <summary className="cursor-pointer text-[12px] font-black uppercase tracking-[0.1em] text-ws-black/60 hover:text-ws-black select-none">
+              ⚙️ Advanced — iOS Share Sheet shortcut (skip this; the QR code above is easier)
+            </summary>
+            <div className="flex flex-col gap-3 mt-4">
+              <p className="text-[13px] text-ws-black/70">
+                Set up a one-tap Share Sheet shortcut so you can add any article from Safari without opening a form — just tap Share → the shortcut. <em>Most people don&apos;t need this</em> — the home-screen shortcut from the QR code above is just as fast and requires zero setup.
+              </p>
+              <ol className="flex flex-col gap-2 text-[13px] pl-5 list-decimal">
+                <li>Open <strong>Shortcuts</strong> → New shortcut → <strong>Add action</strong></li>
+                <li>Search for <strong>&quot;Get URLs from Input&quot;</strong> — enable <em>Show in Share Sheet</em></li>
+                <li>Add action: <strong>&quot;Get Contents of URL&quot;</strong></li>
+                <li>Set URL to <code className="font-mono bg-ws-page px-1">{origin}/api/capture</code></li>
+                <li>Method: <strong>POST</strong> · Request body: <strong>JSON</strong></li>
+                <li>
+                  Add fields:<br />
+                  <code className="font-mono bg-ws-page px-1 text-[12px]">token</code> → your <code className="font-mono bg-ws-page px-1 text-[12px]">CAPTURE_TOKEN</code> value<br />
+                  <code className="font-mono bg-ws-page px-1 text-[12px]">url</code> → <em>URLs</em> (from step 1)<br />
+                  <code className="font-mono bg-ws-page px-1 text-[12px]">autoAnnotate</code> → <code className="font-mono bg-ws-page px-1 text-[12px]">true</code>
+                </li>
+                <li>Optional: add <strong>&quot;Show Result&quot;</strong> to display the returned article title</li>
+              </ol>
+              <p className="text-[12px] text-ws-black/50">
+                The <code className="font-mono bg-ws-page px-1">CAPTURE_TOKEN</code> is set in your Vercel environment variables.
+              </p>
+              <details className="text-[12px]">
+                <summary className="cursor-pointer text-ws-black/70 hover:text-ws-black font-bold uppercase tracking-wide">
+                  Show raw bookmarklet code
+                </summary>
+                <pre className="mt-2 p-3 bg-ws-page border border-ws-black/20 text-[11px] font-mono overflow-x-auto whitespace-pre-wrap break-all">
+                  {bookmarkletCode}
+                </pre>
+              </details>
+            </div>
+          </details>
         </div>
       )}
     </div>
@@ -1619,7 +2147,7 @@ function WorkflowGuide() {
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black">How this works</p>
           {!open && (
             <p className="text-[12px] text-ws-black/60 mt-0.5">
-              Import → Add extras → Publish → Email. Click to expand the full guide.
+              Import → Publish → Email. Click to expand the full guide (~5 min).
             </p>
           )}
         </div>
@@ -1631,19 +2159,32 @@ function WorkflowGuide() {
       {open && (
         <div className="px-5 pb-5 pt-1 border-t-[2px] border-ws-black/15 flex flex-col gap-5 text-[14px] leading-[1.55]">
           <p className="text-ws-black/80">
-            Each morning your three Notion briefings auto-generate (
-            <strong>Canada AI Daily</strong>, <strong>Agriculture AI</strong>,
-            <strong> Daily News - AI</strong>). The flow below takes about 5 minutes.
+            Each morning four Notion sources auto-generate:{' '}
+            <strong>Canada AI Daily</strong>, <strong>Agriculture AI</strong>,{' '}
+            <strong>Daily News – AI</strong>, and <strong>Trending AI Research</strong>.
+            The flow below takes about 5 minutes.
           </p>
 
           <ol className="flex flex-col gap-4 list-none p-0 m-0">
             <li className="flex gap-3">
               <span className="font-black text-ws-accent text-[20px] leading-none shrink-0 w-6">1</span>
               <div>
-                <p className="font-black text-[14px] mb-1">Pick what to publish</p>
+                <p className="font-black text-[14px] mb-1">Import today&apos;s content</p>
                 <p className="text-ws-black/70">
-                  Open the <strong>Import from briefings</strong> panel. Today&apos;s articles are
-                  pre-checked and grouped into 5 categories. Uncheck anything you don&apos;t want.
+                  Three panels below feed today&apos;s draft. Each is pre-checked — uncheck anything
+                  you don&apos;t want, then click the import button at the bottom of each:
+                </p>
+                <ul className="text-ws-black/70 list-disc pl-5 mt-1.5 flex flex-col gap-1">
+                  <li><strong>Import from briefings</strong> — news articles grouped into 5 categories (Canada · Policy · Government · Industry · Sectors)</li>
+                  <li><strong>🔬 Import research papers</strong> — trending arXiv / Hugging Face papers</li>
+                  <li><strong>Add a learning event</strong> — paste an event URL and AI auto-fills the title, date, location, and description (you can edit before saving)</li>
+                </ul>
+                <p className="text-ws-black/60 mt-1.5 text-[13px]">
+                  Optional on briefings: <em>Rewrite summaries in the AI Today voice</em> — GPT
+                  rewrites each summary. Slower (~2–3 sec/article) but consistent voice.
+                </p>
+                <p className="text-ws-black/60 mt-1 text-[13px]">
+                  Anything already published in the last 30 days shows a <strong>⚠ Already published</strong> badge and is pre-unchecked, so you don&apos;t accidentally repeat yourself.
                 </p>
               </div>
             </li>
@@ -1651,16 +2192,12 @@ function WorkflowGuide() {
             <li className="flex gap-3">
               <span className="font-black text-ws-accent text-[20px] leading-none shrink-0 w-6">2</span>
               <div>
-                <p className="font-black text-[14px] mb-1">Click Import</p>
+                <p className="font-black text-[14px] mb-1">Review &amp; publish</p>
                 <p className="text-ws-black/70">
-                  Selected articles get added to today&apos;s draft, organized into category sections
-                  (🍁 Canada · ⚖️ Policy &amp; Regulation · 🏛️ Government &amp; Public Sector ·
-                  💼 Industry &amp; Models · 🌾 Sectors &amp; Applications).
-                </p>
-                <p className="text-ws-black/60 mt-1 text-[13px]">
-                  Optional toggle: <em>Rewrite summaries in the AI Today voice</em> — has GPT
-                  rewrite each summary in your house style. Slower (~2&ndash;3 sec per article) but
-                  consistent voice.
+                  Scroll to <strong>Today&apos;s draft</strong> to see everything you imported. Spotted
+                  a great article elsewhere? Paste its URL right there — AI writes the summary.
+                  When it looks right, click <strong>Publish now</strong> at the top of that panel.
+                  The issue goes live on the public site immediately.
                 </p>
               </div>
             </li>
@@ -1668,41 +2205,11 @@ function WorkflowGuide() {
             <li className="flex gap-3">
               <span className="font-black text-ws-accent text-[20px] leading-none shrink-0 w-6">3</span>
               <div>
-                <p className="font-black text-[14px] mb-1">Add anything else <span className="text-ws-black/50 font-normal text-[13px]">(optional)</span></p>
-                <ul className="text-ws-black/70 list-disc pl-5 flex flex-col gap-1">
-                  <li>
-                    <strong>Spotted a great article elsewhere?</strong> Paste the URL in
-                    <em> Today&apos;s draft</em>, pick a category, and AI writes the summary for you.
-                  </li>
-                  <li>
-                    <strong>Hosting or attending an event?</strong> Click
-                    <em> Add a learning event</em> and fill in title, when, where, and the
-                    registration URL. It lands under <em>&ldquo;Upcoming&rdquo;</em> in the issue.
-                  </li>
-                </ul>
-              </div>
-            </li>
-
-            <li className="flex gap-3">
-              <span className="font-black text-ws-accent text-[20px] leading-none shrink-0 w-6">4</span>
-              <div>
-                <p className="font-black text-[14px] mb-1">Publish</p>
-                <p className="text-ws-black/70">
-                  When today&apos;s draft looks right, scroll to the <strong>Publish</strong> panel and
-                  click Publish next to today&apos;s draft. The issue goes live on the public site
-                  immediately.
-                </p>
-              </div>
-            </li>
-
-            <li className="flex gap-3">
-              <span className="font-black text-ws-accent text-[20px] leading-none shrink-0 w-6">5</span>
-              <div>
                 <p className="font-black text-[14px] mb-1">Send the email</p>
                 <p className="text-ws-black/70">
-                  After publishing, the <strong>Generate the email</strong> panel appears. Click
-                  <em> Generate</em> and it&apos;ll write you a ready-to-paste newsletter. Copy
-                  it into Beehiiv / Mailchimp / your email tool of choice.
+                  After publishing, scroll to <strong>Generate the email</strong>. Click
+                  <em> Generate</em> — you get a ready-to-paste newsletter. Copy it into Beehiiv /
+                  Mailchimp / your email tool of choice.
                 </p>
               </div>
             </li>
@@ -1710,8 +2217,8 @@ function WorkflowGuide() {
 
           <div className="border-t-[1px] border-ws-black/15 pt-3 text-[13px] text-ws-black/60">
             <p>
-              <strong>Catching articles on the go?</strong> Open <em>Add articles while browsing</em>
-              at the bottom of this page for the bookmarklet, iPhone shortcut, and mobile form.
+              <strong>Catching articles on the go?</strong> Open <em>Add articles while browsing</em>{' '}
+              at the bottom of this page — scan the QR code with your phone, or grab the desktop bookmarklet.
             </p>
           </div>
         </div>
@@ -1837,16 +2344,18 @@ export default function AdminPage() {
       {/* Site stats */}
       <SiteStats password={password} />
 
-      {/* Step 1 — Pull articles from configured Notion briefing pages */}
+      {/* ── Step 1: ADD content to today's draft ─────────────────────────────
+          All three of these panels feed articles/events into today's draft.
+          Grouped together so the user adds everything in one stretch before
+          reviewing the assembled draft below. */}
       <BriefingImport password={password} />
-
-      {/* Step 2 — Today's draft: add articles manually, preview, publish */}
-      <TodaysDraft password={password} />
-
-      {/* Optional — add learning events to today's draft (collapsed by default) */}
+      <ResearchImport password={password} />
       <AddEvent password={password} />
 
-      {/* Step 3 — All unpublished drafts — publish or delete */}
+      {/* ── Step 2: REVIEW the draft (optionally paste extras) + PUBLISH ──── */}
+      <TodaysDraft password={password} />
+
+      {/* ── Step 3: Older unpublished drafts (rarely needed) ───────────────── */}
       <PublishDrafts password={password} />
 
       {/* Step 4 — Generate email from any previously published issue */}
