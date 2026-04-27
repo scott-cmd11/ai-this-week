@@ -8,6 +8,10 @@ interface DailyArticle {
   annotation: string | null
   url: string | null
   imageUrl: string | null
+  /** Notion block ID of the paragraph that holds the annotation. Used by
+   *  the regenerate flow to update the annotation in place. May be null
+   *  for very old articles that predate this field. */
+  annotationBlockId: string | null
 }
 
 // ─── Route handler ──────────────────────────────────────────────────────────────
@@ -75,7 +79,7 @@ export async function GET(request: NextRequest) {
         const text = (b.heading_3.rich_text as { plain_text: string }[])
           .map((r) => r.plain_text)
           .join('')
-        current = { title: text, annotation: null, url: null, imageUrl: null }
+        current = { title: text, annotation: null, url: null, imageUrl: null, annotationBlockId: null }
       } else if (type === 'paragraph' && current) {
         const text = (b.paragraph.rich_text as { plain_text: string }[])
           .map((r) => r.plain_text)
@@ -83,6 +87,7 @@ export async function GET(request: NextRequest) {
         // Skip "Published: ..." metadata lines
         if (text && !text.startsWith('Published:')) {
           current.annotation = text
+          current.annotationBlockId = b.id ?? null
         }
       } else if (type === 'bookmark' && current) {
         current.url = b.bookmark.url ?? null

@@ -55,6 +55,9 @@ interface DailyArticle {
   annotation: string | null
   url: string | null
   imageUrl: string | null
+  /** Notion paragraph block ID — needed by the regenerate flow to update
+   *  the annotation in place. May be null on very old articles. */
+  annotationBlockId: string | null
 }
 
 interface PublishedIssue {
@@ -179,6 +182,79 @@ function TodaysDraft({ password }: { password: string }) {
   // Publish
   const [publishing, setPublishing] = useState(false)
   const [publishMessage, setPublishMessage] = useState<string | null>(null)
+
+  // Regenerate state — keyed by annotationBlockId. When set, the article row
+  // expands to show the current annotation vs the regenerated candidate.
+  const [regenLoading, setRegenLoading] = useState<string | null>(null)
+  const [regenCandidate, setRegenCandidate] = useState<Map<string, string>>(new Map())
+  const [regenError, setRegenError] = useState<Map<string, string>>(new Map())
+
+  async function fetchRegenerateCandidate(article: DailyArticle) {
+    if (!article.url || !article.annotationBlockId) return
+    const blockId = article.annotationBlockId
+    setRegenLoading(blockId)
+    setRegenError(prev => { const next = new Map(prev); next.delete(blockId); return next })
+    try {
+      const res = await fetch('/api/regenerate-annotation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminPassword: password,
+          url: article.url,
+          knownTitle: article.title,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setRegenError(prev => { const next = new Map(prev); next.set(blockId, data.error ?? `Error ${res.status}`); return next })
+        return
+      }
+      setRegenCandidate(prev => { const next = new Map(prev); next.set(blockId, data.annotation); return next })
+    } catch {
+      setRegenError(prev => { const next = new Map(prev); next.set(blockId, 'Network error.'); return next })
+    } finally {
+      setRegenLoading(null)
+    }
+  }
+
+  async function applyRegenerateCandidate(article: DailyArticle) {
+    if (!article.url || !article.annotationBlockId) return
+    const blockId = article.annotationBlockId
+    const annotation = regenCandidate.get(blockId)
+    if (!annotation) return
+    setRegenLoading(blockId)
+    try {
+      const res = await fetch('/api/regenerate-annotation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminPassword: password,
+          url: article.url,
+          knownTitle: article.title,
+          blockId,
+          annotation,
+          apply: true,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setRegenError(prev => { const next = new Map(prev); next.set(blockId, data.error ?? `Error ${res.status}`); return next })
+        return
+      }
+      // Clear the candidate and reload the draft so the new annotation shows
+      setRegenCandidate(prev => { const next = new Map(prev); next.delete(blockId); return next })
+      await loadDraft()
+    } catch {
+      setRegenError(prev => { const next = new Map(prev); next.set(blockId, 'Network error.'); return next })
+    } finally {
+      setRegenLoading(null)
+    }
+  }
+
+  function dismissCandidate(blockId: string) {
+    setRegenCandidate(prev => { const next = new Map(prev); next.delete(blockId); return next })
+    setRegenError(prev => { const next = new Map(prev); next.delete(blockId); return next })
+  }
 
   async function loadDraft() {
     setDraftLoading(true)
@@ -348,35 +424,102 @@ function TodaysDraft({ password }: { password: string }) {
       {/* Article list */}
       {articles.length > 0 && (
         <ul className="flex flex-col divide-y divide-ws-black/10 border-[2px] border-ws-black/20">
-          {articles.map((a, i) => (
-            <li key={i} className="flex gap-3 px-3 py-3">
-              {a.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={a.imageUrl}
-                  alt=""
-                  className="w-14 h-14 object-cover shrink-0 border border-ws-black/20"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                />
-              )}
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <p className="text-[14px] font-bold truncate">{a.title ?? '(untitled)'}</p>
-                {a.annotation && (
-                  <p className="text-[13px] text-ws-black/70 line-clamp-2">{a.annotation}</p>
+          {articles.map((a, i) => {
+            const blockId = a.annotationBlockId
+            const candidate = blockId ? regenCandidate.get(blockId) : undefined
+            const err = blockId ? regenError.get(blockId) : undefined
+            const loading = regenLoading === blockId
+            const canRegen = !!a.url && !!blockId
+            return (
+              <li key={i} className="flex flex-col gap-2 px-3 py-3">
+                <div className="flex gap-3">
+                  {a.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={a.imageUrl}
+                      alt=""
+                      className="w-14 h-14 object-cover shrink-0 border border-ws-black/20"
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                    />
+                  )}
+                  <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[14px] font-bold truncate">{a.title ?? '(untitled)'}</p>
+                      {canRegen && !candidate && (
+                        <button
+                          type="button"
+                          onClick={() => fetchRegenerateCandidate(a)}
+                          disabled={loading}
+                          className="text-[11px] font-bold uppercase tracking-wide text-ws-black/50 hover:text-ws-accent underline hover:no-underline shrink-0 disabled:opacity-50"
+                          title="Regenerate this annotation in the AI Today voice"
+                        >
+                          {loading ? '↻ Regenerating…' : '↻ Regenerate'}
+                        </button>
+                      )}
+                    </div>
+                    {a.annotation && (
+                      <p className="text-[13px] text-ws-black/70 line-clamp-2">{a.annotation}</p>
+                    )}
+                    {a.url && (
+                      <a
+                        href={a.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[12px] text-ws-black/50 underline hover:no-underline truncate"
+                      >
+                        {a.url}
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Regenerate side-by-side preview */}
+                {blockId && candidate && (
+                  <div className="border-[2px] border-ws-accent bg-ws-accent-light/40 p-3 flex flex-col gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px] leading-snug">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.1em] text-ws-black/60 mb-1">Current</p>
+                        <p className="text-ws-black/80">{a.annotation ?? '(empty)'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.1em] text-ws-accent mb-1">Regenerated</p>
+                        <p className="text-ws-black">{candidate}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => applyRegenerateCandidate(a)}
+                        disabled={loading}
+                        className="border-[2px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[12px] px-3 py-1.5 hover:bg-ws-accent-hover disabled:opacity-50"
+                      >
+                        {loading ? 'Applying…' : '✓ Use new'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => dismissCandidate(blockId)}
+                        disabled={loading}
+                        className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
+                      >
+                        ✗ Keep current
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fetchRegenerateCandidate(a)}
+                        disabled={loading}
+                        className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50 ml-auto"
+                      >
+                        ↻ Try again
+                      </button>
+                    </div>
+                  </div>
                 )}
-                {a.url && (
-                  <a
-                    href={a.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[12px] text-ws-black/50 underline hover:no-underline truncate"
-                  >
-                    {a.url}
-                  </a>
+                {err && (
+                  <p className="text-[12px] font-bold text-ws-accent" role="alert">{err}</p>
                 )}
-              </div>
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       )}
 
@@ -1260,7 +1403,19 @@ function BriefingImport({ password }: { password: string }) {
   // Default ON — applies the AI Today voice to every imported summary so the
   // issue reads as one consistent voice instead of a patchwork of source styles.
   const [rewriteWithAi, setRewriteWithAi] = useState(true)
+  // Per-article category overrides — keyed by articleKey. Only set when the
+  // editor explicitly changes a category from the auto-categorized default.
+  // Lets editors fix bad keyword-rule matches without re-pasting URLs.
+  const [overrides, setOverrides] = useState<Map<string, Category>>(new Map())
   const { isKnown, windowDays } = useKnownUrls(password)
+
+  function setOverride(key: string, category: Category) {
+    setOverrides(prev => {
+      const next = new Map(prev)
+      next.set(key, category)
+      return next
+    })
+  }
 
   async function load() {
     setLoading(true)
@@ -1326,14 +1481,16 @@ function BriefingImport({ password }: { password: string }) {
 
     // Collect selected articles, tagged with their canonical category so the
     // import route can group them under the right h2 section in the draft.
+    // Per-article overrides win over the auto-categorized default.
     const toImport: { title: string; summary: string; url: string; category: Category }[] = []
     for (const source of data.sources) {
       if (!source.briefing) continue
       for (const section of source.briefing.sections) {
-        const cat = categorize(source.sourceLabel, section.name)
+        const autoCat = categorize(source.sourceLabel, section.name)
         for (const a of section.articles) {
           const k = articleKey(source.sourceId, section.name, a)
           if (selected.has(k) && a.urls[0]) {
+            const cat = overrides.get(k) ?? autoCat
             toImport.push({ title: a.title, summary: a.summary, url: a.urls[0], category: cat })
           }
         }
@@ -1491,12 +1648,15 @@ function BriefingImport({ password }: { password: string }) {
       )}
 
       {/* Categorized article view — articles from all sources rolled up into
-          5 canonical buckets (Canada / Policy & Regulation / Government /
-          Industry & Models / Sectors & Applications). */}
+          6 canonical buckets. Per-article overrides move articles to a
+          different bucket immediately so what you see is what gets imported. */}
       {data && (() => {
-        // Build flat list: every article tagged with its source + section + category
+        // Build flat list: every article tagged with its source + section + category.
+        // The `autoCategory` is the keyword-rule output; the displayed `category`
+        // applies any user override on top.
         type Entry = {
           key: string
+          autoCategory: Category
           category: Category
           article: BriefingArticle
           sourceLabel: string
@@ -1506,11 +1666,14 @@ function BriefingImport({ password }: { password: string }) {
         for (const source of data.sources) {
           if (!source.briefing) continue
           for (const section of source.briefing.sections) {
-            const cat = categorize(source.sourceLabel, section.name)
+            const autoCat = categorize(source.sourceLabel, section.name)
             for (const a of section.articles) {
+              const k = articleKey(source.sourceId, section.name, a)
+              const effective = overrides.get(k) ?? autoCat
               entries.push({
-                key: articleKey(source.sourceId, section.name, a),
-                category: cat,
+                key: k,
+                autoCategory: autoCat,
+                category: effective,
                 article: a,
                 sourceLabel: source.sourceLabel,
                 sectionName: section.name,
@@ -1520,7 +1683,7 @@ function BriefingImport({ password }: { password: string }) {
         }
         if (entries.length === 0) return null
 
-        // Group by category, preserving the canonical display order
+        // Group by effective category, preserving the canonical display order
         const byCategory = new Map<Category, Entry[]>()
         for (const cat of CATEGORY_ORDER) byCategory.set(cat, [])
         for (const e of entries) byCategory.get(e.category)!.push(e)
@@ -1601,6 +1764,30 @@ function BriefingImport({ password }: { password: string }) {
                               <span className="truncate">
                                 {e.sourceLabel} / {e.sectionName}
                               </span>
+                              {/* Per-article category override. Defaults to the
+                                  auto-categorized value; styled to look like a
+                                  text label until interacted with. Subtle accent
+                                  border when the editor has changed it. */}
+                              <span aria-hidden="true">·</span>
+                              <label className="flex items-center gap-1 shrink-0">
+                                <span className="text-[10px] font-black uppercase tracking-wide text-ws-black/40">Category:</span>
+                                <select
+                                  value={e.category}
+                                  onChange={ev => setOverride(e.key, ev.target.value as Category)}
+                                  className={`text-[11px] font-bold bg-transparent border ${
+                                    overrides.has(e.key)
+                                      ? 'border-ws-accent text-ws-accent'
+                                      : 'border-ws-black/20 text-ws-black/70 hover:border-ws-black/50'
+                                  } rounded-none px-1 py-0.5 cursor-pointer focus:outline-none focus:border-ws-accent`}
+                                  aria-label={`Category for ${e.article.title}`}
+                                >
+                                  {CATEGORY_ORDER.map(c => (
+                                    <option key={c} value={c}>
+                                      {CATEGORY_META[c].icon} {c}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
                             </div>
                           </div>
                         </li>
