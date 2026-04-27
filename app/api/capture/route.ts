@@ -3,7 +3,7 @@ import { Client } from '@notionhq/client'
 import OpenAI from 'openai'
 import { fetchArticle, hostnameFallback } from '@/lib/article-fetcher'
 import { captureArticleToTodaysDraft } from '@/lib/notion-capture'
-import { generateAnnotation } from '@/lib/ai-annotation'
+import { generateAnnotation, polishAnnotation } from '@/lib/ai-annotation'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -13,6 +13,9 @@ interface RequestBody {
   url: string
   annotation?: string
   autoAnnotate?: boolean
+  /** When true AND `annotation` is supplied, run the user's note through the
+   *  AI Today voice polish before saving. No-op if annotation is empty. */
+  polishAnnotation?: boolean
   imageUrl?: string
   category?: string         // canonical category, e.g. "Canada"
 }
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing or invalid URL.' }, { status: 400 })
   }
 
-  const { url, annotation, autoAnnotate = true, imageUrl: imageUrlOverride, category } = body
+  const { url, annotation, autoAnnotate = true, polishAnnotation: polishFlag = false, imageUrl: imageUrlOverride, category } = body
 
   const notion = new Client({ auth: notionToken })
   const openai = new OpenAI({ apiKey: openaiApiKey })
@@ -62,10 +65,14 @@ export async function POST(request: NextRequest) {
     const { title } = fetchResult
     const fetchedImageUrl = fetchResult.imageUrl
 
-    // Determine annotation: explicit > AI auto-generated > placeholder
+    // Determine annotation: explicit (optionally polished) > AI auto-generated > placeholder
     let resolvedAnnotation: string
     if (annotation) {
-      resolvedAnnotation = annotation
+      // User typed a note. Optionally polish it through the AI Today voice;
+      // polish is best-effort and falls back to the user's text on failure.
+      resolvedAnnotation = polishFlag
+        ? await polishAnnotation(openai, annotation, { knownTitle: title, url })
+        : annotation
     } else if (autoAnnotate !== false) {
       resolvedAnnotation = await generateAnnotation(openai, url, { knownTitle: title })
     } else {

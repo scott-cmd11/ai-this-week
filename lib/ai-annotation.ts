@@ -82,3 +82,47 @@ export async function generateAnnotation(
     return opts.fallbackSummary?.trim() || '[Add annotation]'
   }
 }
+
+/**
+ * Polish a user-supplied note in the AI Today voice — preserves their meaning
+ * and chosen facts but applies the plain-language, active-verb voice rules.
+ *
+ * Different from generateAnnotation():
+ *   - Input is the user's text, not an article body
+ *   - Goal is to lightly rewrite, not summarize from scratch
+ *   - On failure, returns the original text unchanged (so the user's words
+ *     are never lost — at worst the polish is a no-op)
+ */
+export async function polishAnnotation(
+  openai: OpenAI,
+  userText: string,
+  opts: { knownTitle?: string | null; url?: string | null } = {},
+): Promise<string> {
+  const trimmed = userText.trim()
+  if (!trimmed) return ''
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 200,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPTS.brief },
+        {
+          role: 'user',
+          content:
+            `Below is a user-written note about an article. Lightly rewrite it ` +
+            `in the AI Today voice — keep the user's meaning and facts, but ` +
+            `apply the plain-language rules. Do not invent details not in the ` +
+            `note. Output only the rewritten note, nothing else.\n\n` +
+            (opts.knownTitle ? `Article title: ${opts.knownTitle}\n` : '') +
+            (opts.url ? `Article URL: ${opts.url}\n\n` : '\n') +
+            `User's note:\n${trimmed}`,
+        },
+      ],
+    })
+    return response.choices[0]?.message?.content?.trim() || trimmed
+  } catch {
+    // Polish is best-effort — never lose the user's words on failure
+    return trimmed
+  }
+}

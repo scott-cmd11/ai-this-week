@@ -165,6 +165,7 @@ function TodaysDraft({ password }: { password: string }) {
   const [addImageUrl, setAddImageUrl] = useState('')
   const [addCategory, setAddCategory] = useState<Category>('Canada')
   const [showImageField, setShowImageField] = useState(false)
+  const [polishMyNote, setPolishMyNote] = useState(true)  // Recommended default
   const [addLoading, setAddLoading] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
 
@@ -212,6 +213,9 @@ function TodaysDraft({ password }: { password: string }) {
           annotation: addAnnotation.trim() || undefined,
           imageUrl: addImageUrl.trim() || undefined,
           autoAnnotate: !addAnnotation.trim(),
+          // Only polish when there's a user note AND the toggle is on.
+          // No-op when the AI is writing the annotation from scratch.
+          polishAnnotation: !!addAnnotation.trim() && polishMyNote,
           category: addCategory,
         }),
       })
@@ -393,6 +397,21 @@ function TodaysDraft({ password }: { password: string }) {
               disabled={addLoading}
               className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] leading-[1.5] resize-y outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
             />
+            {/* Polish-my-note toggle. Hidden when textarea is empty (no-op anyway). */}
+            {addAnnotation.trim() && (
+              <label className="mt-2 flex items-start gap-2 cursor-pointer select-none text-[12px] text-ws-black/70">
+                <input
+                  type="checkbox"
+                  checked={polishMyNote}
+                  onChange={e => setPolishMyNote(e.target.checked)}
+                  disabled={addLoading}
+                  className="mt-0.5 w-4 h-4 accent-ws-black cursor-pointer shrink-0"
+                />
+                <span>
+                  <strong>Polish my note in the AI Today voice.</strong> GPT lightly rewrites your text using the same plain-language rules as the rest of the issue — keeps your meaning, tightens the prose. Adds ~1 sec.
+                </span>
+              </label>
+            )}
           </div>
 
           {/* Category */}
