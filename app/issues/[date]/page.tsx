@@ -14,6 +14,7 @@ import { MetadataStrip } from '@/components/MetadataStrip'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { CopyMarkdownButton } from '@/components/CopyMarkdownButton'
 import { TableOfContents } from '@/components/TableOfContents'
+import { MobileToc } from '@/components/MobileToc'
 import { ReadingProgress } from '@/components/ReadingProgress'
 import { ArticleJsonLd } from '@/components/ArticleJsonLd'
 import { IssueCard } from '@/components/IssueCard'
@@ -77,10 +78,13 @@ export default async function IssuePage({ params }: Props) {
             </span>
           </div>
 
-          <h1 className="text-[40px] sm:text-[52px] font-black uppercase leading-[0.95] tracking-tight mb-4 mt-2 break-words">
+          <h1 className="text-[30px] sm:text-[40px] md:text-[52px] font-black uppercase leading-[1] sm:leading-[0.95] tracking-tight mb-4 mt-2 break-words">
             {nonBreakingDate(issue.title)}
           </h1>
           <div className="w-16 h-[3px] bg-ws-accent mb-8" aria-hidden="true" />
+
+          {/* Mobile TOC — hidden on xl where the sticky sidebar TOC takes over */}
+          <MobileToc entries={tocEntries} />
 
           <NotionRenderer blocks={blocks} />
 
@@ -90,37 +94,33 @@ export default async function IssuePage({ params }: Props) {
             <CopyMarkdownButton markdown={markdown} />
           </div>
 
-          {/* Prev / Next navigation */}
+          {/* Prev / Next navigation — stacks on mobile, side-by-side from sm */}
           <nav
             aria-label="Issue navigation"
-            className="border-t-[3px] border-ws-black mt-12 pt-8 grid grid-cols-2 gap-4"
+            className="border-t-[3px] border-ws-black mt-12 pt-8 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-4"
           >
-            <div>
-              {adjacent.prev && (
-                <>
-                  <p className="text-[12px] font-black uppercase tracking-wide mb-1">← Older</p>
-                  <Link
-                    href={`/issues/${adjacent.prev.slug}`}
-                    className="text-[17px] font-bold underline hover:text-ws-accent hover:no-underline"
-                  >
-                    {adjacent.prev.title}
-                  </Link>
-                </>
-              )}
-            </div>
-            <div className="text-right">
-              {adjacent.next && (
-                <>
-                  <p className="text-[12px] font-black uppercase tracking-wide mb-1">Newer →</p>
-                  <Link
-                    href={`/issues/${adjacent.next.slug}`}
-                    className="text-[17px] font-bold underline hover:text-ws-accent hover:no-underline"
-                  >
-                    {adjacent.next.title}
-                  </Link>
-                </>
-              )}
-            </div>
+            {adjacent.prev && (
+              <div>
+                <p className="text-[12px] font-black uppercase tracking-wide mb-1">← Older</p>
+                <Link
+                  href={`/issues/${adjacent.prev.slug}`}
+                  className="text-[17px] font-bold underline hover:text-ws-accent hover:no-underline"
+                >
+                  {adjacent.prev.title}
+                </Link>
+              </div>
+            )}
+            {adjacent.next && (
+              <div className="sm:text-right">
+                <p className="text-[12px] font-black uppercase tracking-wide mb-1">Newer →</p>
+                <Link
+                  href={`/issues/${adjacent.next.slug}`}
+                  className="text-[17px] font-bold underline hover:text-ws-accent hover:no-underline"
+                >
+                  {adjacent.next.title}
+                </Link>
+              </div>
+            )}
           </nav>
 
           {/* Related issues */}

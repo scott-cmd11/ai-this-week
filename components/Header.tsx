@@ -19,17 +19,17 @@ export function Header() {
 
   return (
     <header className="bg-ws-white border-b border-ws-border" role="banner">
-      <div className="max-w-4xl mx-auto px-4 py-3 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+      <div className="max-w-4xl mx-auto px-4 py-3 sm:py-5 flex items-center justify-between gap-3">
         <Link
           href="/"
-          className="flex items-center gap-2 text-ws-black font-bold text-[20px] sm:text-[22px] tracking-tight no-underline hover:text-ws-accent focus-visible:outline-none focus-visible:bg-[var(--color-focus)] focus-visible:px-1"
+          className="flex items-center gap-2 text-ws-black font-bold text-[18px] sm:text-[22px] tracking-tight no-underline hover:text-ws-accent focus-visible:outline-none focus-visible:bg-[var(--color-focus)] focus-visible:px-1"
         >
-          <MapleLeaf className="w-6 h-6 sm:w-7 sm:h-7" />
+          <MapleLeaf className="w-5 h-5 sm:w-7 sm:h-7" />
           AI Today
         </Link>
 
         <nav aria-label="Main navigation">
-          <ul className="flex gap-5 sm:gap-7 list-none m-0 p-0">
+          <ul className="flex gap-4 sm:gap-7 list-none m-0 p-0">
             <li><Link href="/issues" className={navLinkClass}>Issues</Link></li>
             <li><Link href="/about" className={navLinkClass}>About</Link></li>
           </ul>

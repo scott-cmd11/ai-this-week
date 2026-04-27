@@ -50,13 +50,13 @@ export default async function HomePage() {
               <span aria-hidden="true">·</span>
               <time dateTime={latest.issueDate}>{formatDate(latest.issueDate)}</time>
             </div>
-            <h2 className="text-[36px] font-black uppercase leading-[1.05] tracking-tight mb-4">
+            <h2 className="text-[26px] sm:text-[32px] md:text-[36px] font-black uppercase leading-[1.05] tracking-tight mb-4">
               <Link href={`/issues/${latest.slug}`} className="text-ws-black hover:text-ws-accent no-underline">
                 {nonBreakingDate(latest.title)}
               </Link>
             </h2>
             {latest.summary && (
-              <p className="text-[19px] leading-[1.5] mb-6 max-w-2xl">{latest.summary}</p>
+              <p className="text-[17px] sm:text-[19px] leading-[1.5] mb-6 max-w-2xl">{latest.summary}</p>
             )}
             <NeoPopButton href={`/issues/${latest.slug}`} variant="primary">
               Read this issue →
