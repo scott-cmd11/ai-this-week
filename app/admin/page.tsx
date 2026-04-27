@@ -838,10 +838,12 @@ function ResearchImport({ password }: { password: string }) {
     }
 
     try {
+      // rewriteWithAi: true → research papers' Plain Summary gets rewritten in
+      // the AI Today voice, matching briefings + manually-pasted articles.
       const res = await fetch('/api/import-briefing-articles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminPassword: password, articles: toImport }),
+        body: JSON.stringify({ adminPassword: password, articles: toImport, rewriteWithAi: true }),
       })
       const payload = await res.json()
       if (!res.ok) {
@@ -1136,7 +1138,9 @@ function BriefingImport({ password }: { password: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [importing, setImporting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const [rewriteWithAi, setRewriteWithAi] = useState(false)
+  // Default ON — applies the AI Today voice to every imported summary so the
+  // issue reads as one consistent voice instead of a patchwork of source styles.
+  const [rewriteWithAi, setRewriteWithAi] = useState(true)
   const { isKnown, windowDays } = useKnownUrls(password)
 
   async function load() {
@@ -1504,11 +1508,13 @@ function BriefingImport({ password }: { password: string }) {
             />
             <span className="flex flex-col gap-0.5">
               <span className="text-[13px] font-bold leading-tight">
-                Rewrite summaries in the AI Today voice
+                Rewrite summaries in the AI Today voice <span className="text-ws-accent text-[11px] font-black uppercase tracking-wide ml-1">Recommended</span>
               </span>
               <span className="text-[12px] text-ws-black/60 leading-snug">
-                Uses AI to rewrite each briefing summary — same result as pasting a URL manually.
-                Slower (~2–3 sec per article). Leave off to use the briefing&apos;s text as-is (fast).
+                Each briefing source has its own writing style. With this on, GPT rewrites every summary
+                in plain language using the AI Today voice — so the published issue reads as one
+                consistent voice instead of a patchwork. Adds ~2–3 sec per article.
+                Turn off only if you&apos;re in a rush and the source text is already clean.
               </span>
             </span>
           </label>
@@ -2180,8 +2186,11 @@ function WorkflowGuide() {
                   <li><strong>Add a learning event</strong> — paste an event URL and AI auto-fills the title, date, location, and description (you can edit before saving)</li>
                 </ul>
                 <p className="text-ws-black/60 mt-1.5 text-[13px]">
-                  Optional on briefings: <em>Rewrite summaries in the AI Today voice</em> — GPT
-                  rewrites each summary. Slower (~2–3 sec/article) but consistent voice.
+                  <strong>Voice consistency:</strong> by default, every imported summary (from briefings,
+                  research, events, or manual pastes) is rewritten by GPT in the AI Today voice — plain
+                  language, active verbs, no jargon. So the published issue reads as one consistent
+                  voice instead of a patchwork of source styles. Adds ~2–3 sec per article.
+                  Toggle off the rewrite on briefings if you&apos;re in a rush.
                 </p>
                 <p className="text-ws-black/60 mt-1 text-[13px]">
                   Anything already published in the last 30 days shows a <strong>⚠ Already published</strong> badge and is pre-unchecked, so you don&apos;t accidentally repeat yourself.

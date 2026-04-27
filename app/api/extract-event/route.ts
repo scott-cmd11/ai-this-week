@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { fetchArticle } from '@/lib/article-fetcher'
+import { SYSTEM_PROMPTS } from '@/lib/prompts'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -18,16 +19,22 @@ export interface ExtractedEvent {
 
 // ─── Prompt ──────────────────────────────────────────────────────────────────────
 
+// The description field is reader-facing — it lands in the published issue.
+// It must follow the same AI Today voice as article annotations, so we splice
+// the central voice guide into the prompt rather than repeating rules.
 const SYSTEM_PROMPT = `You extract event details from webpage content and return JSON.
 
 Given the text of an event registration or announcement page, extract:
 - title: the event name (short, no surrounding punctuation)
 - when: the date and time as plain readable text (e.g. "May 7, 2pm ET", "Wednesday June 4, 7–8:30pm ET", "June 10–12, 2025"). Include timezone if mentioned.
 - where: the location or format (e.g. "Virtual", "Toronto, ON", "Hybrid — Ottawa", "In-person"). Keep it short.
-- description: 1–2 sentences describing what the event is about and who it is for.
+- description: 1–2 sentences describing what the event is about and who it is for. Follow the AI Today voice rules below for this field.
 
 Always return valid JSON with exactly these four keys: title, when, where, description.
-If a field cannot be determined, return an empty string for that key.`
+If a field cannot be determined, return an empty string for that key.
+
+── AI Today voice (applies to the description field) ─────────────────────
+${SYSTEM_PROMPTS.brief}`
 
 // ─── Route handler ──────────────────────────────────────────────────────────────
 

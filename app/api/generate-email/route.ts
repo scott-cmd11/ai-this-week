@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { SYSTEM_PROMPTS } from '@/lib/prompts'
 
 type SectionKey = 'top' | 'bright' | 'tool' | 'podcast' | 'learning' | 'deep'
 
@@ -60,27 +61,36 @@ export async function POST(request: NextRequest) {
   const summaryContent = summaryLines.join('\n').trim()
   const issueUrlLine = body.issueUrl ? `\nIssue URL: ${body.issueUrl}` : ''
 
-  const prompt = `You are writing a short weekly email to subscribers of "AI Today", a curated AI newsletter.
-
-Here are the summaries from Issue #${body.issueNumber}:${issueUrlLine}
+  const userPrompt = `Here are the summaries from Issue #${body.issueNumber}:${issueUrlLine}
 
 ${summaryContent}
 
 Write a short outreach email with:
 1. A subject line on its own line in the format: Subject: ...
 2. A friendly 1-sentence opening referencing this week's issue number
-3. 3-5 highlight bullet points — pick the most interesting items across all sections, one sentence each, punchy and specific, mentioning actual titles or tool names
+3. 3–5 highlight bullet points — pick the most interesting items across all sections, one sentence each, punchy and specific, mentioning actual titles or tool names
 4. A single call-to-action line (use the URL if provided, otherwise write "[issue link]")
 5. A brief sign-off (e.g. "— Scott")
 
 Keep the whole email under 200 words. Plain text only, no HTML or markdown formatting in the body.`
+
+  // System prompt = AI Today voice (plain language, no jargon, active verbs).
+  // Same guide used by article annotations and event descriptions, so the
+  // email reads like the issue itself rather than like a pitch deck.
+  const systemPrompt = `You are writing a short weekly email to subscribers of "AI Today", a curated AI newsletter.
+
+── AI Today voice ────────────────────────────────────────────
+${SYSTEM_PROMPTS.brief}`
 
   try {
     const openai = new OpenAI({ apiKey: openaiApiKey })
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       max_tokens: 500,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
     })
     const text = response.choices[0]?.message?.content?.trim() ?? ''
     const subjectMatch = text.match(/^Subject:\s*(.+)$/m)

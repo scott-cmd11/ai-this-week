@@ -3,9 +3,13 @@
 // annotation in the AI Today voice." Used by /api/capture (when the user
 // doesn't supply a note) and by /api/import-briefing-articles (when the user
 // opts to rewrite briefing summaries in the AI Today voice).
+//
+// Voice rules live in lib/prompts.ts so every code path that produces
+// user-facing text shares one definition of "AI Today voice."
 
 import type OpenAI from 'openai'
 import { fetchArticle, hostnameFallback } from './article-fetcher'
+import { SYSTEM_PROMPTS } from './prompts'
 
 interface GenerateOptions {
   /**
@@ -17,11 +21,6 @@ interface GenerateOptions {
   /** Pre-fetched title; if provided, we skip re-fetching. */
   knownTitle?: string | null
 }
-
-const PROMPT_INTRO =
-  `Write a 1-2 sentence annotation for this article as it would appear in an ` +
-  `AI newsletter for non-technical professionals. Be specific about what's ` +
-  `interesting or significant. Plain text only, no bullet points.`
 
 /**
  * Generate an annotation for a URL using OpenAI.
@@ -65,10 +64,13 @@ export async function generateAnnotation(
       model: 'gpt-4o-mini',
       max_tokens: 200,
       messages: [
+        // System prompt = the central AI Today voice guide (1–2 sentences,
+        // plain language, no jargon, active verbs, no hedges).
+        { role: 'system', content: SYSTEM_PROMPTS.brief },
         {
           role: 'user',
           content:
-            `${PROMPT_INTRO}\n\nTitle: ${title ?? hostnameFallback(url)}\n` +
+            `Title: ${title ?? hostnameFallback(url)}\n` +
             `URL: ${url}\n\nArticle text:\n${sourceText}`,
         },
       ],
