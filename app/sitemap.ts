@@ -11,14 +11,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
 
   return [
-    { url: `${BASE_URL}/`, lastModified: now, changeFrequency: 'weekly', priority: 1 },
-    { url: `${BASE_URL}/issues`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${BASE_URL}/`, lastModified: now, changeFrequency: 'daily', priority: 1 },
+    { url: `${BASE_URL}/issues`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
     { url: `${BASE_URL}/sections`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/about`, lastModified: now, changeFrequency: 'yearly', priority: 0.5 },
     ...SECTIONS.map(s => ({
       url: `${BASE_URL}/sections/${s.slug}`,
       lastModified: now,
-      changeFrequency: 'weekly' as const,
+      changeFrequency: 'daily' as const,
       priority: 0.6,
     })),
     ...issues.map(issue => ({

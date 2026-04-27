@@ -29,7 +29,7 @@ export default async function OgImage({ params }: Props) {
   const title = issue?.title ?? 'AI Today'
   const meta = issue
     ? `Issue ${issue.issueNumber} · ${formatDate(issue.issueDate)}`
-    : 'Weekly AI news for non-technical professionals'
+    : 'Daily AI news for non-technical professionals'
 
   return new ImageResponse(
     (

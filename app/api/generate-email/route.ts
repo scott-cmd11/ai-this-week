@@ -67,7 +67,7 @@ ${summaryContent}
 
 Write a short outreach email with:
 1. A subject line on its own line in the format: Subject: ...
-2. A friendly 1-sentence opening referencing this week's issue number
+2. A friendly 1-sentence opening referencing today's issue number
 3. 3–5 highlight bullet points — pick the most interesting items across all sections, one sentence each, punchy and specific, mentioning actual titles or tool names
 4. A single call-to-action line (use the URL if provided, otherwise write "[issue link]")
 5. A brief sign-off (e.g. "— Scott")
@@ -77,7 +77,7 @@ Keep the whole email under 200 words. Plain text only, no HTML or markdown forma
   // System prompt = AI Today voice (plain language, no jargon, active verbs).
   // Same guide used by article annotations and event descriptions, so the
   // email reads like the issue itself rather than like a pitch deck.
-  const systemPrompt = `You are writing a short weekly email to subscribers of "AI Today", a curated AI newsletter.
+  const systemPrompt = `You are writing a short daily email to subscribers of "AI Today", a curated AI newsletter.
 
 ── AI Today voice ────────────────────────────────────────────
 ${SYSTEM_PROMPTS.brief}`

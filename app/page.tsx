@@ -10,7 +10,7 @@ export const revalidate = 300
 export const metadata: Metadata = {
   title: 'AI Today — AI news for non-technical professionals',
   description:
-    'Canadian AI news, trending global stories, and new research — delivered weekly for professional, non-technical readers. No hype, no jargon.',
+    'Canadian AI news, trending global stories, and new research — delivered daily for professional, non-technical readers. No hype, no jargon.',
 }
 
 function formatDate(isoDate: string): string {
@@ -32,7 +32,7 @@ export default async function HomePage() {
           </h1>
           <div className="w-16 h-[3px] bg-ws-accent mb-5" aria-hidden="true" />
           <p className="text-[22px] leading-[1.4] max-w-2xl font-medium">
-            Every week: Canadian AI news, trending global stories, and new research —
+            Every day: Canadian AI news, trending global stories, and new research —
             written for professional, non-technical readers. No hype, no jargon.
           </p>
         </NeoPopCard>

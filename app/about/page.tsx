@@ -19,14 +19,33 @@ export default function AboutPage() {
         <NeoPopCard bg="white" interactive={false}>
           <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">What is this?</h2>
           <p className="text-[19px] leading-[1.5] mb-4">
-            AI Today is a daily link digest on artificial intelligence, written for
-            professionals working in or alongside AI. Every day there&apos;s something
-            worth reading — a policy update, a new tool, a research paper, a
-            development that changes how the industry works. This is where those
-            links land, with a short note on why they matter.
+            AI Today is a daily digest of artificial intelligence news, written for
+            professional, non-technical readers — people whose work touches AI without
+            being AI specialists. Each issue brings together Canadian AI policy and
+            companies, trending global stories, new research papers, and upcoming
+            learning events worth knowing about.
           </p>
           <p className="text-[19px] leading-[1.5] font-bold">
             No jargon. No hype. Just what matters, in plain English.
+          </p>
+        </NeoPopCard>
+      </section>
+
+      <section aria-label="What you'll find" className="mb-10">
+        <NeoPopCard bg="white" interactive={false}>
+          <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">What you&apos;ll find in each issue</h2>
+          <ul className="list-none p-0 m-0 flex flex-col gap-3 text-[17px] leading-[1.5]">
+            <li><span className="font-bold">🍁 Canada</span> — Canadian AI policy, companies, and adoption.</li>
+            <li><span className="font-bold">⚖️ Policy &amp; Regulation</span> — privacy, ethics, governance.</li>
+            <li><span className="font-bold">🏛️ Government &amp; Public Sector</span> — federal use, sovereign compute.</li>
+            <li><span className="font-bold">💼 Industry &amp; Models</span> — investment, M&amp;A, models, agents, coding.</li>
+            <li><span className="font-bold">🌾 Sectors &amp; Applications</span> — agriculture, environment, jobs, applied AI.</li>
+            <li><span className="font-bold">🔬 Research</span> — trending papers from arXiv and Hugging Face.</li>
+            <li><span className="font-bold">📅 Upcoming</span> — webinars, courses, conferences, meetups.</li>
+          </ul>
+          <p className="text-[15px] leading-[1.5] text-ws-muted mt-4">
+            Not every section appears in every issue — only what&apos;s actually worth
+            reading that day.
           </p>
         </NeoPopCard>
       </section>
@@ -35,15 +54,19 @@ export default function AboutPage() {
         <NeoPopCard bg="cream" interactive={false}>
           <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">AI content disclosure</h2>
           <p className="text-[19px] leading-[1.5] mb-4">
-            <strong>All summaries on this site are AI-generated.</strong> Always go
-            to the original source — linked beneath each summary as &ldquo;Read
-            more&rdquo; — for the authoritative version of any story.
+            <strong>Article summaries, event descriptions, and the newsletter email
+            are all written by AI</strong> in a consistent house style — plain language,
+            active verbs, no jargon. Article titles come from the original source, unchanged.
+          </p>
+          <p className="text-[19px] leading-[1.5] mb-4">
+            Every story links to its source — the title takes you there, and a small
+            &ldquo;via [source]&rdquo; line at the end of each entry credits the publisher.
+            Always follow the link for the authoritative version of any story.
           </p>
           <p className="text-[19px] leading-[1.5]">
-            Minor editing happens prior to publishing: summaries are reviewed for
-            obvious errors and tone before each issue goes live. But AI-generated
-            text can misread nuance, miss context, or occasionally invent detail.
-            Treat summaries as a pointer to the story, not the story itself.
+            Summaries are reviewed for obvious errors and tone before each issue goes
+            live. But AI text can misread nuance, miss context, or occasionally invent
+            detail. Treat the summary as a pointer to the story, not the story itself.
           </p>
         </NeoPopCard>
       </section>
@@ -53,7 +76,7 @@ export default function AboutPage() {
           <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">Contact</h2>
           <p className="text-[19px] leading-[1.5] mb-5">
             Questions, corrections, or a story to pass along? Send a message and
-            I&apos;ll reply when I can.
+            I&apos;ll reply when I can. — Scott
           </p>
           <a
             href="/contact"
