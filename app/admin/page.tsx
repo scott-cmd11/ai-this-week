@@ -168,6 +168,13 @@ function TodaysDraft({ password }: { password: string }) {
   const [polishMyNote, setPolishMyNote] = useState(true)  // Recommended default
   const [addLoading, setAddLoading] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
+  // Duplicate-URL warning state — shown when /api/capture returns 409.
+  // User can click "Add anyway" to re-submit with force: true.
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    issueNumber: number
+    issueDate: string
+    published: boolean
+  } | null>(null)
 
   // Publish
   const [publishing, setPublishing] = useState(false)
@@ -198,9 +205,7 @@ function TodaysDraft({ password }: { password: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function handleAddArticle(e: React.FormEvent) {
-    e.preventDefault()
-    if (!addUrl.trim()) return
+  async function submitAddArticle(force: boolean) {
     setAddLoading(true)
     setAddError(null)
     try {
@@ -213,28 +218,42 @@ function TodaysDraft({ password }: { password: string }) {
           annotation: addAnnotation.trim() || undefined,
           imageUrl: addImageUrl.trim() || undefined,
           autoAnnotate: !addAnnotation.trim(),
-          // Only polish when there's a user note AND the toggle is on.
-          // No-op when the AI is writing the annotation from scratch.
           polishAnnotation: !!addAnnotation.trim() && polishMyNote,
           category: addCategory,
+          force,
         }),
       })
       const data = await res.json()
+
+      // Soft duplicate block — show inline warning with "Add anyway" option
+      if (res.status === 409 && data.duplicate) {
+        setDuplicateWarning(data.duplicate)
+        return
+      }
       if (!res.ok) {
         setAddError(data.error ?? `Error ${res.status}`)
         return
       }
-      // Reset form and reload draft
+
+      // Success — reset form and reload draft
       setAddUrl('')
       setAddAnnotation('')
       setAddImageUrl('')
       setShowImageField(false)
+      setDuplicateWarning(null)
       await loadDraft()
     } catch {
       setAddError('Network error — check your connection.')
     } finally {
       setAddLoading(false)
     }
+  }
+
+  async function handleAddArticle(e: React.FormEvent) {
+    e.preventDefault()
+    if (!addUrl.trim()) return
+    setDuplicateWarning(null)
+    await submitAddArticle(false)
   }
 
   async function handlePublishNow() {
@@ -474,9 +493,44 @@ function TodaysDraft({ password }: { password: string }) {
             </div>
           )}
 
+          {/* Soft duplicate-URL warning — shown when /api/capture returned 409.
+              User can dismiss + edit, or click "Add anyway" to force-submit. */}
+          {duplicateWarning && (
+            <div
+              role="alert"
+              className="border-[3px] border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3"
+            >
+              <div className="flex items-start gap-2">
+                <span className="text-[16px]" aria-hidden="true">⚠</span>
+                <p className="text-[14px] text-ws-black leading-snug">
+                  This URL was already added to <strong>Issue #{duplicateWarning.issueNumber}</strong> on{' '}
+                  <strong>{duplicateWarning.issueDate}</strong>{' '}
+                  ({duplicateWarning.published ? 'published' : 'draft'}). Add it again only if you mean to.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => submitAddArticle(true)}
+                  disabled={addLoading}
+                  className="border-[2px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[12px] px-3 py-1.5 hover:bg-ws-accent-hover disabled:opacity-50"
+                >
+                  Add anyway
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDuplicateWarning(null)}
+                  className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={addLoading || !addUrl.trim()}
+            disabled={addLoading || !addUrl.trim() || !!duplicateWarning}
             className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[14px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-accent)] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {addLoading ? (
@@ -512,6 +566,12 @@ function AddEvent({ password }: { password: string }) {
   const [autofillUrl, setAutofillUrl] = useState('')
   const [autofilling, setAutofilling] = useState(false)
   const [autofillError, setAutofillError] = useState<string | null>(null)
+  // Duplicate event-URL warning
+  const [eventDuplicate, setEventDuplicate] = useState<{
+    issueNumber: number
+    issueDate: string
+    published: boolean
+  } | null>(null)
 
   async function handleAutofill() {
     const trimmed = autofillUrl.trim()
@@ -540,12 +600,9 @@ function AddEvent({ password }: { password: string }) {
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function submitEvent(force: boolean) {
     setError(null)
     setSuccess(null)
-    if (!title.trim()) { setError('Event title is required.'); return }
-    if (!url.trim() || !url.trim().startsWith('http')) { setError('A valid registration URL is required.'); return }
     setLoading(true)
     try {
       const res = await fetch('/api/capture-event', {
@@ -558,20 +615,34 @@ function AddEvent({ password }: { password: string }) {
           where: where.trim(),
           description: description.trim(),
           url: url.trim(),
+          force,
         }),
       })
       const data = await res.json()
+
+      if (res.status === 409 && data.duplicate) {
+        setEventDuplicate(data.duplicate)
+        return
+      }
       if (!res.ok) { setError(data.error ?? `Error ${res.status}`); return }
+
       setSuccess(`✓ Event added to today's draft (under "Upcoming").`)
-      // Reset form
       setTitle(''); setWhen(''); setWhere(''); setDescription(''); setUrl('')
-      // Tell TodaysDraft to refresh
+      setEventDuplicate(null)
       window.dispatchEvent(new CustomEvent('aitoday:refresh-draft'))
     } catch {
       setError('Network error.')
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!title.trim()) { setError('Event title is required.'); return }
+    if (!url.trim() || !url.trim().startsWith('http')) { setError('A valid registration URL is required.'); return }
+    setEventDuplicate(null)
+    await submitEvent(false)
   }
 
   if (!open) {
@@ -733,9 +804,38 @@ function AddEvent({ password }: { password: string }) {
           <p className="text-[14px] font-bold text-ws-black">{success}</p>
         )}
 
+        {/* Soft duplicate event-URL warning */}
+        {eventDuplicate && (
+          <div role="alert" className="border-[3px] border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
+            <p className="text-[14px] text-ws-black leading-snug">
+              <span aria-hidden="true">⚠</span> This URL was already added to{' '}
+              <strong>Issue #{eventDuplicate.issueNumber}</strong> on{' '}
+              <strong>{eventDuplicate.issueDate}</strong>{' '}
+              ({eventDuplicate.published ? 'published' : 'draft'}). Add it again only if you mean to.
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => submitEvent(true)}
+                disabled={loading}
+                className="border-[2px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[12px] px-3 py-1.5 hover:bg-ws-accent-hover disabled:opacity-50"
+              >
+                Add anyway
+              </button>
+              <button
+                type="button"
+                onClick={() => setEventDuplicate(null)}
+                className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         <button
           type="submit"
-          disabled={loading || !title.trim() || !url.trim()}
+          disabled={loading || !title.trim() || !url.trim() || !!eventDuplicate}
           className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[14px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-accent)] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {loading ? (
