@@ -58,6 +58,8 @@ interface DailyArticle {
   /** Notion paragraph block ID — needed by the regenerate flow to update
    *  the annotation in place. May be null on very old articles. */
   annotationBlockId: string | null
+  /** Canonical category populated from the heading_2 above this article. */
+  category: string | null
 }
 
 interface PublishedIssue {
@@ -159,6 +161,9 @@ function SiteStats({ password }: { password: string }) {
 }
 
 // ─── TodaysDraft ─────────────────────────────────────────────────────────────────
+// Pure review panel: shows the assembled draft grouped by category, exactly
+// the way readers will see it once published. The "Add an article manually"
+// flow lives in its own panel below (AddArticleManually).
 
 function TodaysDraft({ password }: { password: string }) {
   // Draft state
@@ -166,23 +171,6 @@ function TodaysDraft({ password }: { password: string }) {
   const [articles, setArticles] = useState<DailyArticle[]>([])
   const [draftLoading, setDraftLoading] = useState(true)
   const [draftError, setDraftError] = useState<string | null>(null)
-
-  // Add article form
-  const [addUrl, setAddUrl] = useState('')
-  const [addAnnotation, setAddAnnotation] = useState('')
-  const [addImageUrl, setAddImageUrl] = useState('')
-  const [addCategory, setAddCategory] = useState<Category>('Canada')
-  const [showImageField, setShowImageField] = useState(false)
-  const [polishMyNote, setPolishMyNote] = useState(true)  // Recommended default
-  const [addLoading, setAddLoading] = useState(false)
-  const [addError, setAddError] = useState<string | null>(null)
-  // Duplicate-URL warning state — shown when /api/capture returns 409.
-  // User can click "Add anyway" to re-submit with force: true.
-  const [duplicateWarning, setDuplicateWarning] = useState<{
-    issueNumber: number
-    issueDate: string
-    published: boolean
-  } | null>(null)
 
   // Publish
   const [publishing, setPublishing] = useState(false)
@@ -286,57 +274,6 @@ function TodaysDraft({ password }: { password: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function submitAddArticle(force: boolean) {
-    setAddLoading(true)
-    setAddError(null)
-    try {
-      const res = await fetch('/api/capture', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adminPassword: password,
-          url: addUrl.trim(),
-          annotation: addAnnotation.trim() || undefined,
-          imageUrl: addImageUrl.trim() || undefined,
-          autoAnnotate: !addAnnotation.trim(),
-          polishAnnotation: !!addAnnotation.trim() && polishMyNote,
-          category: addCategory,
-          force,
-        }),
-      })
-      const data = await res.json()
-
-      // Soft duplicate block — show inline warning with "Add anyway" option
-      if (res.status === 409 && data.duplicate) {
-        setDuplicateWarning(data.duplicate)
-        return
-      }
-      if (!res.ok) {
-        setAddError(data.error ?? `Error ${res.status}`)
-        return
-      }
-
-      // Success — reset form and reload draft
-      setAddUrl('')
-      setAddAnnotation('')
-      setAddImageUrl('')
-      setShowImageField(false)
-      setDuplicateWarning(null)
-      await loadDraft()
-    } catch {
-      setAddError('Network error — check your connection.')
-    } finally {
-      setAddLoading(false)
-    }
-  }
-
-  async function handleAddArticle(e: React.FormEvent) {
-    e.preventDefault()
-    if (!addUrl.trim()) return
-    setDuplicateWarning(null)
-    await submitAddArticle(false)
-  }
-
   async function handlePublishNow() {
     if (!draft) return
     setPublishing(true)
@@ -363,13 +300,141 @@ function TodaysDraft({ password }: { password: string }) {
 
   const notionUrl = draft ? `https://notion.so/${draft.id.replace(/-/g, '')}` : null
 
+  // Group articles by category, render in CATEGORY_ORDER first, then any extras
+  // (e.g. "Upcoming" for events) so the preview mirrors the published-issue
+  // structure. The number we display per article is its global position in
+  // the issue (1-indexed), which is the order Notion stored them in.
+  function renderGroupedArticles() {
+    const grouped = new Map<string, Array<{ n: number; a: DailyArticle }>>()
+    articles.forEach((a, i) => {
+      const cat = a.category ?? 'Uncategorized'
+      if (!grouped.has(cat)) grouped.set(cat, [])
+      grouped.get(cat)!.push({ n: i + 1, a })
+    })
+    const orderedCats = [
+      ...CATEGORY_ORDER.filter(c => grouped.has(c)),
+      ...[...grouped.keys()].filter(c => !CATEGORY_ORDER.includes(c as Category)),
+    ]
+    return (
+      <div className="flex flex-col gap-5">
+        {orderedCats.map(cat => {
+          const items = grouped.get(cat)!
+          const meta = CATEGORY_META[cat as Category]
+          return (
+            <section key={cat}>
+              <p className="text-[12px] font-black uppercase tracking-[0.12em] mb-2 pb-1 border-b-[2px] border-ws-black">
+                {meta?.icon ? `${meta.icon} ` : ''}{cat}
+                <span className="ml-2 text-ws-black/40 font-normal normal-case tracking-normal text-[11px]">({items.length})</span>
+              </p>
+              <ul className="flex flex-col divide-y divide-ws-black/10">
+                {items.map(({ n, a }) => {
+                  const blockId = a.annotationBlockId
+                  const candidate = blockId ? regenCandidate.get(blockId) : undefined
+                  const err = blockId ? regenError.get(blockId) : undefined
+                  const loading = regenLoading === blockId
+                  const canRegen = !!a.url && !!blockId
+                  let hostname: string | null = null
+                  if (a.url) {
+                    try { hostname = new URL(a.url).hostname.replace(/^www\./, '') } catch {}
+                  }
+                  return (
+                    <li key={n} className="py-3 flex flex-col gap-2">
+                      <div className="flex gap-3 items-start">
+                        <span className="shrink-0 w-7 h-7 border-[2px] border-ws-black flex items-center justify-center text-[12px] font-black tabular-nums">
+                          {n}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[14px] font-semibold leading-snug">{a.title ?? '(untitled)'}</p>
+                          {a.annotation && (
+                            <p className="text-[13px] text-ws-black/70 line-clamp-1 mt-0.5">{a.annotation}</p>
+                          )}
+                          {hostname && (
+                            <a
+                              href={a.url ?? undefined}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[12px] text-ws-black/50 underline hover:no-underline mt-0.5 inline-block"
+                            >
+                              {hostname} ↗
+                            </a>
+                          )}
+                        </div>
+                        {canRegen && !candidate && (
+                          <button
+                            type="button"
+                            onClick={() => fetchRegenerateCandidate(a)}
+                            disabled={loading}
+                            title="Regenerate annotation in the AI Today voice"
+                            aria-label="Regenerate annotation"
+                            className="shrink-0 text-[16px] text-ws-black/40 hover:text-ws-accent disabled:opacity-50 px-1 leading-none"
+                          >
+                            {loading ? '…' : '↻'}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Regenerate side-by-side preview */}
+                      {blockId && candidate && (
+                        <div className="border-[2px] border-ws-accent bg-ws-accent-light/40 p-3 flex flex-col gap-3 ml-10">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px] leading-snug">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-[0.1em] text-ws-black/60 mb-1">Current</p>
+                              <p className="text-ws-black/80">{a.annotation ?? '(empty)'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-[0.1em] text-ws-accent mb-1">Regenerated</p>
+                              <p className="text-ws-black">{candidate}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => applyRegenerateCandidate(a)}
+                              disabled={loading}
+                              className="border-[2px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[12px] px-3 py-1.5 hover:bg-ws-accent-hover disabled:opacity-50"
+                            >
+                              {loading ? 'Applying…' : '✓ Use new'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => dismissCandidate(blockId)}
+                              disabled={loading}
+                              className="text-[12px] font-medium text-ws-black/60 hover:underline hover:text-ws-accent disabled:opacity-50"
+                            >
+                              ✗ Keep current
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => fetchRegenerateCandidate(a)}
+                              disabled={loading}
+                              className="text-[12px] font-medium text-ws-black/60 hover:underline hover:text-ws-accent disabled:opacity-50 ml-auto"
+                            >
+                              ↻ Try again
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {err && (
+                        <p className="text-[12px] font-bold text-ws-accent ml-10" role="alert">{err}</p>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-5">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Today&apos;s draft</p>
-          <p className="text-[12px] text-ws-black/50 mt-0.5">Everything imported above lands here. Paste a URL to add anything extra. Click <strong>Publish now</strong> when ready.</p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">Review the assembled issue. When it looks right, publish.</p>
         </div>
         <button
           type="button"
@@ -383,315 +448,319 @@ function TodaysDraft({ password }: { password: string }) {
 
       {draftError && <p className="text-[14px] font-bold text-ws-accent">{draftError}</p>}
 
-      {/* Draft status */}
-      {!draftLoading && (
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            {draft ? (
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-[28px] font-black leading-none">{articles.length}</span>
-                <span className="text-[14px] font-bold text-ws-black/70">
-                  article{articles.length !== 1 ? 's' : ''} in today&apos;s draft
-                </span>
-                {notionUrl && (
-                  <a
-                    href={notionUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[13px] text-ws-accent underline hover:no-underline font-bold"
-                  >
-                    Open in Notion ↗
-                  </a>
-                )}
-              </div>
-            ) : (
-              <p className="text-[14px] text-ws-black/70">Nothing here yet. Import articles, papers, or events from the panels above — or paste a URL below.</p>
-            )}
-          </div>
-
-          {draft && articles.length > 0 && (
-            <button
-              type="button"
-              onClick={handlePublishNow}
-              disabled={publishing}
-              className="border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[13px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-            >
-              {publishing ? 'Publishing…' : 'Publish now'}
-            </button>
+      {/* Status line — single horizontal row, no giant counter */}
+      {!draftLoading && draft && (
+        <p className="text-[13px] text-ws-black/70">
+          <strong className="text-ws-black">{articles.length} article{articles.length !== 1 ? 's' : ''}</strong>
+          {' · '}Issue #{draft.issueNumber}
+          {' · '}{draft.issueDate}
+          {notionUrl && (
+            <>
+              {' · '}
+              <a href={notionUrl} target="_blank" rel="noopener noreferrer" className="text-ws-accent underline hover:no-underline">
+                Open in Notion ↗
+              </a>
+            </>
           )}
-        </div>
+        </p>
+      )}
+      {!draftLoading && !draft && (
+        <p className="text-[14px] text-ws-black/70">Nothing here yet. Import articles, papers, or events from the panels above — or use <strong>Add an article manually</strong> below.</p>
       )}
 
       {publishMessage && (
         <p className="text-[14px] font-bold text-ws-black">{publishMessage}</p>
       )}
 
-      {/* Article list */}
-      {articles.length > 0 && (
-        <ul className="flex flex-col divide-y divide-ws-black/10 border-[2px] border-ws-black/20">
-          {articles.map((a, i) => {
-            const blockId = a.annotationBlockId
-            const candidate = blockId ? regenCandidate.get(blockId) : undefined
-            const err = blockId ? regenError.get(blockId) : undefined
-            const loading = regenLoading === blockId
-            const canRegen = !!a.url && !!blockId
-            return (
-              <li key={i} className="flex flex-col gap-2 px-3 py-3">
-                <div className="flex gap-3">
-                  {a.imageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={a.imageUrl}
-                      alt=""
-                      className="w-14 h-14 object-cover shrink-0 border border-ws-black/20"
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                    />
-                  )}
-                  <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-[14px] font-bold truncate">{a.title ?? '(untitled)'}</p>
-                      {canRegen && !candidate && (
-                        <button
-                          type="button"
-                          onClick={() => fetchRegenerateCandidate(a)}
-                          disabled={loading}
-                          className="text-[11px] font-bold uppercase tracking-wide text-ws-black/50 hover:text-ws-accent underline hover:no-underline shrink-0 disabled:opacity-50"
-                          title="Regenerate this annotation in the AI Today voice"
-                        >
-                          {loading ? '↻ Regenerating…' : '↻ Regenerate'}
-                        </button>
-                      )}
-                    </div>
-                    {a.annotation && (
-                      <p className="text-[13px] text-ws-black/70 line-clamp-2">{a.annotation}</p>
-                    )}
-                    {a.url && (
-                      <a
-                        href={a.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[12px] text-ws-black/50 underline hover:no-underline truncate"
-                      >
-                        {a.url}
-                      </a>
-                    )}
-                  </div>
-                </div>
+      {/* Grouped article list — mirrors published-issue structure */}
+      {articles.length > 0 && renderGroupedArticles()}
 
-                {/* Regenerate side-by-side preview */}
-                {blockId && candidate && (
-                  <div className="border-[2px] border-ws-accent bg-ws-accent-light/40 p-3 flex flex-col gap-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px] leading-snug">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.1em] text-ws-black/60 mb-1">Current</p>
-                        <p className="text-ws-black/80">{a.annotation ?? '(empty)'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.1em] text-ws-accent mb-1">Regenerated</p>
-                        <p className="text-ws-black">{candidate}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => applyRegenerateCandidate(a)}
-                        disabled={loading}
-                        className="border-[2px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[12px] px-3 py-1.5 hover:bg-ws-accent-hover disabled:opacity-50"
-                      >
-                        {loading ? 'Applying…' : '✓ Use new'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => dismissCandidate(blockId)}
-                        disabled={loading}
-                        className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
-                      >
-                        ✗ Keep current
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => fetchRegenerateCandidate(a)}
-                        disabled={loading}
-                        className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50 ml-auto"
-                      >
-                        ↻ Try again
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {err && (
-                  <p className="text-[12px] font-bold text-ws-accent" role="alert">{err}</p>
-                )}
-              </li>
-            )
-          })}
-        </ul>
+      {/* Bottom Publish CTA — prominent, full-row position */}
+      {draft && articles.length > 0 && (
+        <div className="border-t-[2px] border-ws-black/20 pt-5 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-[12px] text-ws-black/60">
+            Once you click <strong>Publish now</strong>, this issue is live on the public site immediately.
+          </p>
+          <button
+            type="button"
+            onClick={handlePublishNow}
+            disabled={publishing}
+            className="border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[15px] px-6 py-3 shadow-[4px_4px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          >
+            {publishing ? 'Publishing…' : 'Publish now ↗'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── AddArticleManually ──────────────────────────────────────────────────────────
+// Standalone collapsible panel for pasting a one-off URL into today's draft.
+// Extracted from TodaysDraft so the review panel is purely about reviewing.
+// Dispatches `aitoday:refresh-draft` after a successful add so TodaysDraft
+// reloads (existing listener in TodaysDraft.useEffect).
+
+function AddArticleManually({ password }: { password: string }) {
+  const [open, setOpen] = useState(false)
+  const [addUrl, setAddUrl] = useState('')
+  const [addAnnotation, setAddAnnotation] = useState('')
+  const [addImageUrl, setAddImageUrl] = useState('')
+  const [addCategory, setAddCategory] = useState<Category>('Canada')
+  const [showImageField, setShowImageField] = useState(false)
+  const [polishMyNote, setPolishMyNote] = useState(true)
+  const [addLoading, setAddLoading] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    issueNumber: number
+    issueDate: string
+    published: boolean
+  } | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  async function submitAddArticle(force: boolean) {
+    setAddLoading(true)
+    setAddError(null)
+    setSuccess(null)
+    try {
+      const res = await fetch('/api/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminPassword: password,
+          url: addUrl.trim(),
+          annotation: addAnnotation.trim() || undefined,
+          imageUrl: addImageUrl.trim() || undefined,
+          autoAnnotate: !addAnnotation.trim(),
+          polishAnnotation: !!addAnnotation.trim() && polishMyNote,
+          category: addCategory,
+          force,
+        }),
+      })
+      const data = await res.json()
+
+      if (res.status === 409 && data.duplicate) {
+        setDuplicateWarning(data.duplicate)
+        return
+      }
+      if (!res.ok) {
+        setAddError(data.error ?? `Error ${res.status}`)
+        return
+      }
+
+      setAddUrl('')
+      setAddAnnotation('')
+      setAddImageUrl('')
+      setShowImageField(false)
+      setDuplicateWarning(null)
+      setSuccess(`✓ Added to today’s draft under ${addCategory}.`)
+      setTimeout(() => setSuccess(null), 4000)
+      window.dispatchEvent(new CustomEvent('aitoday:refresh-draft'))
+    } catch {
+      setAddError('Network error — check your connection.')
+    } finally {
+      setAddLoading(false)
+    }
+  }
+
+  async function handleAddArticle(e: React.FormEvent) {
+    e.preventDefault()
+    if (!addUrl.trim()) return
+    setDuplicateWarning(null)
+    await submitAddArticle(false)
+  }
+
+  if (!open) {
+    return (
+      <div className="border-[3px] border-ws-black bg-ws-white shadow-[4px_4px_0_0_var(--color-ws-black)]">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-ws-page"
+        >
+          <div>
+            <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Add an article manually</p>
+            <p className="text-[12px] text-ws-black/50 mt-0.5">Paste a URL to add anything you saw elsewhere. Leave the note blank and AI writes the summary for you.</p>
+          </div>
+          <span className="text-[12px] font-medium text-ws-black/50 shrink-0">+ Show</span>
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Add an article manually</p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">Paste any URL. Leave the note blank and AI writes the summary for you.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-[12px] font-medium text-ws-black/50 hover:underline hover:text-ws-accent shrink-0"
+        >
+          Hide
+        </button>
+      </div>
+
+      {success && (
+        <p className="text-[13px] font-bold text-ws-black border-[2px] border-ws-black bg-ws-accent-light/40 px-3 py-2">{success}</p>
       )}
 
-      {/* Add article form */}
-      <div className="border-t-[2px] border-ws-black/20 pt-5">
-        <p className="text-[12px] font-black uppercase tracking-[0.12em] mb-1">Add an article manually</p>
-        <p className="text-[12px] text-ws-black/50 mb-4">Paste any URL. Leave the note blank and AI writes the summary for you.</p>
-        <form onSubmit={handleAddArticle} noValidate className="flex flex-col gap-4">
-          {/* URL */}
-          <div>
-            <label htmlFor="today-url" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
-              URL <span className="text-ws-accent" aria-hidden="true">*</span>
+      <form onSubmit={handleAddArticle} noValidate className="flex flex-col gap-4">
+        {/* URL */}
+        <div>
+          <label htmlFor="today-url" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
+            URL <span className="text-ws-accent" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="today-url"
+            type="url"
+            required
+            value={addUrl}
+            onChange={e => setAddUrl(e.target.value)}
+            placeholder="https://…"
+            disabled={addLoading}
+            className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[16px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60 font-mono"
+          />
+        </div>
+
+        {/* Annotation */}
+        <div>
+          <label htmlFor="today-note" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
+            Your note <span className="text-ws-muted font-normal normal-case tracking-normal">(optional — leave blank for AI to write it)</span>
+          </label>
+          <textarea
+            id="today-note"
+            value={addAnnotation}
+            onChange={e => setAddAnnotation(e.target.value)}
+            placeholder="Leave blank and AI writes a summary — or type your own"
+            rows={2}
+            disabled={addLoading}
+            className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] leading-[1.5] resize-y outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+          />
+          {addAnnotation.trim() && (
+            <label className="mt-2 flex items-start gap-2 cursor-pointer select-none text-[12px] text-ws-black/70">
+              <input
+                type="checkbox"
+                checked={polishMyNote}
+                onChange={e => setPolishMyNote(e.target.checked)}
+                disabled={addLoading}
+                className="mt-0.5 w-4 h-4 accent-ws-black cursor-pointer shrink-0"
+              />
+              <span>
+                <strong>Polish my note in the AI Today voice.</strong> GPT lightly rewrites your text using the same plain-language rules as the rest of the issue — keeps your meaning, tightens the prose. Adds ~1 sec.
+              </span>
             </label>
-            <input
-              id="today-url"
-              type="url"
-              required
-              value={addUrl}
-              onChange={e => setAddUrl(e.target.value)}
-              placeholder="https://…"
-              disabled={addLoading}
-              className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[16px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60 font-mono"
-            />
-          </div>
-
-          {/* Annotation */}
-          <div>
-            <label htmlFor="today-note" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
-              Your note <span className="text-ws-muted font-normal normal-case tracking-normal">(optional — leave blank for AI to write it)</span>
-            </label>
-            <textarea
-              id="today-note"
-              value={addAnnotation}
-              onChange={e => setAddAnnotation(e.target.value)}
-              placeholder="Leave blank and AI writes a summary — or type your own"
-              rows={2}
-              disabled={addLoading}
-              className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] leading-[1.5] resize-y outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
-            />
-            {/* Polish-my-note toggle. Hidden when textarea is empty (no-op anyway). */}
-            {addAnnotation.trim() && (
-              <label className="mt-2 flex items-start gap-2 cursor-pointer select-none text-[12px] text-ws-black/70">
-                <input
-                  type="checkbox"
-                  checked={polishMyNote}
-                  onChange={e => setPolishMyNote(e.target.checked)}
-                  disabled={addLoading}
-                  className="mt-0.5 w-4 h-4 accent-ws-black cursor-pointer shrink-0"
-                />
-                <span>
-                  <strong>Polish my note in the AI Today voice.</strong> GPT lightly rewrites your text using the same plain-language rules as the rest of the issue — keeps your meaning, tightens the prose. Adds ~1 sec.
-                </span>
-              </label>
-            )}
-          </div>
-
-          {/* Category */}
-          <div>
-            <label htmlFor="today-category" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
-              Category <span className="text-ws-muted font-normal normal-case tracking-normal">(which section it goes in)</span>
-            </label>
-            <select
-              id="today-category"
-              value={addCategory}
-              onChange={e => setAddCategory(e.target.value as Category)}
-              disabled={addLoading}
-              className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
-            >
-              {CATEGORY_ORDER.map(c => (
-                <option key={c} value={c}>{CATEGORY_META[c].icon} {c}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Image URL (collapsible) */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowImageField(v => !v)}
-              className="text-[12px] font-black uppercase tracking-[0.1em] text-ws-accent hover:text-ws-accent-hover flex items-center gap-1"
-              aria-expanded={showImageField}
-            >
-              <span aria-hidden="true">{showImageField ? '−' : '+'}</span>
-              {showImageField ? 'Hide image URL' : 'Add image URL'}
-            </button>
-            {showImageField && (
-              <div className="mt-2">
-                <input
-                  type="url"
-                  value={addImageUrl}
-                  onChange={e => setAddImageUrl(e.target.value)}
-                  placeholder="https://… (overrides auto-fetched og:image)"
-                  disabled={addLoading}
-                  className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60 font-mono"
-                />
-                {addImageUrl && (
-                  <div className="mt-2 border-[2px] border-ws-black overflow-hidden w-32">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={addImageUrl}
-                      alt="Preview"
-                      className="w-32 h-20 object-cover"
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {addError && (
-            <div role="alert" className="border-[3px] border-ws-black bg-red-50 px-3 py-2 text-[14px] font-bold text-red-700">
-              {addError}
-            </div>
           )}
+        </div>
 
-          {/* Soft duplicate-URL warning — shown when /api/capture returned 409.
-              User can dismiss + edit, or click "Add anyway" to force-submit. */}
-          {duplicateWarning && (
-            <div
-              role="alert"
-              className="border-[3px] border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3"
-            >
-              <div className="flex items-start gap-2">
-                <span className="text-[16px]" aria-hidden="true">⚠</span>
-                <p className="text-[14px] text-ws-black leading-snug">
-                  This URL was already added to <strong>Issue #{duplicateWarning.issueNumber}</strong> on{' '}
-                  <strong>{duplicateWarning.issueDate}</strong>{' '}
-                  ({duplicateWarning.published ? 'published' : 'draft'}). Add it again only if you mean to.
-                </p>
-              </div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => submitAddArticle(true)}
-                  disabled={addLoading}
-                  className="border-[2px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[12px] px-3 py-1.5 hover:bg-ws-accent-hover disabled:opacity-50"
-                >
-                  Add anyway
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDuplicateWarning(null)}
-                  className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={addLoading || !addUrl.trim() || !!duplicateWarning}
-            className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[14px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-accent)] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+        {/* Category */}
+        <div>
+          <label htmlFor="today-category" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
+            Category <span className="text-ws-muted font-normal normal-case tracking-normal">(which section it goes in)</span>
+          </label>
+          <select
+            id="today-category"
+            value={addCategory}
+            onChange={e => setAddCategory(e.target.value as Category)}
+            disabled={addLoading}
+            className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
           >
-            {addLoading ? (
-              <>
-                <span className="inline-block w-4 h-4 border-2 border-ws-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                Adding…
-              </>
-            ) : (
-              '+ Add to today\'s issue'
-            )}
+            {CATEGORY_ORDER.map(c => (
+              <option key={c} value={c}>{CATEGORY_META[c].icon} {c}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Image URL (collapsible) */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowImageField(v => !v)}
+            className="text-[12px] font-medium text-ws-accent hover:underline flex items-center gap-1"
+            aria-expanded={showImageField}
+          >
+            <span aria-hidden="true">{showImageField ? '−' : '+'}</span>
+            {showImageField ? 'Hide image URL' : 'Add image URL'}
           </button>
-        </form>
-      </div>
+          {showImageField && (
+            <div className="mt-2">
+              <input
+                type="url"
+                value={addImageUrl}
+                onChange={e => setAddImageUrl(e.target.value)}
+                placeholder="https://… (overrides auto-fetched og:image)"
+                disabled={addLoading}
+                className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60 font-mono"
+              />
+              {addImageUrl && (
+                <div className="mt-2 border-[2px] border-ws-black overflow-hidden w-32">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={addImageUrl}
+                    alt="Preview"
+                    className="w-32 h-20 object-cover"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {addError && (
+          <div role="alert" className="border-[3px] border-ws-black bg-red-50 px-3 py-2 text-[14px] font-bold text-red-700">
+            {addError}
+          </div>
+        )}
+
+        {duplicateWarning && (
+          <div role="alert" className="border-[3px] border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
+            <div className="flex items-start gap-2">
+              <span className="text-[16px]" aria-hidden="true">⚠</span>
+              <p className="text-[14px] text-ws-black leading-snug">
+                This URL was already added to <strong>Issue #{duplicateWarning.issueNumber}</strong> on{' '}
+                <strong>{duplicateWarning.issueDate}</strong>{' '}
+                ({duplicateWarning.published ? 'published' : 'draft'}). Add it again only if you mean to.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => submitAddArticle(true)}
+                disabled={addLoading}
+                className="border-[2px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[12px] px-3 py-1.5 hover:bg-ws-accent-hover disabled:opacity-50"
+              >
+                Add anyway
+              </button>
+              <button
+                type="button"
+                onClick={() => setDuplicateWarning(null)}
+                className="text-[12px] font-medium text-ws-black/60 hover:underline hover:text-ws-accent"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={addLoading || !addUrl.trim() || !!duplicateWarning}
+          className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[14px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-accent)] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {addLoading ? (
+            <>
+              <span className="inline-block w-4 h-4 border-2 border-ws-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+              Adding…
+            </>
+          ) : (
+            '+ Add to today’s issue'
+          )}
+        </button>
+      </form>
     </div>
   )
 }
@@ -2047,7 +2116,10 @@ function PublishDrafts({ password }: { password: string }) {
         return
       }
       const data = await res.json()
-      const issues = (data.issues ?? []) as DraftIssue[]
+      // Today's draft is published from the Today's Draft panel above —
+      // exclude it here so this list is only "older drafts you didn't finish".
+      const todayIso = new Date().toISOString().split('T')[0]
+      const issues = ((data.issues ?? []) as DraftIssue[]).filter(d => d.issueDate !== todayIso)
       setDrafts(issues)
       if (issues.length > 0) setOpen(true)
     } catch {
@@ -2187,8 +2259,8 @@ function PublishDrafts({ password }: { password: string }) {
           className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-ws-page"
         >
           <div>
-            <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">All unpublished drafts</p>
-            <p className="text-[12px] text-ws-black/50 mt-0.5">Older drafts from previous days. Expands automatically if any exist.</p>
+            <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Older unpublished drafts</p>
+            <p className="text-[12px] text-ws-black/50 mt-0.5">Drafts from previous days you didn&apos;t finish. Today&apos;s draft is published from the panel above. Expands automatically if any older drafts exist.</p>
           </div>
           <span className="text-[12px] font-medium text-ws-black/50 shrink-0">+ Show</span>
         </button>
@@ -2200,8 +2272,8 @@ function PublishDrafts({ password }: { password: string }) {
     <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">All unpublished drafts</p>
-          <p className="text-[12px] text-ws-black/50 mt-0.5">Every unpublished draft, including today&apos;s. Faster to publish today&apos;s from the panel above — this list mostly catches drafts from earlier days you didn&apos;t finish.</p>
+          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Older unpublished drafts</p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">Drafts from previous days you didn&apos;t finish. Today&apos;s draft is published from the panel above.</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <button
@@ -2735,10 +2807,13 @@ export default function AdminPage() {
       {/* Sentinel: sticky jump button watches this point to know when import panels are scrolled past */}
       <div ref={briefingEndRef} aria-hidden="true" />
 
-      {/* ── Step 2: REVIEW the draft (optionally paste extras) + PUBLISH ──── */}
+      {/* ── Step 2: REVIEW the draft + PUBLISH ──────────────────────────── */}
       <div ref={draftRef}>
         <TodaysDraft password={password} />
       </div>
+
+      {/* ── Optional: Manually paste a one-off article URL ──────────────── */}
+      <AddArticleManually password={password} />
 
       {/* ── Step 3: Generate email from the just-published issue ─────────── */}
       <GenerateEmailFromPublished password={password} />
