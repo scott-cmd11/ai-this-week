@@ -766,61 +766,88 @@ function AddArticleManually({ password }: { password: string }) {
 }
 
 // ─── AddEvent ────────────────────────────────────────────────────────────────────
-// Form for adding a learning event (webinar, course, conference, meetup) to
-// today's draft. Events are stored under a fixed "## Upcoming" h2 section.
+// Drop-the-link-and-go event capture. Paste a URL → AI auto-extracts the
+// title/when/where/about → fields show as inline-editable text → confirm.
+// No separate "Auto-fill" button, no separate registration-URL field.
+// Events are stored under a fixed "## Upcoming" h2 section in today's draft.
 
 function AddEvent({ password }: { password: string }) {
   const [open, setOpen] = useState(false)
+  const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
   const [when, setWhen] = useState('')
   const [where, setWhere] = useState('')
   const [description, setDescription] = useState('')
-  const [url, setUrl] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [extracting, setExtracting] = useState(false)
+  const [extracted, setExtracted] = useState(false)
+  const [extractError, setExtractError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  // Auto-fill from URL
-  const [autofillUrl, setAutofillUrl] = useState('')
-  const [autofilling, setAutofilling] = useState(false)
-  const [autofillError, setAutofillError] = useState<string | null>(null)
-  // Duplicate event-URL warning
   const [eventDuplicate, setEventDuplicate] = useState<{
     issueNumber: number
     issueDate: string
     published: boolean
   } | null>(null)
 
-  async function handleAutofill() {
-    const trimmed = autofillUrl.trim()
-    if (!trimmed.startsWith('http')) { setAutofillError('Paste a full URL starting with https://'); return }
-    setAutofilling(true)
-    setAutofillError(null)
+  // Debounce extraction so we only fire after the user stops typing/pasting
+  const extractTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Don't re-extract the same URL
+  const lastExtractedUrlRef = useRef<string | null>(null)
+
+  async function runExtraction(targetUrl: string) {
+    if (lastExtractedUrlRef.current === targetUrl) return
+    lastExtractedUrlRef.current = targetUrl
+    setExtracting(true)
+    setExtractError(null)
     try {
       const res = await fetch('/api/extract-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminPassword: password, url: trimmed }),
+        body: JSON.stringify({ adminPassword: password, url: targetUrl }),
       })
       const data = await res.json()
-      if (!res.ok) { setAutofillError(data.error ?? `Error ${res.status}`); return }
+      if (!res.ok) {
+        setExtractError(data.error ?? 'Extraction failed — you can still fill the fields manually.')
+        setExtracted(true) // show editable empties so the user can type
+        return
+      }
       const ev = data.event
-      if (ev.title) setTitle(ev.title)
-      if (ev.when) setWhen(ev.when)
-      if (ev.where) setWhere(ev.where)
-      if (ev.description) setDescription(ev.description)
-      // Pre-fill the registration URL with the same URL
-      if (!url) setUrl(trimmed)
+      setTitle(ev.title || '')
+      setWhen(ev.when || '')
+      setWhere(ev.where || '')
+      setDescription(ev.description || '')
+      setExtracted(true)
     } catch {
-      setAutofillError('Network error.')
+      setExtractError('Network error during extraction. Fill the fields manually if you want.')
+      setExtracted(true)
     } finally {
-      setAutofilling(false)
+      setExtracting(false)
     }
   }
 
-  async function submitEvent(force: boolean) {
-    setError(null)
+  function handleUrlChange(value: string) {
+    setUrl(value)
     setSuccess(null)
-    setLoading(true)
+    setSubmitError(null)
+    setEventDuplicate(null)
+    // Reset preview if URL changed materially — but don't immediately wipe
+    // typed-over fields; the next extraction will overwrite them.
+    if (extractTimer.current) clearTimeout(extractTimer.current)
+    const trimmed = value.trim()
+    if (!trimmed.startsWith('http')) {
+      lastExtractedUrlRef.current = null
+      return
+    }
+    extractTimer.current = setTimeout(() => {
+      runExtraction(trimmed)
+    }, 600)
+  }
+
+  async function submitEvent(force: boolean) {
+    setSubmitError(null)
+    setSuccess(null)
+    setSubmitting(true)
     try {
       const res = await fetch('/api/capture-event', {
         method: 'POST',
@@ -836,28 +863,29 @@ function AddEvent({ password }: { password: string }) {
         }),
       })
       const data = await res.json()
-
       if (res.status === 409 && data.duplicate) {
         setEventDuplicate(data.duplicate)
         return
       }
-      if (!res.ok) { setError(data.error ?? `Error ${res.status}`); return }
+      if (!res.ok) { setSubmitError(data.error ?? `Error ${res.status}`); return }
 
-      setSuccess(`✓ Event added to today's draft (under "Upcoming").`)
-      setTitle(''); setWhen(''); setWhere(''); setDescription(''); setUrl('')
+      setSuccess(`✓ Event added to today’s draft (under “Upcoming”).`)
+      setUrl(''); setTitle(''); setWhen(''); setWhere(''); setDescription('')
+      setExtracted(false)
       setEventDuplicate(null)
+      lastExtractedUrlRef.current = null
       window.dispatchEvent(new CustomEvent('aitoday:refresh-draft'))
     } catch {
-      setError('Network error.')
+      setSubmitError('Network error.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!title.trim()) { setError('Event title is required.'); return }
-    if (!url.trim() || !url.trim().startsWith('http')) { setError('A valid registration URL is required.'); return }
+    if (!url.trim() || !url.trim().startsWith('http')) { setSubmitError('Paste a valid event URL first.'); return }
+    if (!title.trim()) { setSubmitError('Title is required (AI extraction may have missed it — type one in).'); return }
     setEventDuplicate(null)
     await submitEvent(false)
   }
@@ -872,156 +900,138 @@ function AddEvent({ password }: { password: string }) {
         >
           <div>
             <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Add a learning event</p>
-            <p className="text-[12px] text-ws-black/50 mt-0.5">Webinar, course, conference, meetup. Goes under the &ldquo;Upcoming&rdquo; section in today&apos;s issue.</p>
+            <p className="text-[12px] text-ws-black/50 mt-0.5">Drop an event URL — AI extracts the details for you. Goes under “Upcoming” in today’s issue.</p>
           </div>
-          <span className="text-[12px] font-bold uppercase tracking-wide text-ws-black/70 shrink-0">+ Show</span>
+          <span className="text-[12px] font-medium text-ws-black/50 shrink-0">+ Show</span>
         </button>
       </div>
     )
   }
+
+  // Inline-editable field — looks like text at rest, behaves like an input on focus.
+  // Shared style for title/when/where so the preview reads as content, not a form.
+  const inlineFieldClass =
+    "w-full bg-transparent border-0 border-b-[2px] border-transparent " +
+    "hover:border-ws-black/15 focus:border-ws-accent focus:outline-none " +
+    "px-0 py-1 placeholder:text-ws-black/30 placeholder:italic disabled:opacity-60"
 
   return (
     <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Add a learning event</p>
-          <p className="text-[12px] text-ws-black/50 mt-0.5">Webinar, course, conference, meetup. Goes under the &ldquo;Upcoming&rdquo; section in today&apos;s issue.</p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">Drop an event URL. AI extracts the details — review, tweak if needed, confirm.</p>
         </div>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent shrink-0"
+          className="text-[12px] font-medium text-ws-black/50 hover:underline hover:text-ws-accent shrink-0"
         >
           Hide
         </button>
       </div>
 
-      {/* ── Auto-fill from URL ─────────────────────────────────────────── */}
-      <div className="border-[2px] border-ws-black/20 bg-ws-page p-4 flex flex-col gap-3">
-        <p className="text-[12px] font-black uppercase tracking-[0.1em]">
-          Auto-fill from event URL
-        </p>
-        <p className="text-[12px] text-ws-black/60">
-          Paste the event or registration page URL — AI will extract the title, date, location, and description for you.
-        </p>
-        <div className="flex gap-2 flex-wrap">
-          <input
-            type="url"
-            value={autofillUrl}
-            onChange={e => setAutofillUrl(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAutofill() } }}
-            placeholder="https://…"
-            disabled={autofilling}
-            className="flex-1 min-w-0 border-[2px] border-ws-black bg-ws-white px-3 py-2 text-[14px] font-mono outline-none focus-visible:border-ws-accent disabled:opacity-60"
-          />
-          <button
-            type="button"
-            onClick={handleAutofill}
-            disabled={autofilling || !autofillUrl.trim()}
-            className="border-[2px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[12px] px-4 py-2 hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 shrink-0 transition-colors"
-          >
-            {autofilling ? (
-              <>
-                <span className="inline-block w-3 h-3 border-2 border-ws-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                Extracting…
-              </>
-            ) : '✦ Auto-fill'}
-          </button>
-        </div>
-        {autofillError && (
-          <p className="text-[13px] font-bold text-ws-accent">{autofillError}</p>
-        )}
-      </div>
-
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-        <div>
-          <label htmlFor="event-title" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
-            Event title <span className="text-ws-accent" aria-hidden="true">*</span>
-          </label>
-          <input
-            id="event-title"
-            type="text"
-            required
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            placeholder="e.g. AI for Public Sector Leaders"
-            disabled={loading}
-            className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[16px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="event-when" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
-              When
-            </label>
-            <input
-              id="event-when"
-              type="text"
-              value={when}
-              onChange={e => setWhen(e.target.value)}
-              placeholder="e.g. May 7, 2pm ET"
-              disabled={loading}
-              className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
-            />
-          </div>
-          <div>
-            <label htmlFor="event-where" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
-              Where
-            </label>
-            <input
-              id="event-where"
-              type="text"
-              value={where}
-              onChange={e => setWhere(e.target.value)}
-              placeholder="e.g. Virtual, Toronto, Hybrid…"
-              disabled={loading}
-              className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="event-desc" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
-            Description <span className="text-ws-muted font-normal normal-case tracking-normal">(optional)</span>
-          </label>
-          <textarea
-            id="event-desc"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="What it&apos;s about, who it&apos;s for, why someone should attend…"
-            rows={2}
-            disabled={loading}
-            className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[15px] leading-[1.5] resize-y outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
-          />
-        </div>
-
+        {/* URL input — single-source-of-truth for both extraction and the registration link */}
         <div>
           <label htmlFor="event-url" className="block text-[12px] font-black uppercase tracking-[0.1em] mb-1.5">
-            Registration URL <span className="text-ws-accent" aria-hidden="true">*</span>
+            Event URL <span className="text-ws-accent" aria-hidden="true">*</span>
           </label>
-          <input
-            id="event-url"
-            type="url"
-            required
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            placeholder="https://…"
-            disabled={loading}
-            className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 text-[16px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60 font-mono"
-          />
+          <div className="relative">
+            <input
+              id="event-url"
+              type="url"
+              required
+              value={url}
+              onChange={e => handleUrlChange(e.target.value)}
+              placeholder="Paste event or registration URL — AI extracts the rest"
+              disabled={submitting}
+              className="w-full border-[3px] border-ws-black bg-ws-page px-3 py-2.5 pr-12 text-[16px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60 font-mono"
+            />
+            {extracting && (
+              <span
+                aria-label="Extracting event details"
+                className="absolute right-3 top-1/2 -translate-y-1/2 inline-block w-4 h-4 border-2 border-ws-black border-t-transparent rounded-full animate-spin"
+              />
+            )}
+          </div>
+          {extractError && (
+            <p className="text-[12px] text-ws-accent mt-1.5">{extractError}</p>
+          )}
         </div>
 
-        {error && (
+        {/* Inline-editable extracted preview — only renders after extraction or fallback */}
+        {extracted && (
+          <div className="border-[2px] border-ws-black/20 bg-ws-page p-4 flex flex-col gap-4">
+            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-accent/80">
+              ✦ AI extracted — click any field to edit
+            </p>
+
+            {/* Title */}
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-[0.12em] text-ws-black/50 mb-0.5">Title</span>
+              <input
+                type="text"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="(missing — type a title)"
+                disabled={submitting}
+                aria-label="Event title"
+                className={`${inlineFieldClass} text-[18px] font-bold leading-snug`}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.12em] text-ws-black/50 mb-0.5">When</span>
+                <input
+                  type="text"
+                  value={when}
+                  onChange={e => setWhen(e.target.value)}
+                  placeholder="(missing — e.g. May 7, 2pm ET)"
+                  disabled={submitting}
+                  aria-label="When"
+                  className={`${inlineFieldClass} text-[14px]`}
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.12em] text-ws-black/50 mb-0.5">Where</span>
+                <input
+                  type="text"
+                  value={where}
+                  onChange={e => setWhere(e.target.value)}
+                  placeholder="(missing — e.g. Virtual)"
+                  disabled={submitting}
+                  aria-label="Where"
+                  className={`${inlineFieldClass} text-[14px]`}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-[0.12em] text-ws-black/50 mb-0.5">About</span>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="(optional — what it’s about, who it’s for)"
+                rows={2}
+                disabled={submitting}
+                aria-label="About"
+                className={`${inlineFieldClass} text-[14px] leading-snug resize-y`}
+              />
+            </div>
+          </div>
+        )}
+
+        {submitError && (
           <div role="alert" className="border-[3px] border-ws-black bg-red-50 px-3 py-2 text-[14px] font-bold text-red-700">
-            {error}
+            {submitError}
           </div>
         )}
         {success && (
           <p className="text-[14px] font-bold text-ws-black">{success}</p>
         )}
 
-        {/* Soft duplicate event-URL warning */}
         {eventDuplicate && (
           <div role="alert" className="border-[3px] border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
             <p className="text-[14px] text-ws-black leading-snug">
@@ -1034,7 +1044,7 @@ function AddEvent({ password }: { password: string }) {
               <button
                 type="button"
                 onClick={() => submitEvent(true)}
-                disabled={loading}
+                disabled={submitting}
                 className="border-[2px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[12px] px-3 py-1.5 hover:bg-ws-accent-hover disabled:opacity-50"
               >
                 Add anyway
@@ -1042,7 +1052,7 @@ function AddEvent({ password }: { password: string }) {
               <button
                 type="button"
                 onClick={() => setEventDuplicate(null)}
-                className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
+                className="text-[12px] font-medium text-ws-black/60 hover:underline hover:text-ws-accent"
               >
                 Cancel
               </button>
@@ -1052,16 +1062,17 @@ function AddEvent({ password }: { password: string }) {
 
         <button
           type="submit"
-          disabled={loading || !title.trim() || !url.trim() || !!eventDuplicate}
+          disabled={submitting || extracting || !url.trim() || !title.trim() || !!eventDuplicate}
           className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[14px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-accent)] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+          title={!url.trim() ? 'Paste a URL first' : !title.trim() ? 'Title required' : ''}
         >
-          {loading ? (
+          {submitting ? (
             <>
               <span className="inline-block w-4 h-4 border-2 border-ws-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
               Adding event…
             </>
           ) : (
-            '+ Add event to today\'s issue'
+            '+ Add event to today’s issue'
           )}
         </button>
       </form>
