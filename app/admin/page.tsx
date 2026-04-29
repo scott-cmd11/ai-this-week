@@ -122,7 +122,12 @@ function SiteStats({ password }: { password: string }) {
           <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
             {stats.latestIssue ? (
               <>
-                <p className="text-[32px] font-black leading-none">#{stats.latestIssue.issueNumber}</p>
+                <a
+                  href={`/issues/${stats.latestIssue.issueDate}`}
+                  className="text-[32px] font-black leading-none hover:text-ws-accent"
+                >
+                  #{stats.latestIssue.issueNumber}
+                </a>
                 <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Latest issue</p>
                 <p className="text-[11px] text-ws-black/50">{stats.latestIssue.issueDate}</p>
               </>
@@ -370,7 +375,7 @@ function TodaysDraft({ password }: { password: string }) {
           type="button"
           onClick={loadDraft}
           disabled={draftLoading}
-          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
+          className="text-[12px] font-medium text-ws-black/50 hover:underline hover:text-ws-accent disabled:opacity-50"
         >
           {draftLoading ? '↻ Loading…' : '↻ Refresh'}
         </button>
@@ -1147,7 +1152,7 @@ function ResearchImport({ password }: { password: string }) {
             href={NOTION_RESEARCH_DB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] text-ws-accent underline hover:no-underline font-bold"
+            className="text-[11px] text-ws-accent underline hover:no-underline font-medium"
           >
             Open in Notion ↗
           </a>
@@ -1155,7 +1160,7 @@ function ResearchImport({ password }: { password: string }) {
             type="button"
             onClick={() => load(currentDate())}
             disabled={loading}
-            className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50"
+            className="text-[12px] font-medium text-ws-black/50 hover:underline hover:text-ws-accent disabled:opacity-50"
           >
             {loading ? '↻ Loading…' : '↻ Refresh'}
           </button>
@@ -1245,8 +1250,8 @@ function ResearchImport({ password }: { password: string }) {
             const dupeCount = data.papers.filter(p => isKnown(p.url)).length
             if (dupeCount === 0) return null
             return (
-              <p className="text-[12px] bg-ws-accent-light/30 border border-ws-black/20 px-3 py-2">
-                <strong>{dupeCount} paper{dupeCount === 1 ? '' : 's'}</strong> already published in the last {windowDays} days — pre-unchecked. Re-check any you want to include anyway.
+              <p className="border-[2px] border-ws-accent bg-ws-accent/10 px-4 py-3 text-[13px] font-bold">
+                ⚠ <strong>{dupeCount} paper{dupeCount === 1 ? '' : 's'}</strong> already published in the last {windowDays} days — pre-unchecked. Re-check any you want to include anyway.
               </p>
             )
           })()}
@@ -1407,6 +1412,9 @@ function BriefingImport({ password }: { password: string }) {
   // editor explicitly changes a category from the auto-categorized default.
   // Lets editors fix bad keyword-rule matches without re-pasting URLs.
   const [overrides, setOverrides] = useState<Map<string, Category>>(new Map())
+  // Tracks keys the user has deliberately unchecked, so Refresh preserves those choices.
+  const userUncheckedRef = useRef<Set<string>>(new Set())
+  const isFirstLoadRef = useRef(true)
   const { isKnown, windowDays } = useKnownUrls(password)
 
   function setOverride(key: string, category: Category) {
@@ -1441,7 +1449,14 @@ function BriefingImport({ password }: { password: string }) {
           }
         }
       }
-      setSelected(initial)
+      if (isFirstLoadRef.current) {
+        // First load: apply defaults as normal
+        isFirstLoadRef.current = false
+        setSelected(initial)
+      } else {
+        // Subsequent refresh: preserve user's deliberate unchecks
+        setSelected(new Set([...initial].filter(k => !userUncheckedRef.current.has(k))))
+      }
     } catch {
       setError('Network error.')
     } finally {
@@ -1457,8 +1472,13 @@ function BriefingImport({ password }: { password: string }) {
   function toggle(key: string) {
     setSelected(prev => {
       const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
+      if (next.has(key)) {
+        next.delete(key)
+        userUncheckedRef.current.add(key)
+      } else {
+        next.add(key)
+        userUncheckedRef.current.delete(key)
+      }
       return next
     })
   }
@@ -1548,7 +1568,7 @@ function BriefingImport({ password }: { password: string }) {
           type="button"
           onClick={load}
           disabled={loading}
-          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50 shrink-0"
+          className="text-[12px] font-medium text-ws-black/50 hover:underline hover:text-ws-accent disabled:opacity-50 shrink-0"
         >
           {loading ? '↻ Loading…' : '↻ Refresh'}
         </button>
@@ -1573,15 +1593,33 @@ function BriefingImport({ password }: { password: string }) {
         }
         if (dupeCount === 0) return null
         return (
-          <p className="text-[12px] bg-ws-accent-light/30 border border-ws-black/20 px-3 py-2">
-            <strong>{dupeCount} article{dupeCount === 1 ? '' : 's'}</strong> already published in the last {windowDays} days — pre-unchecked. Re-check any you want to include anyway.
+          <p className="border-[2px] border-ws-accent bg-ws-accent/10 px-4 py-3 text-[13px] font-bold">
+            ⚠ <strong>{dupeCount} article{dupeCount === 1 ? '' : 's'}</strong> already published in the last {windowDays} days — pre-unchecked. Re-check any you want to include anyway.
           </p>
         )
       })()}
 
-      {/* Source-level chrome: links to Notion, errors, "no briefing yet" notes,
-          and flagged-topics callouts. Article lists themselves are categorized
-          and rendered below this strip. */}
+      {/* Flagged-topic callouts — surfaced first so the editor knows what to focus on */}
+      {data?.sources.some(s => s.briefing && s.briefing.flaggedTopics.length > 0) && (
+        <div className="border-l-[3px] border-ws-accent pl-3 py-1">
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-accent/80 mb-1">
+            🚩 Flagged today
+          </p>
+          <ul className="text-[13px] text-ws-black/80 list-none p-0 m-0 flex flex-col gap-0.5">
+            {data.sources.flatMap(s =>
+              s.briefing
+                ? s.briefing.flaggedTopics.map((t, i) => (
+                    <li key={`${s.sourceId}-${i}`}>
+                      • {t} <span className="text-ws-black/40">· {s.sourceLabel}</span>
+                    </li>
+                  ))
+                : []
+            )}
+          </ul>
+        </div>
+      )}
+
+      {/* Source-level chrome: links to Notion, errors, "no briefing yet" notes. */}
       {data && data.sources.length > 0 && (
         <div className="flex flex-col gap-2">
           {data.sources.map(source => {
@@ -1594,10 +1632,10 @@ function BriefingImport({ password }: { password: string }) {
                 className="flex items-center justify-between gap-3 flex-wrap border border-ws-black/15 px-3 py-2"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-black uppercase tracking-wide">
+                  <p className="text-[13px] font-semibold">
                     {source.sourceLabel}
                     {source.briefing && (
-                      <span className="ml-2 text-[12px] font-normal normal-case tracking-normal text-ws-black/50">
+                      <span className="ml-2 text-[12px] font-normal text-ws-black/50">
                         {articleCount} article{articleCount !== 1 ? 's' : ''}
                       </span>
                     )}
@@ -1616,7 +1654,7 @@ function BriefingImport({ password }: { password: string }) {
                     href={`https://notion.so/${source.briefingPageId.replace(/-/g, '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[11px] text-ws-accent underline hover:no-underline font-bold shrink-0"
+                    className="text-[11px] text-ws-accent underline hover:no-underline font-medium shrink-0"
                   >
                     Open in Notion ↗
                   </a>
@@ -1624,26 +1662,6 @@ function BriefingImport({ password }: { password: string }) {
               </div>
             )
           })}
-        </div>
-      )}
-
-      {/* Flagged-topic callouts (still per-source — they're advisory, not articles) */}
-      {data?.sources.some(s => s.briefing && s.briefing.flaggedTopics.length > 0) && (
-        <div className="border-l-[3px] border-ws-accent pl-3 py-1">
-          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-accent/80 mb-1">
-            🚩 Flagged today
-          </p>
-          <ul className="text-[13px] text-ws-black/80 list-none p-0 m-0 flex flex-col gap-0.5">
-            {data.sources.flatMap(s =>
-              s.briefing
-                ? s.briefing.flaggedTopics.map((t, i) => (
-                    <li key={`${s.sourceId}-${i}`}>
-                      • {t} <span className="text-ws-black/40">· {s.sourceLabel}</span>
-                    </li>
-                  ))
-                : []
-            )}
-          </ul>
         </div>
       )}
 
@@ -2006,6 +2024,7 @@ function GenerateEmailFromPublished({ password }: { password: string }) {
 
 function PublishDrafts({ password }: { password: string }) {
   const [drafts, setDrafts] = useState<DraftIssue[] | null>(null)
+  const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState<string | null>(null)
   const [archiving, setArchiving] = useState<string | null>(null)
@@ -2028,7 +2047,9 @@ function PublishDrafts({ password }: { password: string }) {
         return
       }
       const data = await res.json()
-      setDrafts((data.issues ?? []) as DraftIssue[])
+      const issues = (data.issues ?? []) as DraftIssue[]
+      setDrafts(issues)
+      if (issues.length > 0) setOpen(true)
     } catch {
       setError('Network error. Try again.')
     } finally {
@@ -2157,6 +2178,24 @@ function PublishDrafts({ password }: { password: string }) {
     } catch { /* clipboard blocked */ }
   }
 
+  if (!open) {
+    return (
+      <div className="border-[3px] border-ws-black bg-ws-white shadow-[4px_4px_0_0_var(--color-ws-black)]">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-ws-page"
+        >
+          <div>
+            <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">All unpublished drafts</p>
+            <p className="text-[12px] text-ws-black/50 mt-0.5">Older drafts from previous days. Expands automatically if any exist.</p>
+          </div>
+          <span className="text-[12px] font-medium text-ws-black/50 shrink-0">+ Show</span>
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
       <div className="flex items-start justify-between mb-3">
@@ -2164,14 +2203,23 @@ function PublishDrafts({ password }: { password: string }) {
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">All unpublished drafts</p>
           <p className="text-[12px] text-ws-black/50 mt-0.5">Every unpublished draft, including today&apos;s. Faster to publish today&apos;s from the panel above — this list mostly catches drafts from earlier days you didn&apos;t finish.</p>
         </div>
-        <button
-          type="button"
-          onClick={loadDrafts}
-          disabled={loading}
-          className="text-[12px] font-bold uppercase tracking-wide underline hover:no-underline hover:text-ws-accent disabled:opacity-50 shrink-0"
-        >
-          {loading ? '↻ Loading…' : '↻ Refresh'}
-        </button>
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={loadDrafts}
+            disabled={loading}
+            className="text-[12px] font-medium text-ws-black/50 hover:underline hover:text-ws-accent disabled:opacity-50"
+          >
+            {loading ? '↻ Loading…' : '↻ Refresh'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="text-[12px] font-medium text-ws-black/50 hover:underline hover:text-ws-accent"
+          >
+            Hide
+          </button>
+        </div>
       </div>
 
       {message && <p className="text-[14px] font-bold text-ws-black mb-3">{message}</p>}
@@ -2552,10 +2600,26 @@ export default function AdminPage() {
   const [authLoading, setAuthLoading] = useState(false)
 
   const passwordRef = useRef<HTMLInputElement>(null)
+  const draftRef = useRef<HTMLDivElement>(null)
+  const briefingEndRef = useRef<HTMLDivElement>(null)
+  const [showJumpToDraft, setShowJumpToDraft] = useState(false)
 
   // ── Document title
   useEffect(() => {
     document.title = authed ? 'Admin — AI Today' : 'Admin sign in — AI Today'
+  }, [authed])
+
+  // ── Sticky "jump to draft" button — appears once the import panels scroll out of view
+  useEffect(() => {
+    if (!authed) return
+    const el = briefingEndRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowJumpToDraft(!entry.isIntersecting),
+      { threshold: 0 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
   }, [authed])
 
   // ── Restore auth from sessionStorage
@@ -2583,6 +2647,7 @@ export default function AdminPage() {
   }
 
   function handleSignOut() {
+    if (!window.confirm('Sign out?')) return
     sessionStorage.removeItem('adminAuth')
     setPassword('')
     setAuthed(false)
@@ -2667,17 +2732,33 @@ export default function AdminPage() {
       <ResearchImport password={password} />
       <AddEvent password={password} />
 
+      {/* Sentinel: sticky jump button watches this point to know when import panels are scrolled past */}
+      <div ref={briefingEndRef} aria-hidden="true" />
+
       {/* ── Step 2: REVIEW the draft (optionally paste extras) + PUBLISH ──── */}
-      <TodaysDraft password={password} />
+      <div ref={draftRef}>
+        <TodaysDraft password={password} />
+      </div>
 
-      {/* ── Step 3: Older unpublished drafts (rarely needed) ───────────────── */}
-      <PublishDrafts password={password} />
-
-      {/* Step 4 — Generate email from any previously published issue */}
+      {/* ── Step 3: Generate email from the just-published issue ─────────── */}
       <GenerateEmailFromPublished password={password} />
+
+      {/* ── Step 4: Older unpublished drafts (rarely needed, auto-expands) ── */}
+      <PublishDrafts password={password} />
 
       {/* Capture tools — bookmarklet, iOS shortcut, mobile web */}
       <CaptureSettings />
+
+      {/* Sticky jump-to-draft button — appears once import panels scroll out of view */}
+      {showJumpToDraft && (
+        <button
+          type="button"
+          onClick={() => draftRef.current?.scrollIntoView({ behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-50 border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[12px] px-4 py-2.5 shadow-[4px_4px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
+        >
+          ↓ Today&apos;s draft
+        </button>
+      )}
     </div>
   )
 }
