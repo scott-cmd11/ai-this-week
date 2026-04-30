@@ -2687,12 +2687,12 @@ function WorkflowSidebar({
   onStepClick: (key: StepKey, ref: { current: HTMLDivElement | null }) => void
 }) {
   return (
-    <aside className="w-44 shrink-0 self-start sticky top-0 bg-ws-black text-ws-white min-h-screen flex flex-col pt-10 pb-8 px-3">
+    <aside aria-label="Today's workflow" className="w-44 shrink-0 self-start sticky top-0 bg-ws-black text-ws-white min-h-screen flex flex-col pt-10 pb-8 px-3">
       <p className="text-[9px] font-black tracking-[.12em] uppercase text-white/40 mb-3 px-2">
         Today&apos;s workflow
       </p>
 
-      <nav className="flex flex-col gap-0.5">
+      <nav aria-label="Workflow steps" className="flex flex-col gap-0.5">
         {steps.map(({ key, label, ref }, i) => {
           const done   = completedSteps.has(key)
           const active = activeStep === key && !done
@@ -2712,7 +2712,7 @@ function WorkflowSidebar({
               {/* Badge */}
               <span className={[
                 'w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-black shrink-0',
-                done   ? 'bg-green-500 text-white'
+                done   ? 'bg-ws-accent text-ws-black'
                 : active ? 'bg-ws-accent text-ws-black'
                 : 'border border-white/30 text-white/50',
               ].join(' ')}>
