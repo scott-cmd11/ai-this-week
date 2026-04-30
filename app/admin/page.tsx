@@ -2782,9 +2782,9 @@ function StepDoneButton({
       <button
         type="button"
         onClick={() => onDone(currentKey, nextKey, nextRef)}
-        className="border-[2px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[12px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
+        className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[12px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
       >
-        {nextLabel ? `Done → ${nextLabel}` : 'Done ✓'}
+        {nextLabel ? `Done → ${nextLabel}` : 'All done ✓'}
       </button>
     </div>
   )
