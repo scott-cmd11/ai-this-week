@@ -2918,70 +2918,143 @@ export default function AdminPage() {
 
   // ── Render: main admin ────────────────────────────────────────────────────────
 
+  const stepRefs: Record<StepKey, { current: HTMLDivElement | null }> = {
+    briefings: briefingsRef,
+    research:  researchRef,
+    events:    eventsRef,
+    draft:     draftRef,
+    publish:   publishRef,
+    email:     emailRef,
+  }
+
+  const sidebarSteps = STEP_KEYS.map(key => ({
+    key,
+    label: STEP_LABELS[key],
+    ref:   stepRefs[key],
+  }))
+
   return (
-    <div className="max-w-3xl flex flex-col gap-8">
-      {/* Header */}
-      <div>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
-              Admin
-            </h1>
-            <div className="w-16 h-[3px] bg-ws-accent" aria-hidden="true" />
+    <div className="flex items-start -mx-4">
+      {/* Sticky workflow sidebar */}
+      <WorkflowSidebar
+        steps={sidebarSteps}
+        completedSteps={completedSteps}
+        activeStep={activeStep}
+        onStepClick={handleSidebarClick}
+      />
+
+      {/* Main content column */}
+      <div className="flex-1 min-w-0 flex flex-col gap-8 px-6 py-0">
+
+        {/* Header */}
+        <div>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
+                Admin
+              </h1>
+              <div className="w-16 h-[3px] bg-ws-accent" aria-hidden="true" />
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent mt-4"
+            >
+              Sign out
+            </button>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent mt-4"
-          >
-            Sign out
-          </button>
+          <WorkflowGuide />
         </div>
 
-        {/* Plain-language workflow guide */}
-        <WorkflowGuide />
+        {/* Site stats */}
+        <div id="site-stats">
+          <SiteStats password={password} />
+        </div>
+
+        {/* ── Step 1: Briefings ─────────────────────────────────────────── */}
+        <div ref={briefingsRef}>
+          <BriefingImport password={password} />
+          <StepDoneButton
+            currentKey="briefings"
+            nextKey="research"
+            nextLabel={STEP_LABELS.research}
+            nextRef={researchRef}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* ── Step 2: Research Papers ───────────────────────────────────── */}
+        <div ref={researchRef}>
+          <ResearchImport password={password} />
+          <StepDoneButton
+            currentKey="research"
+            nextKey="events"
+            nextLabel={STEP_LABELS.events}
+            nextRef={eventsRef}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* ── Step 3: Add Events ────────────────────────────────────────── */}
+        <div ref={eventsRef}>
+          <AddEvent password={password} />
+          <StepDoneButton
+            currentKey="events"
+            nextKey="draft"
+            nextLabel={STEP_LABELS.draft}
+            nextRef={draftRef}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* ── Step 4: Review Draft + manual article add ─────────────────── */}
+        <div ref={draftRef}>
+          <TodaysDraft password={password} />
+          <AddArticleManually password={password} />
+          <StepDoneButton
+            currentKey="draft"
+            nextKey="publish"
+            nextLabel={STEP_LABELS.publish}
+            nextRef={publishRef}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* ── Step 5: Publish ───────────────────────────────────────────── */}
+        <div ref={publishRef}>
+          <PublishDrafts password={password} />
+          <StepDoneButton
+            currentKey="publish"
+            nextKey="email"
+            nextLabel={STEP_LABELS.email}
+            nextRef={emailRef}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* ── Step 6: Generate Email ────────────────────────────────────── */}
+        <div ref={emailRef}>
+          <GenerateEmailFromPublished password={password} />
+          <StepDoneButton
+            currentKey="email"
+            nextKey={null}
+            nextLabel={null}
+            nextRef={null}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* Capture settings — not a workflow step */}
+        <div id="capture-settings">
+          <CaptureSettings />
+        </div>
+
       </div>
-
-      {/* Site stats */}
-      <SiteStats password={password} />
-
-      {/* ── Step 1: ADD content to today's draft ─────────────────────────────
-          All three of these panels feed articles/events into today's draft.
-          Grouped together so the user adds everything in one stretch before
-          reviewing the assembled draft below. */}
-      <BriefingImport password={password} />
-      <ResearchImport password={password} />
-      <AddEvent password={password} />
-
-      {/* Sentinel: sticky jump button watches this point to know when import panels are scrolled past */}
-      {/* <div ref={briefingEndRef} aria-hidden="true" /> — removed in Task 4 */}
-
-      {/* ── Step 2: REVIEW the draft + PUBLISH ──────────────────────────── */}
-      <div ref={draftRef}>
-        <TodaysDraft password={password} />
-      </div>
-
-      {/* ── Optional: Manually paste a one-off article URL ──────────────── */}
-      <AddArticleManually password={password} />
-
-      {/* ── Step 3: Generate email from the just-published issue ─────────── */}
-      <GenerateEmailFromPublished password={password} />
-
-      {/* ── Step 4: Older unpublished drafts (rarely needed, auto-expands) ── */}
-      <PublishDrafts password={password} />
-
-      {/* Capture tools — bookmarklet, iOS shortcut, mobile web */}
-      <CaptureSettings />
-
-      {/* Sticky jump-to-draft button — replaced by WorkflowSidebar in Task 4 */}
-      {/* {showJumpToDraft && (
-        <button
-          type="button"
-          onClick={() => draftRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 z-50 border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[12px] px-4 py-2.5 shadow-[4px_4px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
-        >
-          ↓ Today&apos;s draft
-        </button>
-      )} */}
     </div>
   )
 }
