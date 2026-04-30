@@ -8,6 +8,14 @@ interface DailyArticle {
   annotation: string | null
   url: string | null
   imageUrl: string | null
+  /** Notion block ID of the paragraph that holds the annotation. Used by
+   *  the regenerate flow to update the annotation in place. May be null
+   *  for very old articles that predate this field. */
+  annotationBlockId: string | null
+  /** Canonical category — populated from the most recent `heading_2`
+   *  ("## Canada", "## AI Policy", etc.) preceding this article in the
+   *  Notion draft. Null only for articles that appear before any heading. */
+  category: string | null
 }
 
 // ─── Route handler ──────────────────────────────────────────────────────────────
@@ -64,18 +72,28 @@ export async function GET(request: NextRequest) {
     // Parse articles from flat daily block structure
     const articles: DailyArticle[] = []
     let current: DailyArticle | null = null
+    // Track the active category from the most recent heading_2 ("## Canada", etc.)
+    let currentCategory: string | null = null
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const b of blocksResponse.results as any[]) {
       const type: string = b.type
 
-      if (type === 'heading_3') {
+      if (type === 'heading_2') {
+        // Finalize any in-flight article — section transition
+        if (current) { articles.push(current); current = null }
+        const text = (b.heading_2.rich_text as { plain_text: string }[])
+          .map((r) => r.plain_text)
+          .join('')
+          .trim()
+        currentCategory = text || null
+      } else if (type === 'heading_3') {
         // Finalize previous article before starting new one
         if (current) articles.push(current)
         const text = (b.heading_3.rich_text as { plain_text: string }[])
           .map((r) => r.plain_text)
           .join('')
-        current = { title: text, annotation: null, url: null, imageUrl: null }
+        current = { title: text, annotation: null, url: null, imageUrl: null, annotationBlockId: null, category: currentCategory }
       } else if (type === 'paragraph' && current) {
         const text = (b.paragraph.rich_text as { plain_text: string }[])
           .map((r) => r.plain_text)
@@ -83,6 +101,7 @@ export async function GET(request: NextRequest) {
         // Skip "Published: ..." metadata lines
         if (text && !text.startsWith('Published:')) {
           current.annotation = text
+          current.annotationBlockId = b.id ?? null
         }
       } else if (type === 'bookmark' && current) {
         current.url = b.bookmark.url ?? null

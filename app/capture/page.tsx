@@ -33,6 +33,8 @@ function CaptureInner() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<CaptureResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Duplicate-URL warning — shown when /api/capture returns 409.
+  const [duplicate, setDuplicate] = useState<{ issueNumber: number; issueDate: string; published: boolean } | null>(null)
 
   // Load token from localStorage on mount
   useEffect(() => {
@@ -50,10 +52,7 @@ function CaptureInner() {
     setTokenSet(true)
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!url.trim()) return
-
+  async function submitCapture(force: boolean) {
     setLoading(true)
     setError(null)
     setResult(null)
@@ -68,21 +67,32 @@ function CaptureInner() {
           annotation: annotation.trim() || undefined,
           imageUrl: imageUrl.trim() || undefined,
           autoAnnotate: !annotation.trim(),
+          force,
         }),
       })
 
       const data = await res.json()
 
-      if (!res.ok) {
+      if (res.status === 409 && data.duplicate) {
+        setDuplicate(data.duplicate)
+      } else if (!res.ok) {
         setError(data.error ?? `Error ${res.status}`)
       } else {
         setResult(data)
+        setDuplicate(null)
       }
     } catch {
       setError('Network error — check your connection and try again.')
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!url.trim()) return
+    setDuplicate(null)
+    await submitCapture(false)
   }
 
   function handleAddAnother() {
@@ -92,6 +102,7 @@ function CaptureInner() {
     setShowImageField(false)
     setResult(null)
     setError(null)
+    setDuplicate(null)
   }
 
   // ── Token setup screen ────────────────────────────────────────────────────
@@ -264,10 +275,42 @@ function CaptureInner() {
             </div>
           )}
 
+          {/* Duplicate-URL soft warning */}
+          {duplicate && (
+            <div
+              role="alert"
+              className="border-[3px] border-ws-accent bg-ws-accent-light px-4 py-3 mb-5 flex flex-col gap-3"
+            >
+              <p className="text-[15px] text-ws-black leading-snug">
+                <span aria-hidden="true">⚠</span> Already added to{' '}
+                <strong>Issue #{duplicate.issueNumber}</strong> on{' '}
+                <strong>{duplicate.issueDate}</strong>{' '}
+                ({duplicate.published ? 'published' : 'draft'}).
+              </p>
+              <div className="flex gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => submitCapture(true)}
+                  disabled={loading}
+                  className="border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[13px] px-4 py-2 hover:bg-ws-accent-hover disabled:opacity-50"
+                >
+                  Add anyway
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDuplicate(null)}
+                  className="text-[13px] font-bold uppercase tracking-wide underline hover:no-underline"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading || !url.trim()}
+            disabled={loading || !url.trim() || !!duplicate}
             className="w-full border-[3px] border-ws-black bg-ws-accent text-ws-white px-5 py-4 text-[17px] font-black uppercase tracking-wide shadow-[4px_4px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (

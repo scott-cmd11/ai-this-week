@@ -13,7 +13,14 @@ const PLAIN_LANGUAGE_RULES = `Plain-language rules:
 - Spell out acronyms the first time they appear, except very common ones (AI, US, UK, EU, CEO, API).
 - Skip hedge words when the article states a fact. No "it appears that", "reportedly", "seemingly", "according to some". Only hedge if the article itself hedges.
 - Use verbs where possible, not abstract nouns. Prefer "The company announced cuts" over "The announcement describes cuts".
-- Avoid filler phrases: "in order to" → "to", "at this point in time" → "now", "due to the fact that" → "because".`
+- Avoid filler phrases: "in order to" → "to", "at this point in time" → "now", "due to the fact that" → "because".
+
+Never use these marketing/hype words: leverage, robust, innovative, seamless, powerful, comprehensive, revolutionary, cutting-edge, game-changer, breakthrough, state-of-the-art, transform, disrupt, unprecedented, paradigm, ecosystem (when used metaphorically), holistic, synergize, empower, supercharge, next-generation, world-class.
+
+Example of voice — what to avoid vs. what to write:
+✗ "Anthropic leverages cutting-edge AI to facilitate enterprise transformation through innovative solutions."
+✓ "Anthropic released a new model that helps businesses automate customer-support workflows."
+The bad version is generic and could describe any AI company. The good version names the specific thing that happened.`
 
 const SHARED_RULES = `Other rules:
 - No bullet points.

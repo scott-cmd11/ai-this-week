@@ -4,6 +4,8 @@ import OpenAI from 'openai'
 import { fetchArticle, hostnameFallback } from '@/lib/article-fetcher'
 import { captureArticleToTodaysDraft } from '@/lib/notion-capture'
 import { generateAnnotation, polishAnnotation } from '@/lib/ai-annotation'
+import { buildKnownUrlMap } from '@/lib/known-urls'
+import { normalizeUrl } from '@/lib/url-normalize'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -16,6 +18,10 @@ interface RequestBody {
   /** When true AND `annotation` is supplied, run the user's note through the
    *  AI Today voice polish before saving. No-op if annotation is empty. */
   polishAnnotation?: boolean
+  /** When true, skip the duplicate-URL check. Used by clients that have
+   *  already shown the user a "you've published this before" warning and
+   *  let them confirm "add anyway." */
+  force?: boolean
   imageUrl?: string
   category?: string         // canonical category, e.g. "Canada"
 }
@@ -52,12 +58,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing or invalid URL.' }, { status: 400 })
   }
 
-  const { url, annotation, autoAnnotate = true, polishAnnotation: polishFlag = false, imageUrl: imageUrlOverride, category } = body
+  const { url, annotation, autoAnnotate = true, polishAnnotation: polishFlag = false, force = false, imageUrl: imageUrlOverride, category } = body
 
   const notion = new Client({ auth: notionToken })
   const openai = new OpenAI({ apiKey: openaiApiKey })
 
   try {
+    // Duplicate check — server-side backstop for the manual paste flows
+    // (admin form, /capture mobile page, bookmarklet) that don't have access
+    // to the known-urls hook used by the bulk import panels.
+    // Skipped when the client has already warned the user and they chose
+    // "add anyway" (force: true).
+    if (!force) {
+      const knownMap = await buildKnownUrlMap(notion, notionDatabaseId, 30)
+      const existing = knownMap.get(normalizeUrl(url))
+      if (existing) {
+        return NextResponse.json({
+          error: 'duplicate',
+          message: `This URL was already added to Issue #${existing.issueNumber} on ${existing.issueDate}${existing.published ? ' (published)' : ' (draft)'}. Re-submit with force: true to add anyway.`,
+          duplicate: existing,
+        }, { status: 409 })
+      }
+    }
+
     // Fetch article metadata (title, og:image) — may also be re-fetched
     // inside generateAnnotation() if we end up auto-annotating; cheap to
     // call twice since fetchArticle handles its own caching paths.
