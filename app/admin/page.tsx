@@ -2687,7 +2687,7 @@ function WorkflowSidebar({
   onStepClick: (key: StepKey, ref: { current: HTMLDivElement | null }) => void
 }) {
   return (
-    <aside aria-label="Today's workflow" className="w-44 shrink-0 self-start sticky top-0 bg-ws-black text-ws-white min-h-screen flex flex-col pt-10 pb-8 px-3">
+    <aside aria-label="Today's workflow" className="hidden md:flex w-44 shrink-0 self-start sticky top-0 bg-ws-black text-ws-white min-h-screen flex-col pt-10 pb-8 px-3">
       <p className="text-[9px] font-black tracking-[.12em] uppercase text-white/40 mb-3 px-2">
         Today&apos;s workflow
       </p>
