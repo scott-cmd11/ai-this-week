@@ -2698,12 +2698,12 @@ export default function AdminPage() {
 
   const passwordRef = useRef<HTMLInputElement>(null)
   // ── Workflow step refs (each wraps a workflow section for scroll-to)
-  const briefingsRef = useRef<HTMLDivElement>(null)
-  const researchRef  = useRef<HTMLDivElement>(null)
-  const eventsRef    = useRef<HTMLDivElement>(null)
+  const briefingsRef = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
+  const researchRef  = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
+  const eventsRef    = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
   const draftRef     = useRef<HTMLDivElement>(null)
-  const publishRef   = useRef<HTMLDivElement>(null)
-  const emailRef     = useRef<HTMLDivElement>(null)
+  const publishRef   = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
+  const emailRef     = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
 
   // ── Workflow progress
   const [completedSteps, setCompletedSteps] = useState<Set<StepKey>>(new Set())
@@ -2713,7 +2713,6 @@ export default function AdminPage() {
   useEffect(() => {
     document.title = authed ? 'Admin — AI Today' : 'Admin sign in — AI Today'
   }, [authed])
-
 
   // ── Restore auth from sessionStorage
   useEffect(() => {
@@ -2747,13 +2746,13 @@ export default function AdminPage() {
     setAuthError('')
   }
 
-  function handleStepDone(key: StepKey, nextKey: StepKey | null, nextRef: React.RefObject<HTMLDivElement | null> | null) {
+  function handleStepDone(key: StepKey, nextKey: StepKey | null, nextRef: React.RefObject<HTMLDivElement | null> | null) { // wired to StepDoneButton in Task 4
     setCompletedSteps(prev => new Set([...prev, key]))
     if (nextKey) setActiveStep(nextKey)
     if (nextRef?.current) nextRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  function handleSidebarClick(key: StepKey, ref: React.RefObject<HTMLDivElement | null>) {
+  function handleSidebarClick(key: StepKey, ref: React.RefObject<HTMLDivElement | null>) { // wired to WorkflowSidebar in Task 4
     setActiveStep(key)
     ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
