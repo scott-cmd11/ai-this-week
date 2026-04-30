@@ -3,6 +3,7 @@ import { Client } from '@notionhq/client'
 import OpenAI from 'openai'
 import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/notion-capture'
 import { generateAnnotation } from '@/lib/ai-annotation'
+import { fetchArticleMeta } from '@/lib/article-fetcher'
 import { CATEGORY_ORDER } from '@/lib/category-mapping'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -112,11 +113,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Auto-fetch og:image when none was provided. Briefings and research
+    // papers don't include image URLs in their bullet payloads, so without
+    // this every imported article would land in the issue without a photo
+    // and the page reads as a wall of text. fetchArticleMeta is a cheap
+    // HEAD-style HTML fetch (~2s p95) that only pulls <head>.
+    let resolvedImageUrl = article.imageUrl?.trim() || null
+    if (!resolvedImageUrl) {
+      try {
+        const meta = await fetchArticleMeta(article.url.trim())
+        resolvedImageUrl = meta.imageUrl
+      } catch {
+        // Image fetch is best-effort — if it fails, the article still
+        // imports without one and renders as a quiet text-only entry.
+      }
+    }
+
     const input: CaptureArticleInput = {
       title: article.title?.trim() || article.url,
       annotation,
       url: article.url.trim(),
-      imageUrl: article.imageUrl?.trim() || null,
+      imageUrl: resolvedImageUrl,
       category: article.category?.trim() || null,
     }
 

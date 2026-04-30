@@ -105,9 +105,9 @@ export async function GET(request: NextRequest) {
         }
       } else if (type === 'bookmark' && current) {
         current.url = b.bookmark.url ?? null
-        // Bookmark finalizes the article
-        articles.push(current)
-        current = null
+        // Note: don't finalize on bookmark. The capture flow appends an
+        // optional image block AFTER the bookmark, so finalizing here would
+        // drop the image. Only divider closes an article.
       } else if (type === 'image' && current) {
         current.imageUrl = b.image.external?.url ?? b.image.file?.url ?? null
       } else if (type === 'divider') {

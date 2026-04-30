@@ -1,5 +1,6 @@
 import React from 'react'
 import type { NotionBlock, RichTextSegment } from './types'
+import { CATEGORY_META, CATEGORY_ORDER, type Category } from './category-mapping'
 
 interface Props {
   blocks: NotionBlock[]
@@ -10,11 +11,38 @@ interface Props {
 export function NotionRenderer({ blocks }: Props) {
   const items = groupBlocks(blocks)
 
+  // Pre-compute per-h2 article count so each section header can show
+  // "X stories" and each article can show its 1-based position in the section.
+  // Walk forward from each h2 until the next h2 (or end of items).
+  const sectionArticleCounts: number[] = items.map((item, i) => {
+    if (item.kind !== 'block' || item.block.type !== 'heading_2') return 0
+    let count = 0
+    for (let j = i + 1; j < items.length; j++) {
+      const next = items[j]
+      if (next.kind === 'block' && next.block.type === 'heading_2') break
+      if (next.kind === 'article') count++
+    }
+    return count
+  })
+
+  // Render-time counters (mutable, scoped to this single render pass)
+  let articleIndexInSection = 0
+  let currentSectionTotal = 0
+  let seenFirstSection = false
+
   return (
     <div className="notion-body">
-      {items.map(item => {
+      {items.map((item, i) => {
         if (item.kind === 'article') {
-          return <ArticleEntry key={item.id} article={item} />
+          articleIndexInSection++
+          return (
+            <ArticleEntry
+              key={item.id}
+              article={item}
+              numberInSection={seenFirstSection ? articleIndexInSection : 0}
+              totalInSection={currentSectionTotal}
+            />
+          )
         }
         if (item.kind === 'list') {
           return (
@@ -26,6 +54,15 @@ export function NotionRenderer({ blocks }: Props) {
               ))}
             </ul>
           )
+        }
+        // Special-case heading_2 so we can use the bold magazine-style
+        // section header instead of the legacy passthrough.
+        if (item.block.type === 'heading_2') {
+          const count = sectionArticleCounts[i]
+          articleIndexInSection = 0
+          currentSectionTotal = count
+          seenFirstSection = true
+          return <SectionHeader key={item.block.id} block={item.block} count={count} />
         }
         return <Block key={item.block.id} block={item.block} />
       })}
@@ -144,64 +181,137 @@ function groupBlocks(blocks: NotionBlock[]): RenderItem[] {
   return out
 }
 
-// ─── Article entry — Simon Willison link-blog style ─────────────────────────────
+// ─── Section header — bold magazine-style, accent-tinted band ───────────────────
 
-function ArticleEntry({ article }: { article: ArticleGroup }) {
-  const { title, paragraphs, bookmarkUrl, imageUrl, imageAlt } = article
-  const host = bookmarkUrl ? hostnameOf(bookmarkUrl) : null
+function SectionHeader({ block, count }: { block: NotionBlock; count: number }) {
+  const label = block.content
+  // The h2 text in published issues is the canonical category name (set by
+  // captureArticleToTodaysDraft as block.h2(article.category)). Look up the
+  // matching CATEGORY_META entry; fall back gracefully for non-canonical names
+  // like "Upcoming" (events) or hand-edited section names.
+  const meta = (CATEGORY_ORDER as readonly string[]).includes(label)
+    ? CATEGORY_META[label as Category]
+    : EXTRA_SECTION_META[label] ?? null
 
   return (
-    <article className="mb-12">
-      <h3 className="text-[24px] sm:text-[26px] font-bold leading-snug mb-3 font-serif-body">
-        {bookmarkUrl ? (
-          <a
-            href={bookmarkUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-ws-black no-underline hover:text-ws-accent focus-visible:text-ws-accent"
-          >
-            {title}
-            <span className="sr-only"> (opens in new tab)</span>
-          </a>
-        ) : (
-          title
+    <header
+      id={block.headingId}
+      className="mt-16 mb-8 -mx-4 sm:mx-0 px-4 sm:px-6 py-5 sm:py-7 bg-ws-accent-light border-y-[3px] border-ws-black scroll-mt-20"
+    >
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        <div className="flex items-baseline gap-3 sm:gap-4 min-w-0">
+          {meta && (
+            <span aria-hidden="true" className="text-[32px] sm:text-[44px] leading-none shrink-0">
+              {meta.icon}
+            </span>
+          )}
+          <h2 className="text-[24px] sm:text-[34px] font-black uppercase tracking-tight leading-tight m-0 break-words">
+            {label}
+          </h2>
+        </div>
+        {count > 0 && (
+          <p className="text-[11px] sm:text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70 shrink-0">
+            {count} {count === 1 ? 'story' : 'stories'}
+          </p>
         )}
-      </h3>
-
-      {imageUrl && (
-        <figure className="mb-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt={imageAlt}
-            className="w-full max-w-2xl border border-ws-border"
-            loading="lazy"
-          />
-        </figure>
+      </div>
+      {meta && (
+        <p className="text-[13px] sm:text-[14px] text-ws-black/60 mt-2 max-w-2xl">
+          {meta.tagline}
+        </p>
       )}
+    </header>
+  )
+}
 
-      {paragraphs.map(p => (
+// Friendly metadata for non-canonical h2 sections that still appear in
+// published issues — keeps the renderer from falling back to a plain h2
+// for things like "Upcoming" events.
+const EXTRA_SECTION_META: Record<string, { icon: string; tagline: string }> = {
+  Upcoming: { icon: '📅', tagline: 'Webinars, courses, conferences, and meetups worth your time' },
+}
+
+// ─── Article entry — Simon Willison link-blog style + numbered ─────────────────
+
+function ArticleEntry({
+  article,
+  numberInSection,
+  totalInSection,
+}: {
+  article: ArticleGroup
+  numberInSection: number
+  totalInSection: number
+}) {
+  const { title, paragraphs, bookmarkUrl, imageUrl, imageAlt } = article
+  const host = bookmarkUrl ? hostnameOf(bookmarkUrl) : null
+  const showNumber = numberInSection > 0 && totalInSection > 0
+  const padded = String(numberInSection).padStart(2, '0')
+
+  return (
+    <article className="mb-14 sm:grid sm:grid-cols-[auto_1fr] sm:gap-x-6 sm:items-start">
+      {/* Big light-grey numeral on the left (desktop) / inline above title (mobile).
+          Adds rhythm and a sense of progress through the section. */}
+      {showNumber && (
         <p
-          key={p.id}
-          className="text-[18px] text-ws-black leading-[1.6] mb-3 font-serif-body"
+          aria-hidden="true"
+          className="text-[28px] sm:text-[56px] font-black leading-none text-ws-black/15 tabular-nums select-none mb-2 sm:mb-0 sm:pt-1"
         >
-          <RichText segments={p.richText} fallback={p.content} />
-        </p>
-      ))}
-
-      {host && bookmarkUrl && (
-        <p className="text-[13px] text-ws-muted mt-3 font-sans">
-          via{' '}
-          <a
-            href={bookmarkUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-ws-muted underline underline-offset-2 decoration-ws-muted/40 hover:text-ws-accent hover:decoration-ws-accent"
-          >
-            {host}
-          </a>
+          {padded}
         </p>
       )}
+
+      <div className="min-w-0">
+        <h3 className="text-[24px] sm:text-[26px] font-bold leading-snug mb-3 font-serif-body">
+          {bookmarkUrl ? (
+            <a
+              href={bookmarkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ws-black no-underline hover:text-ws-accent focus-visible:text-ws-accent"
+            >
+              {title}
+              <span className="sr-only"> (opens in new tab)</span>
+            </a>
+          ) : (
+            title
+          )}
+        </h3>
+
+        {imageUrl && (
+          <figure className="mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageUrl}
+              alt={imageAlt}
+              className="w-full max-w-2xl border border-ws-border"
+              loading="lazy"
+            />
+          </figure>
+        )}
+
+        {paragraphs.map(p => (
+          <p
+            key={p.id}
+            className="text-[18px] text-ws-black leading-[1.6] mb-3 font-serif-body"
+          >
+            <RichText segments={p.richText} fallback={p.content} />
+          </p>
+        ))}
+
+        {host && bookmarkUrl && (
+          <p className="text-[13px] text-ws-muted mt-3 font-sans">
+            via{' '}
+            <a
+              href={bookmarkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ws-muted underline underline-offset-2 decoration-ws-muted/40 hover:text-ws-accent hover:decoration-ws-accent"
+            >
+              {host}
+            </a>
+          </p>
+        )}
+      </div>
     </article>
   )
 }

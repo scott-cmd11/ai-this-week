@@ -15,6 +15,7 @@ import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { CopyMarkdownButton } from '@/components/CopyMarkdownButton'
 import { TableOfContents } from '@/components/TableOfContents'
 import { MobileToc } from '@/components/MobileToc'
+import { SectionProgress } from '@/components/SectionProgress'
 import { ReadingProgress } from '@/components/ReadingProgress'
 import { ArticleJsonLd } from '@/components/ArticleJsonLd'
 import { IssueCard } from '@/components/IssueCard'
@@ -66,6 +67,10 @@ export default async function IssuePage({ params }: Props) {
     <>
       <ArticleJsonLd issue={issue} baseUrl={BASE_URL} />
       <ReadingProgress />
+      {/* Floating section breadcrumb — quietly tells the reader where they are
+          mid-issue. Only renders when there are 2+ sections; hidden until
+          the reader scrolls past the issue title. */}
+      <SectionProgress sections={tocEntries} />
 
       {/* Two-column layout: article + sticky TOC on wide screens */}
       <div className="xl:flex xl:gap-16 xl:items-start">
