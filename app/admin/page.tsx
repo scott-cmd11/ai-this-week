@@ -2673,6 +2673,20 @@ function WorkflowGuide() {
   )
 }
 
+// ─── Workflow step config ────────────────────────────────────────────────────
+
+const STEP_KEYS = ['briefings', 'research', 'events', 'draft', 'publish', 'email'] as const
+type StepKey = typeof STEP_KEYS[number]
+
+const STEP_LABELS: Record<StepKey, string> = {
+  briefings: 'Briefings',
+  research:  'Research Papers',
+  events:    'Add Events',
+  draft:     'Review Draft',
+  publish:   'Publish',
+  email:     'Generate Email',
+}
+
 // ─── Main component ─────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -2683,27 +2697,23 @@ export default function AdminPage() {
   const [authLoading, setAuthLoading] = useState(false)
 
   const passwordRef = useRef<HTMLInputElement>(null)
-  const draftRef = useRef<HTMLDivElement>(null)
-  const briefingEndRef = useRef<HTMLDivElement>(null)
-  const [showJumpToDraft, setShowJumpToDraft] = useState(false)
+  // ── Workflow step refs (each wraps a workflow section for scroll-to)
+  const briefingsRef = useRef<HTMLDivElement>(null)
+  const researchRef  = useRef<HTMLDivElement>(null)
+  const eventsRef    = useRef<HTMLDivElement>(null)
+  const draftRef     = useRef<HTMLDivElement>(null)
+  const publishRef   = useRef<HTMLDivElement>(null)
+  const emailRef     = useRef<HTMLDivElement>(null)
+
+  // ── Workflow progress
+  const [completedSteps, setCompletedSteps] = useState<Set<StepKey>>(new Set())
+  const [activeStep, setActiveStep] = useState<StepKey>('briefings')
 
   // ── Document title
   useEffect(() => {
     document.title = authed ? 'Admin — AI Today' : 'Admin sign in — AI Today'
   }, [authed])
 
-  // ── Sticky "jump to draft" button — appears once the import panels scroll out of view
-  useEffect(() => {
-    if (!authed) return
-    const el = briefingEndRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowJumpToDraft(!entry.isIntersecting),
-      { threshold: 0 }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [authed])
 
   // ── Restore auth from sessionStorage
   useEffect(() => {
@@ -2735,6 +2745,17 @@ export default function AdminPage() {
     setPassword('')
     setAuthed(false)
     setAuthError('')
+  }
+
+  function handleStepDone(key: StepKey, nextKey: StepKey | null, nextRef: React.RefObject<HTMLDivElement | null> | null) {
+    setCompletedSteps(prev => new Set([...prev, key]))
+    if (nextKey) setActiveStep(nextKey)
+    if (nextRef?.current) nextRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function handleSidebarClick(key: StepKey, ref: React.RefObject<HTMLDivElement | null>) {
+    setActiveStep(key)
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   // ── Render: sign-in ──────────────────────────────────────────────────────────
@@ -2816,7 +2837,7 @@ export default function AdminPage() {
       <AddEvent password={password} />
 
       {/* Sentinel: sticky jump button watches this point to know when import panels are scrolled past */}
-      <div ref={briefingEndRef} aria-hidden="true" />
+      {/* <div ref={briefingEndRef} aria-hidden="true" /> — removed in Task 4 */}
 
       {/* ── Step 2: REVIEW the draft + PUBLISH ──────────────────────────── */}
       <div ref={draftRef}>
@@ -2835,8 +2856,8 @@ export default function AdminPage() {
       {/* Capture tools — bookmarklet, iOS shortcut, mobile web */}
       <CaptureSettings />
 
-      {/* Sticky jump-to-draft button — appears once import panels scroll out of view */}
-      {showJumpToDraft && (
+      {/* Sticky jump-to-draft button — replaced by WorkflowSidebar in Task 4 */}
+      {/* {showJumpToDraft && (
         <button
           type="button"
           onClick={() => draftRef.current?.scrollIntoView({ behavior: 'smooth' })}
@@ -2844,7 +2865,7 @@ export default function AdminPage() {
         >
           ↓ Today&apos;s draft
         </button>
-      )}
+      )} */}
     </div>
   )
 }
