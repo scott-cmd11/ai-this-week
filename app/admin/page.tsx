@@ -2673,6 +2673,54 @@ function WorkflowGuide() {
   )
 }
 
+// ─── WizardStepBar ──────────────────────────────────────────────────────────
+
+function WizardStepBar({
+  steps,
+  labels,
+  activeStep,
+  completedSteps,
+  onStepClick,
+}: {
+  steps: readonly StepKey[]
+  labels: Record<StepKey, string>
+  activeStep: StepKey
+  completedSteps: Set<StepKey>
+  onStepClick: (step: StepKey) => void
+}) {
+  return (
+    <div
+      role="navigation"
+      aria-label="Wizard steps"
+      className="bg-ws-black px-4 py-3 flex items-center gap-1.5 flex-wrap"
+    >
+      {steps.map((step, i) => {
+        const isDone   = completedSteps.has(step)
+        const isActive = step === activeStep
+        return (
+          <button
+            key={step}
+            type="button"
+            onClick={() => onStepClick(step)}
+            aria-current={isActive ? 'step' : undefined}
+            className={[
+              'flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.1em] border-[2px] transition-colors duration-75',
+              isActive
+                ? 'border-ws-accent bg-ws-accent text-ws-black'
+                : isDone
+                  ? 'border-white/40 bg-white/10 text-white/70 hover:bg-white/20'
+                  : 'border-white/20 bg-transparent text-white/40 hover:bg-white/10 hover:text-white/60',
+            ].join(' ')}
+          >
+            {isDone && !isActive && <span aria-hidden="true">✓</span>}
+            <span>{i + 1}. {labels[step]}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── WorkflowSidebar ────────────────────────────────────────────────────────
 
 function WorkflowSidebar({
@@ -2822,9 +2870,19 @@ export default function AdminPage() {
   const publishRef   = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
   const emailRef     = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
 
+  const stepRefs: Record<StepKey, { current: HTMLDivElement | null }> = {
+    briefings: briefingsRef,
+    research:  researchRef,
+    events:    eventsRef,
+    draft:     draftRef,
+    publish:   publishRef,
+    email:     emailRef,
+  }
+
   // ── Workflow progress
   const [completedSteps, setCompletedSteps] = useState<Set<StepKey>>(new Set())
   const [activeStep, setActiveStep] = useState<StepKey>('briefings')
+  const [wizardMode, setWizardMode] = useState(false)
 
   // ── Document title
   useEffect(() => {
@@ -2874,6 +2932,18 @@ export default function AdminPage() {
     ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  function enterWizardMode() {
+    const firstIncomplete = STEP_KEYS.find(k => !completedSteps.has(k)) ?? STEP_KEYS[0]
+    setActiveStep(firstIncomplete)
+    setWizardMode(true)
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0 })
+  }
+
+  function exitWizardMode() {
+    setWizardMode(false)
+    setTimeout(() => stepRefs[activeStep]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }
+
   // ── Render: sign-in ──────────────────────────────────────────────────────────
 
   if (!authed) {
@@ -2917,15 +2987,6 @@ export default function AdminPage() {
   }
 
   // ── Render: main admin ────────────────────────────────────────────────────────
-
-  const stepRefs: Record<StepKey, { current: HTMLDivElement | null }> = {
-    briefings: briefingsRef,
-    research:  researchRef,
-    events:    eventsRef,
-    draft:     draftRef,
-    publish:   publishRef,
-    email:     emailRef,
-  }
 
   const sidebarSteps = STEP_KEYS.map(key => ({
     key,
