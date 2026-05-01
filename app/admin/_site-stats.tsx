@@ -9,6 +9,9 @@ interface StatsData {
   latestIssue: { issueNumber: number; issueDate: string; title: string } | null
 }
 
+const CACHE_KEY = 'aitoday:stats-cache'
+const CACHE_TTL = 5 * 60 * 1000
+
 export function SiteStats({ password }: { password: string }) {
   const [stats, setStats] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -16,14 +19,30 @@ export function SiteStats({ password }: { password: string }) {
 
   useEffect(() => {
     let cancelled = false
+
+    try {
+      const raw = sessionStorage.getItem(CACHE_KEY)
+      if (raw) {
+        const { data, ts } = JSON.parse(raw) as { data: StatsData; ts: number }
+        if (Date.now() - ts < CACHE_TTL) {
+          setStats(data)
+          setLoading(false)
+          return
+        }
+      }
+    } catch { /* corrupt cache — ignore, fall through to fetch */ }
+
     ;(async () => {
       try {
         const res = await fetch('/api/stats', {
           headers: { 'x-admin-password': password },
         })
-        if (!res.ok) { setError('Could not load stats.'); return }
+        if (!res.ok) { if (!cancelled) setError('Could not load stats.'); return }
         const data = await res.json() as StatsData
-        if (!cancelled) setStats(data)
+        if (!cancelled) {
+          setStats(data)
+          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() })) } catch { /* storage full */ }
+        }
       } catch {
         if (!cancelled) setError('Network error.')
       } finally {

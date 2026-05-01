@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 
 export function WorkflowGuide() {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('aitoday:workflow-guide-open')

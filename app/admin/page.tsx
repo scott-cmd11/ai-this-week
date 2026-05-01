@@ -47,6 +47,7 @@ export default function AdminPage() {
   const [completedSteps, setCompletedSteps] = useState<Set<StepKey>>(new Set())
   const [activeStep, setActiveStep] = useState<StepKey>('briefings')
   const [wizardMode, setWizardMode] = useState(false)
+  const [flashingStep, setFlashingStep] = useState<StepKey | null>(null)
 
   // ── Document title
   useEffect(() => {
@@ -59,6 +60,21 @@ export default function AdminPage() {
     if (stored) { setPassword(stored); setAuthed(true) }
     else passwordRef.current?.focus()
   }, [])
+
+  // ── 'f' shortcut: toggle wizard/focus mode
+  useEffect(() => {
+    if (!authed) return
+    function onKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.key !== 'f' && e.key !== 'F') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      wizardMode ? exitWizardMode() : enterWizardMode()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed, wizardMode])
 
   // ── Auth handlers
   async function handleSignIn(e: React.FormEvent) {
@@ -85,8 +101,10 @@ export default function AdminPage() {
     setAuthError('')
   }
 
-  function handleStepDone(key: StepKey, nextKey: StepKey | null, nextRef: React.RefObject<HTMLDivElement | null> | null) { // wired to StepDoneButton in Task 4
+  function handleStepDone(key: StepKey, nextKey: StepKey | null, nextRef: React.RefObject<HTMLDivElement | null> | null) {
     setCompletedSteps(prev => new Set([...prev, key]))
+    setFlashingStep(key)
+    setTimeout(() => setFlashingStep(null), 600)
     if (nextKey) setActiveStep(nextKey)
     if (nextRef?.current) nextRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -167,6 +185,7 @@ export default function AdminPage() {
             labels={STEP_LABELS}
             activeStep={activeStep}
             completedSteps={completedSteps}
+            flashingStep={flashingStep}
             onStepClick={setActiveStep}
           />
         </div>
