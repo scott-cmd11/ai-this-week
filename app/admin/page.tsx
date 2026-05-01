@@ -2988,6 +2988,101 @@ export default function AdminPage() {
 
   // ── Render: main admin ────────────────────────────────────────────────────────
 
+  // ── Wizard mode render ───────────────────────────────────────────────────────
+  if (wizardMode) {
+    const wizActiveIndex = STEP_KEYS.indexOf(activeStep)
+    const wizNextStep    = wizActiveIndex < STEP_KEYS.length - 1 ? STEP_KEYS[wizActiveIndex + 1] : null
+    const wizPrevStep    = wizActiveIndex > 0 ? STEP_KEYS[wizActiveIndex - 1] : null
+
+    return (
+      <div className="w-full flex flex-col -mx-4">
+        {/* Step bar — sticky, full bleed */}
+        <div className="sticky top-0 z-40">
+          <WizardStepBar
+            steps={STEP_KEYS}
+            labels={STEP_LABELS}
+            activeStep={activeStep}
+            completedSteps={completedSteps}
+            onStepClick={setActiveStep}
+          />
+        </div>
+
+        {/* Wizard body */}
+        <div className="flex-1 py-8 max-w-3xl w-full mx-auto px-4">
+
+          {/* Wizard header: step counter + exit toggle */}
+          <div className="flex items-center justify-between mb-6">
+            <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/50">
+              Step {wizActiveIndex + 1} of {STEP_KEYS.length}
+            </p>
+            <button
+              type="button"
+              onClick={exitWizardMode}
+              className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
+            >
+              ← All sections
+            </button>
+          </div>
+
+          {/* Sections — all mounted, only active one visible */}
+          <div className={activeStep === 'briefings' ? '' : 'hidden'}>
+            <BriefingImport password={password} />
+          </div>
+          <div className={activeStep === 'research' ? '' : 'hidden'}>
+            <ResearchImport password={password} />
+          </div>
+          <div className={activeStep === 'events' ? '' : 'hidden'}>
+            <AddEvent password={password} />
+          </div>
+          <div className={activeStep === 'draft' ? '' : 'hidden'}>
+            <TodaysDraft password={password} />
+            <AddArticleManually password={password} />
+          </div>
+          <div className={activeStep === 'publish' ? '' : 'hidden'}>
+            <PublishDrafts password={password} />
+          </div>
+          <div className={activeStep === 'email' ? '' : 'hidden'}>
+            <GenerateEmailFromPublished password={password} />
+          </div>
+
+          {/* Wizard nav footer */}
+          <div className="flex items-center justify-between mt-8 pt-6 border-t-[2px] border-ws-black/15">
+            {/* Back */}
+            {wizPrevStep ? (
+              <button
+                type="button"
+                onClick={() => setActiveStep(wizPrevStep)}
+                className="border-[2px] border-ws-black px-4 py-2 text-[13px] font-black uppercase tracking-wide hover:bg-ws-page transition-colors"
+              >
+                ← Back
+              </button>
+            ) : <div />}
+
+            {/* Done → Next or All done */}
+            {wizNextStep ? (
+              <button
+                type="button"
+                onClick={() => handleStepDone(activeStep, wizNextStep, null)}
+                className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-5 py-2.5 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
+              >
+                Done → {STEP_LABELS[wizNextStep]}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleStepDone(activeStep, null, null)}
+                className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-5 py-2.5 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
+              >
+                All done ✓
+              </button>
+            )}
+          </div>
+
+        </div>
+      </div>
+    )
+  }
+
   const sidebarSteps = STEP_KEYS.map(key => ({
     key,
     label: STEP_LABELS[key],
@@ -3016,12 +3111,22 @@ export default function AdminPage() {
               </h1>
               <div className="w-16 h-[3px] bg-ws-accent" aria-hidden="true" />
             </div>
-            <button
-              onClick={handleSignOut}
-              className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent mt-4"
-            >
-              Sign out
-            </button>
+            <div className="flex items-center gap-4 mt-4">
+              <button
+                type="button"
+                onClick={enterWizardMode}
+                className="border-[2px] border-ws-black px-3 py-2 text-[12px] font-black uppercase tracking-[0.1em] hover:bg-ws-page hover:border-ws-accent transition-colors"
+              >
+                Focus mode →
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
           <WorkflowGuide />
         </div>
