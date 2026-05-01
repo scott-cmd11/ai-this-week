@@ -187,7 +187,7 @@ export function AddEvent({ password }: { password: string }) {
         {extracted && (
           <div className="border-[2px] border-ws-black/20 bg-ws-page p-4 flex flex-col gap-4">
             <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-accent/80">
-              ❆ AI extracted — click any field to edit
+              ✦ AI extracted — click any field to edit
             </p>
 
             <div className="flex flex-col">
