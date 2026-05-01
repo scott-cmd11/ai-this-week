@@ -45,7 +45,8 @@ export function WizardStepBar({
             ].join(' ')}
           >
             {isDone && !isActive && <span aria-hidden="true">✓</span>}
-            <span>{i + 1}. {labels[step]}</span>
+            <span className="sm:hidden" aria-hidden="true">{i + 1}</span>
+            <span className="hidden sm:inline">{i + 1}. {labels[step]}</span>
           </button>
         )
       })}
