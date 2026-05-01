@@ -2673,6 +2673,137 @@ function WorkflowGuide() {
   )
 }
 
+// ─── WorkflowSidebar ────────────────────────────────────────────────────────
+
+function WorkflowSidebar({
+  steps,
+  completedSteps,
+  activeStep,
+  onStepClick,
+}: {
+  steps: { key: StepKey; label: string; ref: { current: HTMLDivElement | null } }[]
+  completedSteps: Set<StepKey>
+  activeStep: StepKey
+  onStepClick: (key: StepKey, ref: { current: HTMLDivElement | null }) => void
+}) {
+  return (
+    <aside aria-label="Today's workflow" className="hidden md:flex w-44 shrink-0 self-start sticky top-0 bg-ws-black text-ws-white min-h-screen flex-col pt-10 pb-8 px-3">
+      <p className="text-[9px] font-black tracking-[.12em] uppercase text-white/40 mb-3 px-2">
+        Today&apos;s workflow
+      </p>
+
+      <nav aria-label="Workflow steps" className="flex flex-col gap-0.5">
+        {steps.map(({ key, label, ref }, i) => {
+          const done   = completedSteps.has(key)
+          const active = activeStep === key && !done
+
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onStepClick(key, ref)}
+              className={[
+                'flex items-center gap-2.5 px-2 py-1.5 text-left w-full rounded-[2px] transition-colors',
+                done   ? 'opacity-70 hover:opacity-90'
+                : active ? 'bg-white/10 border-l-2 border-ws-accent'
+                : 'opacity-40 hover:opacity-60',
+              ].join(' ')}
+            >
+              {/* Badge */}
+              <span className={[
+                'w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-black shrink-0',
+                done   ? 'bg-ws-accent text-ws-black'
+                : active ? 'bg-ws-accent text-ws-black'
+                : 'border border-white/30 text-white/50',
+              ].join(' ')}>
+                {done ? '✓' : i + 1}
+              </span>
+
+              <span className={[
+                'text-[11px] leading-tight',
+                active ? 'font-black text-white' : 'font-medium text-white/80',
+              ].join(' ')}>
+                {label}
+              </span>
+            </button>
+          )
+        })}
+      </nav>
+
+      {/* Divider + other links */}
+      <div className="border-t border-white/10 mt-4 pt-4 px-2 flex flex-col gap-1">
+        <p className="text-[9px] font-black tracking-[.12em] uppercase text-white/30 mb-1">Other</p>
+        <button
+          type="button"
+          onClick={() => document.getElementById('site-stats')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          className="text-[11px] text-white/40 hover:text-white/70 text-left transition-colors"
+        >
+          Site stats
+        </button>
+        <button
+          type="button"
+          onClick={() => document.getElementById('capture-settings')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          className="text-[11px] text-white/40 hover:text-white/70 text-left transition-colors"
+        >
+          Settings
+        </button>
+      </div>
+    </aside>
+  )
+}
+
+// ─── StepDoneButton ─────────────────────────────────────────────────────────
+
+function StepDoneButton({
+  currentKey,
+  nextKey,
+  nextLabel,
+  nextRef,
+  completedSteps,
+  onDone,
+}: {
+  currentKey: StepKey
+  nextKey: StepKey | null
+  nextLabel: string | null
+  nextRef: { current: HTMLDivElement | null } | null
+  completedSteps: Set<StepKey>
+  onDone: (key: StepKey, nextKey: StepKey | null, nextRef: { current: HTMLDivElement | null } | null) => void
+}) {
+  if (completedSteps.has(currentKey)) {
+    return (
+      <div className="flex justify-end pt-2">
+        <span className="text-[12px] font-black text-ws-accent uppercase tracking-wide">✓ Done</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex justify-end pt-4">
+      <button
+        type="button"
+        onClick={() => onDone(currentKey, nextKey, nextRef)}
+        className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[12px] px-4 py-2 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
+      >
+        {nextLabel ? `Done → ${nextLabel}` : 'All done ✓'}
+      </button>
+    </div>
+  )
+}
+
+// ─── Workflow step config ────────────────────────────────────────────────────
+
+const STEP_KEYS = ['briefings', 'research', 'events', 'draft', 'publish', 'email'] as const
+type StepKey = typeof STEP_KEYS[number]
+
+const STEP_LABELS: Record<StepKey, string> = {
+  briefings: 'Briefings',
+  research:  'Research Papers',
+  events:    'Add Events',
+  draft:     'Review Draft',
+  publish:   'Publish',
+  email:     'Generate Email',
+}
+
 // ─── Main component ─────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -2683,26 +2814,21 @@ export default function AdminPage() {
   const [authLoading, setAuthLoading] = useState(false)
 
   const passwordRef = useRef<HTMLInputElement>(null)
-  const draftRef = useRef<HTMLDivElement>(null)
-  const briefingEndRef = useRef<HTMLDivElement>(null)
-  const [showJumpToDraft, setShowJumpToDraft] = useState(false)
+  // ── Workflow step refs (each wraps a workflow section for scroll-to)
+  const briefingsRef = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
+  const researchRef  = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
+  const eventsRef    = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
+  const draftRef     = useRef<HTMLDivElement>(null)
+  const publishRef   = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
+  const emailRef     = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
+
+  // ── Workflow progress
+  const [completedSteps, setCompletedSteps] = useState<Set<StepKey>>(new Set())
+  const [activeStep, setActiveStep] = useState<StepKey>('briefings')
 
   // ── Document title
   useEffect(() => {
     document.title = authed ? 'Admin — AI Today' : 'Admin sign in — AI Today'
-  }, [authed])
-
-  // ── Sticky "jump to draft" button — appears once the import panels scroll out of view
-  useEffect(() => {
-    if (!authed) return
-    const el = briefingEndRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowJumpToDraft(!entry.isIntersecting),
-      { threshold: 0 }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
   }, [authed])
 
   // ── Restore auth from sessionStorage
@@ -2735,6 +2861,17 @@ export default function AdminPage() {
     setPassword('')
     setAuthed(false)
     setAuthError('')
+  }
+
+  function handleStepDone(key: StepKey, nextKey: StepKey | null, nextRef: React.RefObject<HTMLDivElement | null> | null) { // wired to StepDoneButton in Task 4
+    setCompletedSteps(prev => new Set([...prev, key]))
+    if (nextKey) setActiveStep(nextKey)
+    if (nextRef?.current) nextRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function handleSidebarClick(key: StepKey, ref: React.RefObject<HTMLDivElement | null>) { // wired to WorkflowSidebar in Task 4
+    setActiveStep(key)
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   // ── Render: sign-in ──────────────────────────────────────────────────────────
@@ -2781,70 +2918,143 @@ export default function AdminPage() {
 
   // ── Render: main admin ────────────────────────────────────────────────────────
 
+  const stepRefs: Record<StepKey, { current: HTMLDivElement | null }> = {
+    briefings: briefingsRef,
+    research:  researchRef,
+    events:    eventsRef,
+    draft:     draftRef,
+    publish:   publishRef,
+    email:     emailRef,
+  }
+
+  const sidebarSteps = STEP_KEYS.map(key => ({
+    key,
+    label: STEP_LABELS[key],
+    ref:   stepRefs[key],
+  }))
+
   return (
-    <div className="max-w-3xl flex flex-col gap-8">
-      {/* Header */}
-      <div>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
-              Admin
-            </h1>
-            <div className="w-16 h-[3px] bg-ws-accent" aria-hidden="true" />
+    <div className="flex items-start -mx-4">
+      {/* Sticky workflow sidebar */}
+      <WorkflowSidebar
+        steps={sidebarSteps}
+        completedSteps={completedSteps}
+        activeStep={activeStep}
+        onStepClick={handleSidebarClick}
+      />
+
+      {/* Main content column */}
+      <div className="flex-1 min-w-0 flex flex-col gap-8 px-6 py-0">
+
+        {/* Header */}
+        <div>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
+                Admin
+              </h1>
+              <div className="w-16 h-[3px] bg-ws-accent" aria-hidden="true" />
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent mt-4"
+            >
+              Sign out
+            </button>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent mt-4"
-          >
-            Sign out
-          </button>
+          <WorkflowGuide />
         </div>
 
-        {/* Plain-language workflow guide */}
-        <WorkflowGuide />
+        {/* Site stats */}
+        <div id="site-stats">
+          <SiteStats password={password} />
+        </div>
+
+        {/* ── Step 1: Briefings ─────────────────────────────────────────── */}
+        <div ref={briefingsRef}>
+          <BriefingImport password={password} />
+          <StepDoneButton
+            currentKey="briefings"
+            nextKey="research"
+            nextLabel={STEP_LABELS.research}
+            nextRef={researchRef}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* ── Step 2: Research Papers ───────────────────────────────────── */}
+        <div ref={researchRef}>
+          <ResearchImport password={password} />
+          <StepDoneButton
+            currentKey="research"
+            nextKey="events"
+            nextLabel={STEP_LABELS.events}
+            nextRef={eventsRef}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* ── Step 3: Add Events ────────────────────────────────────────── */}
+        <div ref={eventsRef}>
+          <AddEvent password={password} />
+          <StepDoneButton
+            currentKey="events"
+            nextKey="draft"
+            nextLabel={STEP_LABELS.draft}
+            nextRef={draftRef}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* ── Step 4: Review Draft + manual article add ─────────────────── */}
+        <div ref={draftRef}>
+          <TodaysDraft password={password} />
+          <AddArticleManually password={password} />
+          <StepDoneButton
+            currentKey="draft"
+            nextKey="publish"
+            nextLabel={STEP_LABELS.publish}
+            nextRef={publishRef}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* ── Step 5: Publish ───────────────────────────────────────────── */}
+        <div ref={publishRef}>
+          <PublishDrafts password={password} />
+          <StepDoneButton
+            currentKey="publish"
+            nextKey="email"
+            nextLabel={STEP_LABELS.email}
+            nextRef={emailRef}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* ── Step 6: Generate Email ────────────────────────────────────── */}
+        <div ref={emailRef}>
+          <GenerateEmailFromPublished password={password} />
+          <StepDoneButton
+            currentKey="email"
+            nextKey={null}
+            nextLabel={null}
+            nextRef={null}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+          />
+        </div>
+
+        {/* Capture settings — not a workflow step */}
+        <div id="capture-settings">
+          <CaptureSettings />
+        </div>
+
       </div>
-
-      {/* Site stats */}
-      <SiteStats password={password} />
-
-      {/* ── Step 1: ADD content to today's draft ─────────────────────────────
-          All three of these panels feed articles/events into today's draft.
-          Grouped together so the user adds everything in one stretch before
-          reviewing the assembled draft below. */}
-      <BriefingImport password={password} />
-      <ResearchImport password={password} />
-      <AddEvent password={password} />
-
-      {/* Sentinel: sticky jump button watches this point to know when import panels are scrolled past */}
-      <div ref={briefingEndRef} aria-hidden="true" />
-
-      {/* ── Step 2: REVIEW the draft + PUBLISH ──────────────────────────── */}
-      <div ref={draftRef}>
-        <TodaysDraft password={password} />
-      </div>
-
-      {/* ── Optional: Manually paste a one-off article URL ──────────────── */}
-      <AddArticleManually password={password} />
-
-      {/* ── Step 3: Generate email from the just-published issue ─────────── */}
-      <GenerateEmailFromPublished password={password} />
-
-      {/* ── Step 4: Older unpublished drafts (rarely needed, auto-expands) ── */}
-      <PublishDrafts password={password} />
-
-      {/* Capture tools — bookmarklet, iOS shortcut, mobile web */}
-      <CaptureSettings />
-
-      {/* Sticky jump-to-draft button — appears once import panels scroll out of view */}
-      {showJumpToDraft && (
-        <button
-          type="button"
-          onClick={() => draftRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 z-50 border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[12px] px-4 py-2.5 shadow-[4px_4px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
-        >
-          ↓ Today&apos;s draft
-        </button>
-      )}
     </div>
   )
 }
