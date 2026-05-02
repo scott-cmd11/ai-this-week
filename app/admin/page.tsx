@@ -82,7 +82,7 @@ export default function AdminPage() {
     setAuthError('')
     setAuthLoading(true)
     try {
-      const res = await fetch(`/api/today-draft?password=${encodeURIComponent(password)}`)
+      const res = await fetch('/api/today-draft', { headers: { 'x-admin-password': password } })
       if (res.status === 401) { setAuthError('Incorrect password.'); setAuthLoading(false); return }
       sessionStorage.setItem('adminAuth', password)
       setAuthed(true)
