@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { STEP_KEYS, STEP_LABELS, type StepKey } from './_constants'
 import { CaptureSettings } from './_capture-settings'
-import { WorkflowGuide } from './_workflow-guide'
 import { WizardStepBar } from './_wizard-step-bar'
 import { WorkflowSidebar } from './_workflow-sidebar'
 import { StepDoneButton } from './_step-done-button'
@@ -50,11 +49,17 @@ export default function AdminPage() {
     document.title = authed ? 'Admin — AI Today' : 'Admin sign in — AI Today'
   }, [authed])
 
-  // ── Restore auth from sessionStorage
+  // ── Restore auth + mode from sessionStorage / localStorage
   useEffect(() => {
     const stored = sessionStorage.getItem('adminAuth')
-    if (stored) { setPassword(stored); setAuthed(true) }
-    else passwordRef.current?.focus()
+    if (stored) {
+      setPassword(stored)
+      setAuthed(true)
+      // Default to wizard mode unless user explicitly chose scroll view
+      if (localStorage.getItem('adminMode') !== 'scroll') setWizardMode(true)
+    } else {
+      passwordRef.current?.focus()
+    }
   }, [])
 
   // ── 'f' shortcut: toggle wizard/focus mode
@@ -82,6 +87,7 @@ export default function AdminPage() {
       if (res.status === 401) { setAuthError('Incorrect password.'); setAuthLoading(false); return }
       sessionStorage.setItem('adminAuth', password)
       setAuthed(true)
+      if (localStorage.getItem('adminMode') !== 'scroll') setWizardMode(true)
     } catch {
       setAuthError('Could not reach the server. Try again.')
     } finally {
@@ -111,6 +117,7 @@ export default function AdminPage() {
   }
 
   function enterWizardMode() {
+    localStorage.setItem('adminMode', 'focus')
     const firstIncomplete = STEP_KEYS.find(k => !completedSteps.has(k)) ?? STEP_KEYS[0]
     setActiveStep(firstIncomplete)
     setWizardMode(true)
@@ -118,6 +125,7 @@ export default function AdminPage() {
   }
 
   function exitWizardMode() {
+    localStorage.setItem('adminMode', 'scroll')
     setWizardMode(false)
     setTimeout(() => stepRefs[activeStep]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
@@ -189,19 +197,36 @@ export default function AdminPage() {
         {/* Wizard body */}
         <div className="flex-1 py-8 max-w-3xl w-full mx-auto px-4">
 
-          {/* Wizard header: step counter + exit toggle */}
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/50">
-              Step {wizActiveIndex + 1} of {STEP_KEYS.length}
-            </p>
-            <button
-              type="button"
-              onClick={exitWizardMode}
-              className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
-            >
-              ← All sections
-            </button>
+          {/* Daily header */}
+          <div className="flex items-start justify-between gap-4 mb-8">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-ws-black/40 mb-1">Today</p>
+              <p className="text-[24px] sm:text-[30px] font-black uppercase tracking-tight leading-none">
+                {new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
+            <div className="flex items-center gap-4 mt-1 shrink-0">
+              <button
+                type="button"
+                onClick={exitWizardMode}
+                className="text-[12px] font-black uppercase tracking-[0.1em] text-ws-black/40 hover:text-ws-black transition-colors"
+              >
+                View all sections
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="text-[12px] font-black uppercase tracking-[0.1em] text-ws-black/40 hover:text-ws-black transition-colors"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
+
+          {/* Step title */}
+          <h2 className="text-[32px] sm:text-[40px] font-black uppercase tracking-tight leading-[0.95] mb-6">
+            {STEP_LABELS[activeStep]}
+          </h2>
 
           {/* Sections — all mounted, only active one visible */}
           <div className={activeStep === 'briefings' ? '' : 'hidden'}>
@@ -278,32 +303,29 @@ export default function AdminPage() {
       <div className="flex-1 min-w-0 flex flex-col gap-8 px-6 py-0">
 
         {/* Header */}
-        <div>
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
-                Admin
-              </h1>
-              <div className="w-16 h-[3px] bg-ws-accent" aria-hidden="true" />
-            </div>
-            <div className="flex items-center gap-4 mt-4">
-              <button
-                type="button"
-                onClick={enterWizardMode}
-                className="border-[2px] border-ws-black px-3 py-2 text-[12px] font-black uppercase tracking-[0.1em] hover:bg-ws-page hover:border-ws-accent transition-colors"
-              >
-                Focus mode →
-              </button>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
-              >
-                Sign out
-              </button>
-            </div>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
+              Admin
+            </h1>
+            <div className="w-16 h-[3px] bg-ws-accent" aria-hidden="true" />
           </div>
-          <WorkflowGuide />
+          <div className="flex items-center gap-4 mt-4">
+            <button
+              type="button"
+              onClick={enterWizardMode}
+              className="border-[2px] border-ws-black px-3 py-2 text-[12px] font-black uppercase tracking-[0.1em] hover:bg-ws-page hover:border-ws-accent transition-colors"
+            >
+              Daily workflow →
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
 
         {/* ── Step 1: Briefings ─────────────────────────────────────────── */}
