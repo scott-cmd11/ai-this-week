@@ -10,8 +10,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 })
   }
 
-  const { searchParams } = new URL(request.url)
-  const password = searchParams.get('password')
+  const password = request.headers.get('x-admin-password')
   if (!password || password !== adminPassword) {
     return NextResponse.json({ error: 'Incorrect password.' }, { status: 401 })
   }

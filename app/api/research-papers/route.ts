@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ papers: [], date: todayUtc(), configured: false })
   }
 
-  const password = request.nextUrl.searchParams.get('password')
+  const password = request.headers.get('x-admin-password')
   if (!password || password !== adminPassword) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
   }

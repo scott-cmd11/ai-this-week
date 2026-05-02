@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const password = searchParams.get('password')
+  const password = request.headers.get('x-admin-password')
   const pageId = searchParams.get('pageId')
 
   if (!password || password !== adminPassword) {

@@ -54,9 +54,9 @@ export default function AboutPage() {
         <NeoPopCard bg="cream" interactive={false}>
           <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">AI content disclosure</h2>
           <p className="text-[19px] leading-[1.5] mb-4">
-            <strong>Article summaries, event descriptions, and the newsletter email
-            are all written by AI</strong> in a consistent house style — plain language,
-            active verbs, no jargon. Article titles come from the original source, unchanged.
+            <strong>Article summaries and event descriptions are written by AI</strong> in
+            a consistent house style — plain language, active verbs, no jargon. Article
+            titles come from the original source, unchanged.
           </p>
           <p className="text-[19px] leading-[1.5] mb-4">
             Every story links to its source — the title takes you there, and a small

@@ -11,7 +11,7 @@ interface Props {
 const bgClasses: Record<string, string> = {
   white: 'bg-ws-white',
   'accent-light': 'bg-ws-accent-light',
-  yellow: 'bg-ws-accent-light',
+  yellow: 'bg-amber-50 border-l-4 border-ws-accent',
   accent: 'bg-ws-accent text-ws-white',
   red: 'bg-ws-accent text-ws-white',
   page: 'bg-ws-page',
@@ -23,16 +23,16 @@ export function NeoPopCard({ href, children, bg = 'white', interactive }: Props)
 
   const className = [
     'block',
-    'border border-ws-border',
-    'rounded-lg',
+    bg !== 'yellow' && 'border border-ws-border',
+    'rounded-sm',
     bgClasses[bg] || bgClasses.white,
     'p-6',
     'no-underline',
+    'shadow-[0_2px_8px_rgba(28,25,23,0.07)]',
     'transition-[border-color,box-shadow] duration-150 ease-out',
-    isInteractive
-      ? 'hover:border-ws-muted hover:shadow-sm active:shadow-none'
-      : '',
-  ].join(' ')
+    isInteractive && 'hover:shadow-[0_4px_16px_rgba(28,25,23,0.10)]',
+    isInteractive && 'focus-visible:outline-2 focus-visible:outline-ws-accent focus-visible:outline-offset-2',
+  ].filter(Boolean).join(' ')
 
   if (href) {
     return (

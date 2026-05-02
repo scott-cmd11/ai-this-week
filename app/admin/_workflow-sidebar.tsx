@@ -62,13 +62,6 @@ export function WorkflowSidebar({
         <p className="text-[9px] font-black tracking-[.12em] uppercase text-white/30 mb-1">Other</p>
         <button
           type="button"
-          onClick={() => document.getElementById('site-stats')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-          className="text-[11px] text-white/40 hover:text-white/70 text-left transition-colors"
-        >
-          Site stats
-        </button>
-        <button
-          type="button"
           onClick={() => document.getElementById('capture-settings')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           className="text-[11px] text-white/40 hover:text-white/70 text-left transition-colors"
         >

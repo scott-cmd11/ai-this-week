@@ -10,6 +10,7 @@ interface Props {
 }
 
 export async function generateStaticParams() {
+  if (!process.env.NOTION_TOKEN) return []
   const issues = await getPublishedIssues()
   return issues.map(issue => ({ date: issue.slug }))
 }

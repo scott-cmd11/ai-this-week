@@ -2,14 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { STEP_KEYS, STEP_LABELS, type StepKey } from './_constants'
-import { SiteStats } from './_site-stats'
 import { CaptureSettings } from './_capture-settings'
-import { WorkflowGuide } from './_workflow-guide'
 import { WizardStepBar } from './_wizard-step-bar'
 import { WorkflowSidebar } from './_workflow-sidebar'
 import { StepDoneButton } from './_step-done-button'
 import { TodaysDraft } from './_today-draft'
-import { GenerateEmailFromPublished } from './_generate-email-from-published'
 import { PublishDrafts } from './_publish-drafts'
 import { AddArticleManually } from './_add-article-manually'
 import { AddEvent } from './_add-event'
@@ -32,7 +29,6 @@ export default function AdminPage() {
   const eventsRef    = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
   const draftRef     = useRef<HTMLDivElement>(null)
   const publishRef   = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
-  const emailRef     = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
 
   const stepRefs: Record<StepKey, { current: HTMLDivElement | null }> = {
     briefings: briefingsRef,
@@ -40,7 +36,6 @@ export default function AdminPage() {
     events:    eventsRef,
     draft:     draftRef,
     publish:   publishRef,
-    email:     emailRef,
   }
 
   // ── Workflow progress
@@ -54,11 +49,26 @@ export default function AdminPage() {
     document.title = authed ? 'Admin — AI Today' : 'Admin sign in — AI Today'
   }, [authed])
 
-  // ── Restore auth from sessionStorage
+  // ── Restore auth + mode from sessionStorage / localStorage
   useEffect(() => {
     const stored = sessionStorage.getItem('adminAuth')
-    if (stored) { setPassword(stored); setAuthed(true) }
-    else passwordRef.current?.focus()
+    if (!stored) { passwordRef.current?.focus(); return }
+    // Verify the stored password before trusting it
+    fetch('/api/today-draft', { headers: { 'x-admin-password': stored } })
+      .then(res => {
+        if (res.ok) {
+          setPassword(stored)
+          setAuthed(true)
+          if (localStorage.getItem('adminMode') !== 'scroll') setWizardMode(true)
+        } else {
+          sessionStorage.removeItem('adminAuth')
+          passwordRef.current?.focus()
+        }
+      })
+      .catch(() => {
+        // Network error — let the user sign in manually
+        passwordRef.current?.focus()
+      })
   }, [])
 
   // ── 'f' shortcut: toggle wizard/focus mode
@@ -82,10 +92,12 @@ export default function AdminPage() {
     setAuthError('')
     setAuthLoading(true)
     try {
-      const res = await fetch(`/api/today-draft?password=${encodeURIComponent(password)}`)
+      const res = await fetch('/api/today-draft', { headers: { 'x-admin-password': password } })
       if (res.status === 401) { setAuthError('Incorrect password.'); setAuthLoading(false); return }
+      if (!res.ok) { setAuthError('Server error. Try again.'); setAuthLoading(false); return }
       sessionStorage.setItem('adminAuth', password)
       setAuthed(true)
+      if (localStorage.getItem('adminMode') !== 'scroll') setWizardMode(true)
     } catch {
       setAuthError('Could not reach the server. Try again.')
     } finally {
@@ -115,6 +127,7 @@ export default function AdminPage() {
   }
 
   function enterWizardMode() {
+    localStorage.setItem('adminMode', 'focus')
     const firstIncomplete = STEP_KEYS.find(k => !completedSteps.has(k)) ?? STEP_KEYS[0]
     setActiveStep(firstIncomplete)
     setWizardMode(true)
@@ -122,6 +135,7 @@ export default function AdminPage() {
   }
 
   function exitWizardMode() {
+    localStorage.setItem('adminMode', 'scroll')
     setWizardMode(false)
     setTimeout(() => stepRefs[activeStep]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
@@ -131,11 +145,11 @@ export default function AdminPage() {
   if (!authed) {
     return (
       <div className="max-w-md">
-        <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
+        <h1 className="text-[48px] sm:text-[56px] font-black leading-[0.95] tracking-tight mb-3 font-[family-name:var(--font-display)]">
           Admin sign in
         </h1>
         <div className="w-16 h-[3px] bg-ws-accent mb-8" aria-hidden="true" />
-        <div className="border-[3px] border-ws-black bg-ws-white p-6 shadow-[8px_8px_0_0_var(--color-ws-black)]">
+        <div className="border border-ws-border bg-ws-white p-6 shadow-[0_2px_16px_rgba(28,25,23,0.08)] rounded-sm">
           <form onSubmit={handleSignIn} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="password" className="text-[13px] font-black uppercase tracking-wide">
@@ -149,7 +163,7 @@ export default function AdminPage() {
                 onChange={e => setPassword(e.target.value)}
                 disabled={authLoading}
                 required
-                className="border-[3px] border-ws-black px-3 py-3 text-[17px] font-mono w-full focus-visible:outline-none focus-visible:border-ws-accent disabled:bg-ws-page"
+                className="border border-ws-border rounded-sm px-3 py-3 text-[17px] font-mono w-full focus-visible:outline-none focus-visible:border-ws-accent transition-colors disabled:bg-ws-page"
               />
               {authError && (
                 <p className="text-[14px] font-bold text-ws-accent" role="alert">{authError}</p>
@@ -158,7 +172,7 @@ export default function AdminPage() {
             <button
               type="submit"
               disabled={authLoading || !password}
-              className="border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[15px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-ws-accent text-white rounded-sm px-5 py-2.5 font-semibold text-[15px] self-start hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {authLoading ? 'Signing in…' : 'Sign in'}
             </button>
@@ -193,19 +207,36 @@ export default function AdminPage() {
         {/* Wizard body */}
         <div className="flex-1 py-8 max-w-3xl w-full mx-auto px-4">
 
-          {/* Wizard header: step counter + exit toggle */}
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/50">
-              Step {wizActiveIndex + 1} of {STEP_KEYS.length}
-            </p>
-            <button
-              type="button"
-              onClick={exitWizardMode}
-              className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
-            >
-              ← All sections
-            </button>
+          {/* Daily header */}
+          <div className="flex items-start justify-between gap-4 mb-8">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-ws-black/40 mb-1">Today</p>
+              <p className="text-[24px] sm:text-[30px] font-semibold tracking-tight leading-none">
+                {new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
+            <div className="flex items-center gap-4 mt-1 shrink-0">
+              <button
+                type="button"
+                onClick={exitWizardMode}
+                className="text-[12px] font-black uppercase tracking-[0.1em] text-ws-black/40 hover:text-ws-black transition-colors"
+              >
+                View all sections
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="text-[12px] font-black uppercase tracking-[0.1em] text-ws-black/40 hover:text-ws-black transition-colors"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
+
+          {/* Step title */}
+          <h2 className="text-[32px] sm:text-[40px] font-black tracking-tight leading-[0.95] mb-6 font-[family-name:var(--font-display)]">
+            {STEP_LABELS[activeStep]}
+          </h2>
 
           {/* Sections — all mounted, only active one visible */}
           <div className={activeStep === 'briefings' ? '' : 'hidden'}>
@@ -224,39 +255,35 @@ export default function AdminPage() {
           <div className={activeStep === 'publish' ? '' : 'hidden'}>
             <PublishDrafts password={password} />
           </div>
-          <div className={activeStep === 'email' ? '' : 'hidden'}>
-            <GenerateEmailFromPublished password={password} />
-          </div>
-
           {/* Wizard nav footer */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t-[2px] border-ws-black/15">
+          <div className="flex items-center justify-between mt-10 pt-6 border-t border-ws-border">
             {/* Back */}
             {wizPrevStep ? (
               <button
                 type="button"
                 onClick={() => setActiveStep(wizPrevStep)}
-                className="border-[2px] border-ws-black px-4 py-2 text-[13px] font-black uppercase tracking-wide hover:bg-ws-page transition-colors"
+                className="text-[14px] font-medium text-ws-muted hover:text-ws-black transition-colors"
               >
                 ← Back
               </button>
             ) : <div />}
 
-            {/* Done → Next or All done */}
+            {/* Continue / Complete */}
             {wizNextStep ? (
               <button
                 type="button"
                 onClick={() => handleStepDone(activeStep, wizNextStep, null)}
-                className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-5 py-2.5 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
+                className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150"
               >
-                Done → {STEP_LABELS[wizNextStep]}
+                Continue to {STEP_LABELS[wizNextStep]} →
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => handleStepDone(activeStep, null, null)}
-                className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-5 py-2.5 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
+                className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150"
               >
-                All done ✓
+                Complete workflow ✓
               </button>
             )}
           </div>
@@ -286,37 +313,29 @@ export default function AdminPage() {
       <div className="flex-1 min-w-0 flex flex-col gap-8 px-6 py-0">
 
         {/* Header */}
-        <div>
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
-                Admin
-              </h1>
-              <div className="w-16 h-[3px] bg-ws-accent" aria-hidden="true" />
-            </div>
-            <div className="flex items-center gap-4 mt-4">
-              <button
-                type="button"
-                onClick={enterWizardMode}
-                className="border-[2px] border-ws-black px-3 py-2 text-[12px] font-black uppercase tracking-[0.1em] hover:bg-ws-page hover:border-ws-accent transition-colors"
-              >
-                Focus mode →
-              </button>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
-              >
-                Sign out
-              </button>
-            </div>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
+              Admin
+            </h1>
+            <div className="w-16 h-[3px] bg-ws-accent" aria-hidden="true" />
           </div>
-          <WorkflowGuide />
-        </div>
-
-        {/* Site stats */}
-        <div id="site-stats">
-          <SiteStats password={password} />
+          <div className="flex items-center gap-4 mt-4">
+            <button
+              type="button"
+              onClick={enterWizardMode}
+              className="border-[2px] border-ws-black px-3 py-2 text-[12px] font-black uppercase tracking-[0.1em] hover:bg-ws-page hover:border-ws-accent transition-colors"
+            >
+              Daily workflow →
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="text-[13px] font-black uppercase tracking-wide underline hover:no-underline hover:text-ws-accent"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
 
         {/* ── Step 1: Briefings ─────────────────────────────────────────── */}
@@ -377,19 +396,6 @@ export default function AdminPage() {
           <PublishDrafts password={password} />
           <StepDoneButton
             currentKey="publish"
-            nextKey="email"
-            nextLabel={STEP_LABELS.email}
-            nextRef={emailRef}
-            completedSteps={completedSteps}
-            onDone={handleStepDone}
-          />
-        </div>
-
-        {/* ── Step 6: Generate Email ────────────────────────────────────── */}
-        <div ref={emailRef}>
-          <GenerateEmailFromPublished password={password} />
-          <StepDoneButton
-            currentKey="email"
             nextKey={null}
             nextLabel={null}
             nextRef={null}

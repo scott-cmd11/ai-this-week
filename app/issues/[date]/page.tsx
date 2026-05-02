@@ -31,6 +31,7 @@ interface Props {
 }
 
 export async function generateStaticParams() {
+  if (!process.env.NOTION_TOKEN) return []
   const issues = await getPublishedIssues()
   return issues.map(issue => ({ date: issue.slug }))
 }
@@ -83,7 +84,7 @@ export default async function IssuePage({ params }: Props) {
             </span>
           </div>
 
-          <h1 className="text-[30px] sm:text-[40px] md:text-[52px] font-black uppercase leading-[1] sm:leading-[0.95] tracking-tight mb-4 mt-2 break-words">
+          <h1 className="text-[30px] sm:text-[40px] md:text-[52px] font-black leading-[1] sm:leading-[0.95] tracking-tight mb-4 mt-2 break-words font-[family-name:var(--font-display)]">
             {nonBreakingDate(issue.title)}
           </h1>
           <div className="w-16 h-[3px] bg-ws-accent mb-8" aria-hidden="true" />
@@ -102,7 +103,7 @@ export default async function IssuePage({ params }: Props) {
           {/* Prev / Next navigation — stacks on mobile, side-by-side from sm */}
           <nav
             aria-label="Issue navigation"
-            className="border-t-[3px] border-ws-black mt-12 pt-8 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-4"
+            className="border-t border-ws-border mt-12 pt-8 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-4"
           >
             {adjacent.prev && (
               <div>

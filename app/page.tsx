@@ -20,14 +20,15 @@ function formatDate(isoDate: string): string {
 
 export default async function HomePage() {
   const issues = await getPublishedIssues()
-  const [latest, ...past] = issues
+  const [latest, ...allPast] = issues
+  const past = allPast.slice(0, 5)
 
   return (
     <>
       {/* Hero */}
       <section aria-label="About this newsletter" className="mb-12">
         <NeoPopCard bg="yellow">
-          <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
+          <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black leading-[0.95] tracking-tight mb-4 font-[family-name:var(--font-display)]">
             AI news for people who aren&apos;t AI people.
           </h1>
           <div className="w-16 h-[3px] bg-ws-accent mb-5" aria-hidden="true" />
@@ -65,29 +66,66 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* AI Canada Pulse crosslink */}
+      <section aria-label="Related resource" className="mb-14">
+        <div className="border-l-[4px] border-ws-accent pl-5 py-1">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-ws-muted mb-2">Also from Scott Hazlitt</p>
+          <h2 className="text-[20px] sm:text-[24px] font-black uppercase tracking-tight leading-tight mb-2">
+            <a
+              href="https://www.aicanadapulse.ca/dashboard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ws-black hover:text-ws-accent no-underline"
+            >
+              AI Canada Pulse →
+            </a>
+          </h2>
+          <p className="text-[16px] leading-[1.5] text-ws-muted max-w-xl">
+            Canadian AI activity tracked hourly — every story, economic indicators, and
+            deeper data for when today&apos;s digest isn&apos;t enough.
+          </p>
+        </div>
+      </section>
+
       {/* Past issues */}
       {past.length > 0 && (
         <section aria-label="Past issues">
           <h2 className="text-[26px] sm:text-[32px] font-black uppercase tracking-tight mb-6">Past issues</h2>
-          <ul className="space-y-10 list-none p-0">
+          <ul className="list-none p-0 m-0 divide-y divide-ws-border border-t border-ws-border">
             {past.map(issue => (
               <li key={issue.id}>
-                <NeoPopCard href={`/issues/${issue.slug}`} bg="white">
-                  <div className="flex gap-3 text-[13px] font-bold uppercase tracking-wide mb-2">
-                    <span>Issue {issue.issueNumber}</span>
-                    <span aria-hidden="true">·</span>
-                    <time dateTime={issue.issueDate}>{formatDate(issue.issueDate)}</time>
+                <Link
+                  href={`/issues/${issue.slug}`}
+                  className="flex items-baseline justify-between gap-4 py-4 group no-underline"
+                >
+                  <div className="flex items-baseline gap-3 min-w-0">
+                    <span className="text-[12px] font-black uppercase tracking-[0.1em] text-ws-muted shrink-0">
+                      #{issue.issueNumber}
+                    </span>
+                    <span className="text-[17px] font-black leading-snug text-ws-black group-hover:text-ws-accent transition-colors truncate">
+                      {nonBreakingDate(issue.title)}
+                    </span>
                   </div>
-                  <h3 className="text-[24px] font-black leading-tight mb-2 text-ws-black">
-                    {nonBreakingDate(issue.title)}
-                  </h3>
-                  {issue.summary && (
-                    <p className="text-[17px] leading-[1.5] text-ws-black">{issue.summary}</p>
-                  )}
-                </NeoPopCard>
+                  <time
+                    dateTime={issue.issueDate}
+                    className="text-[12px] font-bold text-ws-muted shrink-0 hidden sm:block"
+                  >
+                    {formatDate(issue.issueDate)}
+                  </time>
+                </Link>
               </li>
             ))}
           </ul>
+          {allPast.length > 5 && (
+            <div className="mt-5 pt-4 border-t border-ws-border">
+              <Link
+                href="/issues"
+                className="text-[13px] font-black uppercase tracking-[0.1em] text-ws-accent hover:text-ws-accent-hover underline underline-offset-2"
+              >
+                View all {allPast.length + 1} issues →
+              </Link>
+            </div>
+          )}
         </section>
       )}
 
