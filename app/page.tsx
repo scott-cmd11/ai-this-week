@@ -20,7 +20,8 @@ function formatDate(isoDate: string): string {
 
 export default async function HomePage() {
   const issues = await getPublishedIssues()
-  const [latest, ...past] = issues
+  const [latest, ...allPast] = issues
+  const past = allPast.slice(0, 5)
 
   return (
     <>
@@ -90,25 +91,41 @@ export default async function HomePage() {
       {past.length > 0 && (
         <section aria-label="Past issues">
           <h2 className="text-[26px] sm:text-[32px] font-black uppercase tracking-tight mb-6">Past issues</h2>
-          <ul className="space-y-10 list-none p-0">
+          <ul className="list-none p-0 m-0 divide-y divide-ws-border border-t border-ws-border">
             {past.map(issue => (
               <li key={issue.id}>
-                <NeoPopCard href={`/issues/${issue.slug}`} bg="white">
-                  <div className="flex gap-3 text-[13px] font-bold uppercase tracking-wide mb-2">
-                    <span>Issue {issue.issueNumber}</span>
-                    <span aria-hidden="true">·</span>
-                    <time dateTime={issue.issueDate}>{formatDate(issue.issueDate)}</time>
+                <Link
+                  href={`/issues/${issue.slug}`}
+                  className="flex items-baseline justify-between gap-4 py-4 group no-underline"
+                >
+                  <div className="flex items-baseline gap-3 min-w-0">
+                    <span className="text-[12px] font-black uppercase tracking-[0.1em] text-ws-muted shrink-0">
+                      #{issue.issueNumber}
+                    </span>
+                    <span className="text-[17px] font-black leading-snug text-ws-black group-hover:text-ws-accent transition-colors truncate">
+                      {nonBreakingDate(issue.title)}
+                    </span>
                   </div>
-                  <h3 className="text-[24px] font-black leading-tight mb-2 text-ws-black">
-                    {nonBreakingDate(issue.title)}
-                  </h3>
-                  {issue.summary && (
-                    <p className="text-[17px] leading-[1.5] text-ws-black">{issue.summary}</p>
-                  )}
-                </NeoPopCard>
+                  <time
+                    dateTime={issue.issueDate}
+                    className="text-[12px] font-bold text-ws-muted shrink-0 hidden sm:block"
+                  >
+                    {formatDate(issue.issueDate)}
+                  </time>
+                </Link>
               </li>
             ))}
           </ul>
+          {allPast.length > 5 && (
+            <div className="mt-5 pt-4 border-t border-ws-border">
+              <Link
+                href="/issues"
+                className="text-[13px] font-black uppercase tracking-[0.1em] text-ws-accent hover:text-ws-accent-hover underline underline-offset-2"
+              >
+                View all {allPast.length + 1} issues →
+              </Link>
+            </div>
+          )}
         </section>
       )}
 
