@@ -34,7 +34,7 @@ const SOCIAL_LINKS = [
 export function Footer() {
   return (
     <footer
-      className="border-t border-ws-border mt-16 py-8 bg-ws-white"
+      className="border-t border-ws-border mt-16 py-8 bg-ws-page"
       role="contentinfo"
     >
       <div className="max-w-4xl mx-auto px-4 flex flex-col gap-4">
