@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { STEP_KEYS, STEP_LABELS, type StepKey } from './_constants'
-import { SiteStats } from './_site-stats'
 import { CaptureSettings } from './_capture-settings'
 import { WorkflowGuide } from './_workflow-guide'
 import { WizardStepBar } from './_wizard-step-bar'
@@ -305,11 +304,6 @@ export default function AdminPage() {
             </div>
           </div>
           <WorkflowGuide />
-        </div>
-
-        {/* Site stats */}
-        <div id="site-stats">
-          <SiteStats password={password} />
         </div>
 
         {/* ── Step 1: Briefings ─────────────────────────────────────────── */}
