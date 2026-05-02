@@ -197,7 +197,7 @@ function SectionHeader({ block, count }: { block: NotionBlock; count: number }) 
         Section
       </p>
       <div className="flex items-baseline gap-2 flex-wrap">
-        <h2 className="text-[28px] sm:text-[40px] font-black uppercase tracking-tight leading-[1] text-ws-white m-0">
+        <h2 className="text-[28px] sm:text-[40px] font-black uppercase tracking-tight leading-[1] text-ws-white m-0 font-[family-name:var(--font-display)]">
           {label}
         </h2>
         {meta && (
@@ -252,7 +252,7 @@ function ArticleCard({
   const excerpt = paragraphs[0]?.content ?? ''
 
   return (
-    <article className="h-full flex flex-col border-[2px] border-ws-black bg-ws-white hover:bg-ws-accent-light transition-colors duration-150">
+    <article className="h-full flex flex-col border border-ws-border bg-ws-white shadow-[0_2px_8px_rgba(28,25,23,0.07)] rounded-sm hover:shadow-[0_4px_16px_rgba(28,25,23,0.10)] hover:border-ws-accent/30 transition-[box-shadow,border-color] duration-150">
       {/* Image / no-image fill */}
       {isHero ? (
         <div className="flex flex-col sm:flex-row flex-1">
@@ -266,7 +266,7 @@ function ArticleCard({
                 loading="lazy"
               />
             ) : (
-              <div className="bg-ws-accent-light flex items-end p-5 aspect-[4/3] sm:h-full select-none overflow-hidden">
+              <div className="bg-amber-50 flex items-end p-5 aspect-[4/3] sm:h-full select-none overflow-hidden">
                 <span aria-hidden="true" className="text-[100px] font-black leading-none text-ws-black/10 tabular-nums">
                   {String(numberInSection).padStart(2, '0')}
                 </span>
@@ -300,7 +300,7 @@ function ArticleCard({
                   href={bookmarkUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-ws-accent"
+                  className="text-ws-muted hover:text-ws-accent transition-colors"
                 >
                   {host} →
                 </a>
@@ -320,7 +320,7 @@ function ArticleCard({
                 loading="lazy"
               />
             ) : (
-              <div className="bg-ws-accent-light flex items-end p-4 aspect-video select-none overflow-hidden">
+              <div className="bg-amber-50 flex items-end p-4 aspect-video select-none overflow-hidden">
                 <span aria-hidden="true" className="text-[80px] font-black leading-none text-ws-black/10 tabular-nums">
                   {String(numberInSection).padStart(2, '0')}
                 </span>
@@ -352,7 +352,7 @@ function ArticleCard({
                   href={bookmarkUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-ws-accent"
+                  className="text-ws-muted hover:text-ws-accent transition-colors"
                 >
                   {host} →
                 </a>
