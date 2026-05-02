@@ -23,17 +23,16 @@ export function NeoPopCard({ href, children, bg = 'white', interactive }: Props)
 
   const className = [
     'block',
-    bg === 'yellow' ? '' : 'border border-ws-border',
+    bg !== 'yellow' && 'border border-ws-border',
     'rounded-sm',
     bgClasses[bg] || bgClasses.white,
     'p-6',
     'no-underline',
     'shadow-[0_2px_8px_rgba(28,25,23,0.07)]',
     'transition-[border-color,box-shadow] duration-150 ease-out',
-    isInteractive
-      ? 'hover:shadow-[0_4px_16px_rgba(28,25,23,0.10)]'
-      : '',
-  ].join(' ')
+    isInteractive && 'hover:shadow-[0_4px_16px_rgba(28,25,23,0.10)]',
+    isInteractive && 'focus-visible:outline-2 focus-visible:outline-ws-accent focus-visible:outline-offset-2',
+  ].filter(Boolean).join(' ')
 
   if (href) {
     return (
