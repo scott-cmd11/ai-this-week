@@ -21,7 +21,7 @@ export function WizardStepBar({
     <div
       role="navigation"
       aria-label="Wizard steps"
-      className="bg-[#1C1917] px-4 sm:px-6 py-4 flex items-center justify-center"
+      className="bg-ws-black px-4 sm:px-6 py-4 flex items-center justify-center"
     >
       <div className="flex items-center w-full max-w-xl">
         {steps.map((step, i) => {
