@@ -65,6 +65,27 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* AI Canada Pulse crosslink */}
+      <section aria-label="Related resource" className="mb-14">
+        <div className="border-l-[4px] border-ws-accent pl-5 py-1">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-ws-muted mb-2">Also from Scott Hazlitt</p>
+          <h2 className="text-[20px] sm:text-[24px] font-black uppercase tracking-tight leading-tight mb-2">
+            <a
+              href="https://www.aicanadapulse.ca/dashboard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ws-black hover:text-ws-accent no-underline"
+            >
+              AI Canada Pulse →
+            </a>
+          </h2>
+          <p className="text-[16px] leading-[1.5] text-ws-muted max-w-xl">
+            Canadian AI activity tracked hourly — every story, economic indicators, and
+            deeper data for when today&apos;s digest isn&apos;t enough.
+          </p>
+        </div>
+      </section>
+
       {/* Past issues */}
       {past.length > 0 && (
         <section aria-label="Past issues">
