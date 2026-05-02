@@ -145,11 +145,11 @@ export default function AdminPage() {
   if (!authed) {
     return (
       <div className="max-w-md">
-        <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
+        <h1 className="text-[48px] sm:text-[56px] font-black leading-[0.95] tracking-tight mb-3 font-[family-name:var(--font-display)]">
           Admin sign in
         </h1>
         <div className="w-16 h-[3px] bg-ws-accent mb-8" aria-hidden="true" />
-        <div className="border-[3px] border-ws-black bg-ws-white p-6 shadow-[8px_8px_0_0_var(--color-ws-black)]">
+        <div className="border border-ws-border bg-ws-white p-6 shadow-[0_2px_16px_rgba(28,25,23,0.08)] rounded-sm">
           <form onSubmit={handleSignIn} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="password" className="text-[13px] font-black uppercase tracking-wide">
@@ -163,7 +163,7 @@ export default function AdminPage() {
                 onChange={e => setPassword(e.target.value)}
                 disabled={authLoading}
                 required
-                className="border-[3px] border-ws-black px-3 py-3 text-[17px] font-mono w-full focus-visible:outline-none focus-visible:border-ws-accent disabled:bg-ws-page"
+                className="border border-ws-border rounded-sm px-3 py-3 text-[17px] font-mono w-full focus-visible:outline-none focus-visible:border-ws-accent transition-colors disabled:bg-ws-page"
               />
               {authError && (
                 <p className="text-[14px] font-bold text-ws-accent" role="alert">{authError}</p>
@@ -172,7 +172,7 @@ export default function AdminPage() {
             <button
               type="submit"
               disabled={authLoading || !password}
-              className="border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[15px] px-5 py-3 self-start shadow-[4px_4px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-ws-accent text-white rounded-sm px-5 py-2.5 font-semibold text-[15px] self-start hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {authLoading ? 'Signing in…' : 'Sign in'}
             </button>
@@ -211,7 +211,7 @@ export default function AdminPage() {
           <div className="flex items-start justify-between gap-4 mb-8">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-ws-black/40 mb-1">Today</p>
-              <p className="text-[24px] sm:text-[30px] font-black uppercase tracking-tight leading-none">
+              <p className="text-[24px] sm:text-[30px] font-semibold tracking-tight leading-none">
                 {new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
             </div>
@@ -234,7 +234,7 @@ export default function AdminPage() {
           </div>
 
           {/* Step title */}
-          <h2 className="text-[32px] sm:text-[40px] font-black uppercase tracking-tight leading-[0.95] mb-6">
+          <h2 className="text-[32px] sm:text-[40px] font-black tracking-tight leading-[0.95] mb-6 font-[family-name:var(--font-display)]">
             {STEP_LABELS[activeStep]}
           </h2>
 
@@ -256,34 +256,34 @@ export default function AdminPage() {
             <PublishDrafts password={password} />
           </div>
           {/* Wizard nav footer */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t-[2px] border-ws-black/15">
+          <div className="flex items-center justify-between mt-10 pt-6 border-t border-ws-border">
             {/* Back */}
             {wizPrevStep ? (
               <button
                 type="button"
                 onClick={() => setActiveStep(wizPrevStep)}
-                className="border-[2px] border-ws-black px-4 py-2 text-[13px] font-black uppercase tracking-wide hover:bg-ws-page transition-colors"
+                className="text-[14px] font-medium text-ws-muted hover:text-ws-black transition-colors"
               >
                 ← Back
               </button>
             ) : <div />}
 
-            {/* Done → Next or All done */}
+            {/* Continue / Complete */}
             {wizNextStep ? (
               <button
                 type="button"
                 onClick={() => handleStepDone(activeStep, wizNextStep, null)}
-                className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-5 py-2.5 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
+                className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150"
               >
-                Done → {STEP_LABELS[wizNextStep]}
+                Continue to {STEP_LABELS[wizNextStep]} →
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => handleStepDone(activeStep, null, null)}
-                className="border-[3px] border-ws-black bg-ws-black text-ws-white font-black uppercase tracking-wide text-[13px] px-5 py-2.5 shadow-[3px_3px_0_0_var(--color-ws-accent)] transition-[transform,box-shadow] duration-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--color-ws-accent)] hover:bg-ws-accent"
+                className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150"
               >
-                All done ✓
+                Complete workflow ✓
               </button>
             )}
           </div>
