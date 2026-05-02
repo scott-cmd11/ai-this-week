@@ -28,7 +28,7 @@ export default async function HomePage() {
       {/* Hero */}
       <section aria-label="About this newsletter" className="mb-12">
         <NeoPopCard bg="yellow">
-          <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
+          <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black leading-[0.95] tracking-tight mb-4 font-[family-name:var(--font-display)]">
             AI news for people who aren&apos;t AI people.
           </h1>
           <div className="w-16 h-[3px] bg-ws-accent mb-5" aria-hidden="true" />
