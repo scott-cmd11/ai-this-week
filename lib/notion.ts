@@ -31,21 +31,30 @@ export interface SectionArticle {
   summary: string | null
 }
 
-if (!process.env.NOTION_TOKEN) {
-  throw new Error('Missing environment variable: NOTION_TOKEN')
-}
-if (!process.env.NOTION_DATABASE_ID) {
-  throw new Error('Missing environment variable: NOTION_DATABASE_ID')
+let _notion: Client | null = null
+let _databaseId: string | null = null
+
+function getNotion(): Client {
+  if (!_notion) {
+    if (!process.env.NOTION_TOKEN) throw new Error('Missing environment variable: NOTION_TOKEN')
+    _notion = new Client({ auth: process.env.NOTION_TOKEN })
+  }
+  return _notion
 }
 
-const notion = new Client({ auth: process.env.NOTION_TOKEN })
-const DATABASE_ID = process.env.NOTION_DATABASE_ID!
+function getDatabaseId(): string {
+  if (!_databaseId) {
+    if (!process.env.NOTION_DATABASE_ID) throw new Error('Missing environment variable: NOTION_DATABASE_ID')
+    _databaseId = process.env.NOTION_DATABASE_ID
+  }
+  return _databaseId
+}
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function getPublishedIssues(): Promise<Issue[]> {
-  const response = await notion.databases.query({
-    database_id: DATABASE_ID,
+  const response = await getNotion().databases.query({
+    database_id: getDatabaseId(),
     filter: {
       property: 'Published',
       checkbox: { equals: true },
@@ -61,8 +70,8 @@ export async function getLatestIssue(): Promise<Issue | null> {
 }
 
 export async function getIssueByDate(date: string): Promise<Issue | null> {
-  const response = await notion.databases.query({
-    database_id: DATABASE_ID,
+  const response = await getNotion().databases.query({
+    database_id: getDatabaseId(),
     filter: {
       and: [
         { property: 'Published', checkbox: { equals: true } },
@@ -75,7 +84,7 @@ export async function getIssueByDate(date: string): Promise<Issue | null> {
 }
 
 export async function getIssueBlocks(pageId: string): Promise<NotionBlock[]> {
-  const response = await notion.blocks.children.list({ block_id: pageId })
+  const response = await getNotion().blocks.children.list({ block_id: pageId })
   return response.results.map(mapBlockToNotionBlock)
 }
 
