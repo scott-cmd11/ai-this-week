@@ -441,14 +441,14 @@ function Block({ block }: { block: NotionBlock }) {
       if (!block.href) return null
       return (
         <p className="mb-4 text-[15px] text-ws-muted">
-          via{' '}
           <a
             href={block.href}
             target="_blank"
             rel="noopener noreferrer"
             className="text-ws-muted underline underline-offset-2 decoration-ws-muted/40 hover:text-ws-accent hover:decoration-ws-accent"
           >
-            {hostnameOf(block.href)}
+            {block.content || hostnameOf(block.href)}
+            <span className="sr-only"> (opens in new tab)</span>
           </a>
         </p>
       )
