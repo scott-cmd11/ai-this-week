@@ -52,14 +52,23 @@ export default function AdminPage() {
   // ── Restore auth + mode from sessionStorage / localStorage
   useEffect(() => {
     const stored = sessionStorage.getItem('adminAuth')
-    if (stored) {
-      setPassword(stored)
-      setAuthed(true)
-      // Default to wizard mode unless user explicitly chose scroll view
-      if (localStorage.getItem('adminMode') !== 'scroll') setWizardMode(true)
-    } else {
-      passwordRef.current?.focus()
-    }
+    if (!stored) { passwordRef.current?.focus(); return }
+    // Verify the stored password before trusting it
+    fetch('/api/today-draft', { headers: { 'x-admin-password': stored } })
+      .then(res => {
+        if (res.ok) {
+          setPassword(stored)
+          setAuthed(true)
+          if (localStorage.getItem('adminMode') !== 'scroll') setWizardMode(true)
+        } else {
+          sessionStorage.removeItem('adminAuth')
+          passwordRef.current?.focus()
+        }
+      })
+      .catch(() => {
+        // Network error — let the user sign in manually
+        passwordRef.current?.focus()
+      })
   }, [])
 
   // ── 'f' shortcut: toggle wizard/focus mode
@@ -85,6 +94,7 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/today-draft', { headers: { 'x-admin-password': password } })
       if (res.status === 401) { setAuthError('Incorrect password.'); setAuthLoading(false); return }
+      if (!res.ok) { setAuthError('Server error. Try again.'); setAuthLoading(false); return }
       sessionStorage.setItem('adminAuth', password)
       setAuthed(true)
       if (localStorage.getItem('adminMode') !== 'scroll') setWizardMode(true)
