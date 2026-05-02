@@ -9,7 +9,6 @@ import { WizardStepBar } from './_wizard-step-bar'
 import { WorkflowSidebar } from './_workflow-sidebar'
 import { StepDoneButton } from './_step-done-button'
 import { TodaysDraft } from './_today-draft'
-import { GenerateEmailFromPublished } from './_generate-email-from-published'
 import { PublishDrafts } from './_publish-drafts'
 import { AddArticleManually } from './_add-article-manually'
 import { AddEvent } from './_add-event'
@@ -32,7 +31,6 @@ export default function AdminPage() {
   const eventsRef    = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
   const draftRef     = useRef<HTMLDivElement>(null)
   const publishRef   = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
-  const emailRef     = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
 
   const stepRefs: Record<StepKey, { current: HTMLDivElement | null }> = {
     briefings: briefingsRef,
@@ -40,7 +38,6 @@ export default function AdminPage() {
     events:    eventsRef,
     draft:     draftRef,
     publish:   publishRef,
-    email:     emailRef,
   }
 
   // ── Workflow progress
@@ -224,10 +221,6 @@ export default function AdminPage() {
           <div className={activeStep === 'publish' ? '' : 'hidden'}>
             <PublishDrafts password={password} />
           </div>
-          <div className={activeStep === 'email' ? '' : 'hidden'}>
-            <GenerateEmailFromPublished password={password} />
-          </div>
-
           {/* Wizard nav footer */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t-[2px] border-ws-black/15">
             {/* Back */}
@@ -377,19 +370,6 @@ export default function AdminPage() {
           <PublishDrafts password={password} />
           <StepDoneButton
             currentKey="publish"
-            nextKey="email"
-            nextLabel={STEP_LABELS.email}
-            nextRef={emailRef}
-            completedSteps={completedSteps}
-            onDone={handleStepDone}
-          />
-        </div>
-
-        {/* ── Step 6: Generate Email ────────────────────────────────────── */}
-        <div ref={emailRef}>
-          <GenerateEmailFromPublished password={password} />
-          <StepDoneButton
-            currentKey="email"
             nextKey={null}
             nextLabel={null}
             nextRef={null}

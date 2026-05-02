@@ -28,7 +28,7 @@ export function WorkflowGuide() {
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black">How this works</p>
           {!open && (
             <p className="text-[12px] text-ws-black/60 mt-0.5">
-              Import → Publish → Email. Click to expand the full guide (~5 min).
+              Import → Publish. Click to expand the full guide (~5 min).
             </p>
           )}
         </div>
@@ -86,17 +86,6 @@ export function WorkflowGuide() {
               </div>
             </li>
 
-            <li className="flex gap-3">
-              <span className="font-black text-ws-accent text-[20px] leading-none shrink-0 w-6">3</span>
-              <div>
-                <p className="font-black text-[14px] mb-1">Send the email</p>
-                <p className="text-ws-black/70">
-                  After publishing, scroll to <strong>Generate the email</strong>. Click
-                  <em> Generate</em> — you get a ready-to-paste newsletter. Copy it into Beehiiv /
-                  Mailchimp / your email tool of choice.
-                </p>
-              </div>
-            </li>
           </ol>
 
           <div className="border-t-[1px] border-ws-black/15 pt-3 text-[13px] text-ws-black/60">
