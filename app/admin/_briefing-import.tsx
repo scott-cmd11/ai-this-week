@@ -450,6 +450,7 @@ export function BriefingImport({ password }: { password: string }) {
                 Each briefing source has its own writing style. With this on, GPT rewrites every summary
                 in plain language using the AI Today voice — so the published issue reads as one
                 consistent voice instead of a patchwork. Adds ~2–3 sec per article.
+                The import also tries to pull each publisher&apos;s article image when one is available.
                 Turn off only if you&apos;re in a rush and the source text is already clean.
               </span>
             </span>

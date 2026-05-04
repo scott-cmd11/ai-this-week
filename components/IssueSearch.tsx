@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useId } from 'react'
+import { useId, useState } from 'react'
 import type { Issue } from '@/lib/types'
 import { IssueCard } from './IssueCard'
 
@@ -24,11 +24,10 @@ export function IssueSearch({ issues }: Props) {
 
   return (
     <div>
-      {/* Search input */}
       <div className="mb-10">
         <label
           htmlFor={inputId}
-          className="block text-[15px] font-black uppercase tracking-wide text-ws-black mb-2"
+          className="type-meta mb-2 block text-ws-black"
         >
           Search issues
         </label>
@@ -37,14 +36,14 @@ export function IssueSearch({ issues }: Props) {
           type="search"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Filter by title or topic…"
-          className="w-full max-w-md border-[3px] border-ws-black px-4 py-3 text-[17px] text-ws-black bg-ws-white shadow-[4px_4px_0_0_var(--color-ws-black)] focus:outline-none focus:shadow-[6px_6px_0_0_var(--color-ws-accent)] focus:border-ws-accent placeholder:text-ws-black/50"
+          placeholder="Filter by title or topic..."
+          className="w-full max-w-md rounded-[0.65rem] border border-ws-border bg-ws-white px-4 py-3 text-[17px] text-ws-black shadow-[0_14px_36px_rgba(20,17,15,0.06)] placeholder:text-ws-muted focus:border-ws-accent focus:outline-none focus:ring-2 focus:ring-ws-accent/15"
           aria-controls="issue-list"
           autoComplete="off"
           spellCheck={false}
         />
         {query.trim() && (
-          <p className="text-[14px] font-bold uppercase tracking-wide mt-3" aria-live="polite">
+          <p className="type-meta mt-3" aria-live="polite">
             {filtered.length === 0
               ? 'No issues match your search.'
               : `${filtered.length} issue${filtered.length === 1 ? '' : 's'} found`}
@@ -52,8 +51,7 @@ export function IssueSearch({ issues }: Props) {
         )}
       </div>
 
-      {/* Results */}
-      <ul id="issue-list" className="space-y-10 list-none p-0" aria-label="Newsletter issues">
+      <ul id="issue-list" className="list-none space-y-10 p-0" aria-label="Newsletter issues">
         {filtered.map(issue => (
           <li key={issue.id}>
             <IssueCard issue={issue} />
@@ -62,7 +60,7 @@ export function IssueSearch({ issues }: Props) {
       </ul>
 
       {filtered.length === 0 && !query.trim() && (
-        <p className="text-[19px] font-bold text-ws-black">No issues published yet.</p>
+        <p className="type-card-title">No issues published yet.</p>
       )}
     </div>
   )

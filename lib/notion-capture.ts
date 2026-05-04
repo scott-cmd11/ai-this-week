@@ -11,6 +11,7 @@ export interface CaptureArticleInput {
   title: string
   annotation: string         // already-summarized text for the body paragraph
   url: string                // the source URL (becomes the bookmark)
+  publishedDate?: string | null
   imageUrl?: string | null   // optional og:image / explicit override
   category?: string | null   // canonical category name; if set, article is
                              // placed under a "## {Category}" h2 section
@@ -21,6 +22,14 @@ export interface CaptureResult {
   issueNumber: number
   issueDate: string          // YYYY-MM-DD
   articleCount: number       // h3 count after this append
+}
+
+export interface IssueTarget {
+  issueId: string
+  issueNumber: number
+  issueDate: string
+  title: string
+  published: boolean
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────
@@ -91,6 +100,51 @@ async function findOrCreateTodaysDraft(
   return { issueId: newPage.id, issueNumber }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function issueTargetFromPage(page: any): IssueTarget | null {
+  if (page.object !== 'page' || !('properties' in page)) return null
+  const props = page.properties
+  const issueNumber = props['Issue Number']?.type === 'number' ? (props['Issue Number'].number ?? 0) : 0
+  const issueDate = props['Issue Date']?.type === 'date' ? (props['Issue Date'].date?.start ?? '') : ''
+  const title = props['Title']?.type === 'title'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? props['Title'].title?.map((item: any) => item?.plain_text ?? '').join('').trim()
+    : ''
+  const published = props['Published']?.type === 'checkbox' ? props['Published'].checkbox : false
+
+  if (!issueNumber || !issueDate) return null
+  return { issueId: page.id, issueNumber, issueDate, title, published }
+}
+
+export async function getIssueTargetById(
+  notion: Client,
+  issueId: string,
+): Promise<IssueTarget | null> {
+  const page = await notion.pages.retrieve({ page_id: issueId })
+  return issueTargetFromPage(page)
+}
+
+export async function getIssueTargetByDate(
+  notion: Client,
+  databaseId: string,
+  issueDate: string,
+  publishedOnly = true,
+): Promise<IssueTarget | null> {
+  const query = await notion.databases.query({
+    database_id: databaseId,
+    filter: {
+      and: [
+        { property: 'Issue Date', date: { equals: issueDate } },
+        ...(publishedOnly ? [{ property: 'Published', checkbox: { equals: true } }] : []),
+      ],
+    },
+    page_size: 1,
+  })
+
+  if (query.results.length === 0) return null
+  return issueTargetFromPage(query.results[0])
+}
+
 /**
  * Returns the text of the most recent heading_2 in the page, or null if none.
  * Used to decide whether we need to insert a new h2 marker before an article.
@@ -125,6 +179,62 @@ async function lastHeadingText(notion: Client, pageId: string): Promise<string |
   return null
 }
 
+async function countArticleHeadings(notion: Client, pageId: string): Promise<number> {
+  let articleCount = 0
+  let cursor: string | undefined
+
+  do {
+    const res = await notion.blocks.children.list({
+      block_id: pageId,
+      page_size: 100,
+      start_cursor: cursor,
+    })
+    articleCount += res.results.filter(
+      b => 'type' in b && b.type === 'heading_3',
+    ).length
+    cursor = res.has_more ? res.next_cursor ?? undefined : undefined
+  } while (cursor)
+
+  return articleCount
+}
+
+export async function appendArticleToIssue(
+  notion: Client,
+  issue: IssueTarget,
+  article: CaptureArticleInput,
+): Promise<CaptureResult> {
+  const blocksToAppend = []
+  if (article.category) {
+    const lastHeading = await lastHeadingText(notion, issue.issueId)
+    if (lastHeading !== article.category) {
+      blocksToAppend.push(block.h2(article.category))
+    }
+  }
+
+  blocksToAppend.push(
+    block.h3(article.title),
+    ...(article.publishedDate ? [block.paragraph(`Published: ${article.publishedDate}`)] : []),
+    block.paragraph(article.annotation),
+    block.bookmark(article.url),
+    ...(article.imageUrl ? [block.image(article.imageUrl)] : []),
+    block.divider(),
+  )
+
+  await notion.blocks.children.append({
+    block_id: issue.issueId,
+    children: blocksToAppend,
+  })
+
+  const articleCount = await countArticleHeadings(notion, issue.issueId)
+
+  return {
+    issueId: issue.issueId,
+    issueNumber: issue.issueNumber,
+    issueDate: issue.issueDate,
+    articleCount,
+  }
+}
+
 // ─── Public API ─────────────────────────────────────────────────────────────────
 
 /**
@@ -139,7 +249,7 @@ async function lastHeadingText(notion: Client, pageId: string): Promise<string |
  *
  * Block structure appended per article:
  *  [h2(category) if category changed] +
- *  h3(title) + paragraph(annotation) + bookmark(url) + image?(imageUrl) + divider()
+ *  h3(title) + paragraph(published date?) + paragraph(annotation) + bookmark(url) + image?(imageUrl) + divider()
  *
  * If `category` is null/undefined, no h2 marker is inserted — the article
  * appears uncategorized (legacy behavior).
@@ -153,37 +263,11 @@ export async function captureArticleToTodaysDraft(
 ): Promise<CaptureResult> {
   const today = todayUtc()
   const { issueId, issueNumber } = await findOrCreateTodaysDraft(notion, databaseId, today)
-
-  // Decide whether to insert a category h2. Skip if no category given,
-  // or if the most recent h2 in the doc is already the same category.
-  const blocksToAppend = []
-  if (article.category) {
-    const lastHeading = await lastHeadingText(notion, issueId)
-    if (lastHeading !== article.category) {
-      blocksToAppend.push(block.h2(article.category))
-    }
-  }
-
-  blocksToAppend.push(
-    block.h3(article.title),
-    block.paragraph(article.annotation),
-    block.bookmark(article.url),
-    ...(article.imageUrl ? [block.image(article.imageUrl)] : []),
-    block.divider(),
+  return appendArticleToIssue(
+    notion,
+    { issueId, issueNumber, issueDate: today, title: '', published: false },
+    article,
   )
-
-  await notion.blocks.children.append({
-    block_id: issueId,
-    children: blocksToAppend,
-  })
-
-  // Count h3 blocks to give the caller an updated article count
-  const allBlocks = await notion.blocks.children.list({ block_id: issueId, page_size: 100 })
-  const articleCount = allBlocks.results.filter(
-    b => 'type' in b && b.type === 'heading_3',
-  ).length
-
-  return { issueId, issueNumber, issueDate: today, articleCount }
 }
 
 // ─── Event capture ─────────────────────────────────────────────────────────────
@@ -220,6 +304,19 @@ export async function captureEventToTodaysDraft(
 ): Promise<CaptureResult> {
   const today = todayUtc()
   const { issueId, issueNumber } = await findOrCreateTodaysDraft(notion, databaseId, today)
+  return appendEventToIssue(
+    notion,
+    { issueId, issueNumber, issueDate: today, title: '', published: false },
+    event,
+  )
+}
+
+export async function appendEventToIssue(
+  notion: Client,
+  issue: IssueTarget,
+  event: CaptureEventInput,
+): Promise<CaptureResult> {
+  const issueId = issue.issueId
 
   const lastHeading = await lastHeadingText(notion, issueId)
   const blocksToAppend = []
@@ -246,10 +343,12 @@ export async function captureEventToTodaysDraft(
     children: blocksToAppend,
   })
 
-  const allBlocks = await notion.blocks.children.list({ block_id: issueId, page_size: 100 })
-  const articleCount = allBlocks.results.filter(
-    b => 'type' in b && b.type === 'heading_3',
-  ).length
+  const articleCount = await countArticleHeadings(notion, issueId)
 
-  return { issueId, issueNumber, issueDate: today, articleCount }
+  return {
+    issueId,
+    issueNumber: issue.issueNumber,
+    issueDate: issue.issueDate,
+    articleCount,
+  }
 }

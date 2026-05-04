@@ -1,91 +1,168 @@
 import type { Metadata } from 'next'
-import { NeoPopCard } from '@/components/NeoPop/NeoPopCard'
+import Link from 'next/link'
+import type { ReactNode } from 'react'
 
 export const metadata: Metadata = {
   title: 'About | AI Today',
   description:
-    'A daily link digest on artificial intelligence — Canadian news, global stories, and new research, written for non-technical professionals.',
+    'AI Today is a source-linked daily briefing on Canadian AI policy, public sector adoption, industry moves, research, and applied AI.',
 }
+
+const sections = [
+  ['CAN', 'Canada', 'Canadian AI policy, companies, infrastructure, and adoption.'],
+  ['POL', 'Policy & Regulation', 'Privacy, ethics, governance, copyright, and AI regulation.'],
+  ['GOV', 'Government & Public Sector', 'Public-sector AI, defence, sovereign compute, and civic technology.'],
+  ['IND', 'Industry & Models', 'Model releases, funding, companies, agents, coding tools, and infrastructure.'],
+  ['APP', 'Sectors & Applications', 'Applied AI in health, agriculture, education, environment, jobs, and services.'],
+  ['RES', 'Research', 'Notable research papers and technical signals, translated into plain language.'],
+]
 
 export default function AboutPage() {
   return (
     <>
-      <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
-        About AI Today
-      </h1>
-      <div className="w-16 h-[3px] bg-ws-accent mb-10" aria-hidden="true" />
+      <section className="mb-10 overflow-hidden border-y border-ws-black bg-transparent">
+        <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="p-6 sm:p-8 lg:p-10">
+            <p className="type-kicker">About the briefing</p>
+            <h1 className="type-page-title mt-5">
+              AI news, made usable.
+            </h1>
+            <p className="type-lede mt-6 max-w-3xl">
+              AI Today is a source-linked daily briefing for professionals who need to understand
+              AI without living inside AI news all day. It focuses on Canadian AI first, then pulls
+              in the global policy, public-sector, industry, research, and applied-AI signals that
+              are actually worth tracking.
+            </p>
+          </div>
 
-      <section aria-label="About the newsletter" className="mb-10">
-        <NeoPopCard bg="white" interactive={false}>
-          <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">What is this?</h2>
-          <p className="text-[19px] leading-[1.5] mb-4">
-            AI Today is a daily digest of artificial intelligence news, written for
-            professional, non-technical readers — people whose work touches AI without
-            being AI specialists. Each issue brings together Canadian AI policy and
-            companies, trending global stories, new research papers, and upcoming
-            learning events worth knowing about.
-          </p>
-          <p className="text-[19px] leading-[1.5] font-bold">
-            No jargon. No hype. Just what matters, in plain English.
-          </p>
-        </NeoPopCard>
+          <div className="border-t border-ws-border p-6 text-ws-black sm:p-8 lg:border-l lg:border-t-0 lg:p-10">
+            <p className="type-meta text-ws-accent">
+              Publishing model
+            </p>
+            <ul className="mt-6 flex flex-col gap-5 text-[15px] leading-[1.5] text-ws-muted">
+              <li>
+                <strong className="type-card-title block">Daily issue</strong>
+                Published from the admin workflow when the day&apos;s draft is ready.
+              </li>
+              <li>
+                <strong className="type-card-title block">Source-linked cards</strong>
+                Every story includes a direct link back to the original article or source.
+              </li>
+              <li>
+                <strong className="type-card-title block">AI-assisted summaries</strong>
+                Summaries are written in a consistent house style and are meant to guide, not replace, the source.
+              </li>
+            </ul>
+          </div>
+        </div>
       </section>
 
-      <section aria-label="What you'll find" className="mb-10">
-        <NeoPopCard bg="white" interactive={false}>
-          <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">What you&apos;ll find in each issue</h2>
-          <ul className="list-none p-0 m-0 flex flex-col gap-3 text-[17px] leading-[1.5]">
-            <li><span className="font-bold">🍁 Canada</span> — Canadian AI policy, companies, and adoption.</li>
-            <li><span className="font-bold">⚖️ Policy &amp; Regulation</span> — privacy, ethics, governance.</li>
-            <li><span className="font-bold">🏛️ Government &amp; Public Sector</span> — federal use, sovereign compute.</li>
-            <li><span className="font-bold">💼 Industry &amp; Models</span> — investment, M&amp;A, models, agents, coding.</li>
-            <li><span className="font-bold">🌾 Sectors &amp; Applications</span> — agriculture, environment, jobs, applied AI.</li>
-            <li><span className="font-bold">🔬 Research</span> — trending papers from arXiv and Hugging Face.</li>
-            <li><span className="font-bold">📅 Upcoming</span> — webinars, courses, conferences, meetups.</li>
-          </ul>
-          <p className="text-[15px] leading-[1.5] text-ws-muted mt-4">
-            Not every section appears in every issue — only what&apos;s actually worth
-            reading that day.
+      <section aria-label="How it works" className="mb-10 grid gap-4 md:grid-cols-3">
+        <EditorialPanel>
+          <p className="type-meta text-ws-accent">01</p>
+          <h2 className="type-card-title mt-3">Collect</h2>
+          <p className="type-body mt-2">
+            Briefing feeds, research sources, events, and manually added links are gathered into a
+            daily draft.
           </p>
-        </NeoPopCard>
+        </EditorialPanel>
+
+        <EditorialPanel>
+          <p className="type-meta text-ws-accent">02</p>
+          <h2 className="type-card-title mt-3">Summarize</h2>
+          <p className="type-body mt-2">
+            AI rewrites or generates plain-language summaries so each issue reads in one consistent voice.
+          </p>
+        </EditorialPanel>
+
+        <EditorialPanel>
+          <p className="type-meta text-ws-accent">03</p>
+          <h2 className="type-card-title mt-3">Publish</h2>
+          <p className="type-body mt-2">
+            The final issue is published with source links, section structure, and article imagery when publishers expose it.
+          </p>
+        </EditorialPanel>
       </section>
 
-      <section aria-label="AI content disclosure" className="mb-10">
-        <NeoPopCard bg="cream" interactive={false}>
-          <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">AI content disclosure</h2>
-          <p className="text-[19px] leading-[1.5] mb-4">
-            <strong>Article summaries and event descriptions are written by AI</strong> in
-            a consistent house style — plain language, active verbs, no jargon. Article
-            titles come from the original source, unchanged.
-          </p>
-          <p className="text-[19px] leading-[1.5] mb-4">
-            Every story links to its source — the title takes you there, and a small
-            &ldquo;via [source]&rdquo; line at the end of each entry credits the publisher.
-            Always follow the link for the authoritative version of any story.
-          </p>
-          <p className="text-[19px] leading-[1.5]">
-            Summaries are reviewed for obvious errors and tone before each issue goes
-            live. But AI text can misread nuance, miss context, or occasionally invent
-            detail. Treat the summary as a pointer to the story, not the story itself.
-          </p>
-        </NeoPopCard>
+      <section aria-label="Coverage" className="mb-10">
+        <EditorialPanel>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="type-kicker">Coverage</p>
+              <h2 className="type-section-title mt-4">What shows up here</h2>
+            </div>
+            <Link href="/issues" className="type-meta text-ws-accent hover:text-ws-accent-hover">
+              Browse issues
+            </Link>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {sections.map(([code, title, description]) => (
+              <div key={code} className="rounded-[0.65rem] border border-ws-border bg-[#fffaf0] p-4">
+                <div className="flex items-center gap-3">
+                  <span className="type-meta inline-flex h-7 items-center border border-ws-border bg-ws-white px-2.5 text-[10px] text-ws-accent">
+                    {code}
+                  </span>
+                  <h3 className="type-card-title">{title}</h3>
+                </div>
+                <p className="type-body mt-3 text-[15px]">{description}</p>
+              </div>
+            ))}
+          </div>
+        </EditorialPanel>
+      </section>
+
+      <section aria-label="Disclosure" className="mb-10">
+        <EditorialPanel tone="cream">
+          <p className="type-kicker">Editorial disclosure</p>
+          <h2 className="type-section-title mt-4">How AI is used</h2>
+          <div className="type-body mt-5 grid gap-5 text-[17px] md:grid-cols-2">
+            <p>
+              Article summaries and event descriptions are AI-assisted. Titles and source links come
+              from the original material, and each public story card points readers back to the
+              source for verification.
+            </p>
+            <p>
+              Summaries are meant to answer what happened and why it matters in plain English. They
+              are not a substitute for the original article, especially on legal, policy, financial,
+              medical, or technical claims.
+            </p>
+          </div>
+        </EditorialPanel>
       </section>
 
       <section aria-label="Contact" className="mb-10">
-        <NeoPopCard bg="white" interactive={false}>
-          <h2 className="text-[28px] font-black uppercase tracking-tight mb-4">Contact</h2>
-          <p className="text-[19px] leading-[1.5] mb-5">
-            Questions, corrections, or a story to pass along? Send a message and
-            I&apos;ll reply when I can. — Scott
-          </p>
-          <a
-            href="/contact"
-            className="inline-block border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[15px] px-5 py-3 shadow-[6px_6px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover no-underline"
-          >
-            ✦ Open contact form
-          </a>
-        </NeoPopCard>
+        <EditorialPanel>
+          <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div>
+              <h2 className="type-section-title text-[2rem]">Corrections and tips</h2>
+              <p className="type-body mt-2 text-[17px]">
+                Send corrections, source suggestions, or AI stories worth watching.
+              </p>
+            </div>
+            <Link
+              href="/contact"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-ws-accent px-5 py-3 text-[14px] font-semibold tracking-wide text-ws-white no-underline shadow-[0_12px_28px_rgba(223,72,36,0.24)] transition-colors hover:bg-ws-accent-hover focus-visible:outline-2 focus-visible:outline-ws-accent focus-visible:outline-offset-2"
+            >
+              Contact AI Today
+            </Link>
+          </div>
+        </EditorialPanel>
       </section>
     </>
+  )
+}
+
+function EditorialPanel({
+  children,
+  tone = 'white',
+}: {
+  children: ReactNode
+  tone?: 'white' | 'cream'
+}) {
+  return (
+    <div className={`${tone === 'cream' ? 'bg-[#fffaf0]' : 'bg-ws-white'} border border-ws-border p-6`}>
+      {children}
+    </div>
   )
 }

@@ -53,7 +53,7 @@ export function TableOfContents({ entries }: Props) {
       aria-label="Table of contents"
       className="hidden xl:block sticky top-8 self-start w-56 shrink-0"
     >
-      <p className="text-[12px] font-black uppercase tracking-[0.15em] mb-3 inline-block bg-ws-black text-ws-white px-2 py-1">
+      <p className="type-meta type-inverse mb-3 inline-block bg-ws-black px-2 py-1">
         Contents
       </p>
       <ol className="list-none p-0 space-y-1 mt-1">
@@ -62,10 +62,10 @@ export function TableOfContents({ entries }: Props) {
             <a
               href={`#${id}`}
               className={[
-                'block text-[14px] leading-[1.4] py-1 border-l-[4px] pl-3 no-underline',
+                'block border-l-[3px] py-1 pl-3 text-[14px] leading-[1.4] no-underline',
                 activeId === id
-                  ? 'border-ws-accent text-ws-black font-black'
-                  : 'border-transparent text-ws-black hover:border-ws-accent',
+                  ? 'border-ws-accent font-semibold text-ws-black'
+                  : 'border-transparent text-ws-muted hover:border-ws-accent hover:text-ws-black',
               ].join(' ')}
             >
               {label}

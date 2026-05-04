@@ -1,10 +1,3 @@
-// Mobile-only table of contents.
-// Uses a native <details> disclosure so it works without JS, has built-in
-// accessibility, and respects user's reduce-motion preferences.
-//
-// Hidden on xl screens where the sticky desktop TableOfContents takes over.
-// Hidden entirely when fewer than 3 sections — small issues don't need it.
-
 interface TocEntry {
   id: string
   label: string
@@ -18,22 +11,22 @@ export function MobileToc({ entries }: Props) {
   if (entries.length < 3) return null
 
   return (
-    <details className="xl:hidden mb-8 border-[2px] border-ws-black bg-ws-white">
-      <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3 font-black uppercase tracking-[0.12em] text-[13px] text-ws-black hover:bg-ws-page select-none">
+    <details className="premium-shell mb-8 overflow-hidden rounded-[1rem] xl:hidden">
+      <summary className="type-button flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-ws-black select-none hover:bg-white/45">
         <span>
           Contents{' '}
-          <span className="text-ws-muted font-normal normal-case tracking-normal text-[12px] ml-1">
+          <span className="type-body ml-1 text-[12px]">
             ({entries.length} sections)
           </span>
         </span>
-        <span aria-hidden="true" className="text-[14px] font-black text-ws-accent">▾</span>
+        <span aria-hidden="true" className="text-[14px] font-semibold text-ws-accent">v</span>
       </summary>
-      <ol className="list-none p-0 m-0 border-t-[2px] border-ws-black/15">
+      <ol className="m-0 list-none border-t border-ws-border p-1">
         {entries.map(({ id, label }) => (
-          <li key={id} className="border-b border-ws-black/10 last:border-b-0">
+          <li key={id}>
             <a
               href={`#${id}`}
-              className="block px-4 py-3 text-[15px] leading-[1.4] no-underline text-ws-black hover:bg-ws-accent-light hover:text-ws-accent active:bg-ws-accent active:text-ws-white"
+              className="block rounded-[0.75rem] px-3 py-2.5 text-[15px] leading-[1.4] text-ws-black no-underline hover:bg-ws-accent-light hover:text-ws-accent active:bg-ws-accent active:text-ws-white"
             >
               {label}
             </a>

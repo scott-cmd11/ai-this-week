@@ -38,14 +38,14 @@ export const CATEGORY_ORDER: Category[] = [
 //   Option A: "Applied AI"
 //   Option B: "Sectors & Use Cases"
 
-/** Per-category icon + short tagline for headers in the admin UI. */
+/** Per-category section code + short tagline for headers in the admin UI. */
 export const CATEGORY_META: Record<Category, { icon: string; tagline: string }> = {
-  'Canada': { icon: '🍁', tagline: 'Canadian AI policy, companies, and adoption' },
-  'Policy & Regulation': { icon: '⚖️', tagline: 'Privacy, ethics, governance, regulation' },
-  'Government & Public Sector': { icon: '🏛️', tagline: 'Federal use, public-sector AI, sovereign compute' },
-  'Industry & Models': { icon: '💼', tagline: 'Investment, M&A, models, agents, coding, ASI/AGI' },
-  'Sectors & Applications': { icon: '🌾', tagline: 'Agriculture, environment, jobs, applied AI' },
-  'Research': { icon: '🔬', tagline: 'Trending AI research papers from arXiv and Hugging Face' },
+  'Canada': { icon: 'CAN', tagline: 'Canadian AI policy, companies, and adoption' },
+  'Policy & Regulation': { icon: 'POL', tagline: 'Privacy, ethics, governance, regulation' },
+  'Government & Public Sector': { icon: 'GOV', tagline: 'Federal use, public-sector AI, sovereign compute' },
+  'Industry & Models': { icon: 'IND', tagline: 'Investment, M&A, models, agents, coding, ASI/AGI' },
+  'Sectors & Applications': { icon: 'APP', tagline: 'Agriculture, environment, jobs, applied AI' },
+  'Research': { icon: 'RES', tagline: 'Trending AI research papers from arXiv and Hugging Face' },
 }
 
 /**

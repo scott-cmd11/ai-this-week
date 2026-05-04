@@ -22,7 +22,7 @@ export function CopyLinkButton({ url, label = 'Copy link' }: Props) {
   return (
     <button
       onClick={handleCopy}
-      className="inline-flex items-center gap-2 border-[3px] border-ws-black bg-ws-white text-ws-black font-black text-[14px] uppercase tracking-wide px-4 py-2 shadow-[4px_4px_0_0_var(--color-ws-black)] transition-[transform,box-shadow] duration-100 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--color-ws-black)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-[1px_1px_0_0_var(--color-ws-black)]"
+      className="inline-flex min-h-10 items-center gap-2 rounded-full border border-ws-border bg-ws-white px-4 py-2 text-[13px] font-semibold tracking-wide text-ws-black shadow-[0_10px_24px_rgba(20,17,15,0.06)] transition-[border-color,background-color,color,box-shadow] duration-150 hover:border-ws-accent/45 hover:bg-[#fffaf0] hover:text-ws-accent focus-visible:outline-2 focus-visible:outline-ws-accent focus-visible:outline-offset-2"
       aria-live="polite"
     >
       {copied ? (

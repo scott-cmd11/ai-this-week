@@ -122,11 +122,11 @@ function topStoriesBlocks(summaries: SectionSummary[], includeImages: boolean) {
 
   const blocks = []
   for (const { url, title, publishedDate, imageUrl, summary } of summaries) {
-    if (includeImages && imageUrl) blocks.push(block.image(imageUrl))
     blocks.push(block.h3(title || hostnameFallback(url)))
     if (publishedDate) blocks.push(block.paragraph(`Published: ${publishedDate}`))
     blocks.push(block.paragraph(`🔹 ${summary}`))
     blocks.push(block.bookmark(url))
+    if (includeImages && imageUrl) blocks.push(block.image(imageUrl))
   }
 
   const remaining = Math.max(0, 3 - summaries.length)
@@ -141,11 +141,11 @@ function singleSectionBlocks(summaries: SectionSummary[], placeholder: string, i
   if (summaries.length === 0) return [block.paragraph(placeholder)]
   const { url, title, publishedDate, imageUrl, summary } = summaries[0]
   return [
-    ...(includeImages && imageUrl ? [block.image(imageUrl)] : []),
     block.h3(title || hostnameFallback(url)),
     ...(publishedDate ? [block.paragraph(`Published: ${publishedDate}`)] : []),
     block.paragraph(summary),
     block.bookmark(url),
+    ...(includeImages && imageUrl ? [block.image(imageUrl)] : []),
   ]
 }
 

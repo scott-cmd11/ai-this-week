@@ -1,27 +1,27 @@
-import { NeoPopButton } from '@/components/NeoPop/NeoPopButton'
+import Link from 'next/link'
 
 export default function NotFound() {
   return (
     <div className="max-w-2xl">
-      <p className="text-[13px] font-semibold uppercase tracking-[0.15em] inline-block bg-ws-accent text-ws-white px-3 py-1 rounded-md mb-4">
+      <p className="type-kicker mb-5">
         Error 404
       </p>
-      <h1 className="text-[48px] sm:text-[56px] font-bold leading-[0.95] tracking-tight mb-4">
+      <h1 className="type-page-title mb-4">
         Page not found
       </h1>
-      <div className="w-16 h-[3px] bg-ws-accent mb-6" aria-hidden="true" />
-      <p className="text-[19px] leading-[1.5] mb-8 text-ws-muted">
+      <div className="section-rule mb-6" aria-hidden="true" />
+      <p className="type-lede mb-8">
         The page you&apos;re looking for doesn&apos;t exist. The link might be broken, or
         the issue might have been moved.
       </p>
 
       <div className="flex flex-wrap gap-4">
-        <NeoPopButton href="/" variant="primary">
+        <Link href="/" className="type-button inline-flex min-h-11 items-center rounded-full bg-ws-accent px-5 py-3 text-ws-white no-underline shadow-[0_12px_28px_rgba(223,72,36,0.24)] transition-colors hover:bg-ws-accent-hover focus-visible:outline-2 focus-visible:outline-ws-accent focus-visible:outline-offset-2">
           Back to latest issue
-        </NeoPopButton>
-        <NeoPopButton href="/issues" variant="secondary">
+        </Link>
+        <Link href="/issues" className="type-button inline-flex min-h-11 items-center rounded-full border border-ws-border bg-ws-page px-5 py-3 text-ws-black no-underline transition-colors hover:border-ws-muted hover:bg-ws-white focus-visible:outline-2 focus-visible:outline-ws-accent focus-visible:outline-offset-2">
           Browse all issues
-        </NeoPopButton>
+        </Link>
       </div>
     </div>
   )

@@ -3,9 +3,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { SECTIONS, getArticlesBySection } from '@/lib/notion'
 import type { SectionSlug } from '@/lib/notion'
-import { NeoPopCard } from '@/components/NeoPop/NeoPopCard'
 
-export const revalidate = 3600  // expensive: fetches all issue blocks
+export const revalidate = 3600
 
 interface Props {
   params: Promise<{ section: string }>
@@ -13,7 +12,9 @@ interface Props {
 
 function formatDate(isoDate: string): string {
   return new Date(isoDate + 'T12:00:00Z').toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   })
 }
 
@@ -43,48 +44,49 @@ export default async function SectionPage({ params }: Props) {
       <div className="mb-4">
         <Link
           href="/sections"
-          className="text-[14px] font-black uppercase tracking-wide no-underline border-b-[3px] border-transparent hover:border-ws-accent"
+          className="type-meta border-b border-transparent no-underline hover:border-ws-accent"
         >
-          ← All sections
+          &lt;- All sections
         </Link>
       </div>
 
-      <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black uppercase leading-[0.95] tracking-tight mt-4 mb-2">
-        <span aria-hidden="true">{meta.emoji} </span>{meta.label}
+      <h1 className="type-page-title mt-4 mb-2">
+        <span className="type-meta mr-3 align-middle border border-ws-border bg-[#fffaf0] px-2.5 py-1 text-[11px] text-ws-accent" aria-hidden="true">
+          {meta.code}
+        </span>
+        {meta.label}
       </h1>
-      <div className="w-16 h-[3px] bg-ws-accent mb-6" aria-hidden="true" />
-      <p className="text-[15px] font-bold uppercase tracking-wide mb-10">
+      <div className="section-rule mb-6" aria-hidden="true" />
+      <p className="type-meta mb-10">
         {articles.length} pick{articles.length === 1 ? '' : 's'} across all issues
       </p>
 
       {articles.length === 0 ? (
-        <NeoPopCard bg="white" interactive={false}>
-          <p className="text-[19px] font-bold">No articles found in this section yet.</p>
-        </NeoPopCard>
+        <div className="border-y border-ws-border py-6">
+          <p className="type-card-title">No articles found in this section yet.</p>
+        </div>
       ) : (
-        <ul className="space-y-10 list-none p-0">
+        <ul className="list-none divide-y divide-ws-border border-y border-ws-border p-0">
           {articles.map((article, i) => (
             <li key={i}>
-              <NeoPopCard bg="white" interactive={false}>
-                {/* Issue attribution */}
-                <div className="flex gap-3 text-[13px] font-bold uppercase tracking-wide mb-2">
+              <article className="py-6">
+                <div className="type-meta mb-2 flex gap-3">
                   <Link
                     href={`/issues/${article.issueSlug}`}
                     className="underline hover:no-underline hover:text-ws-accent"
                   >
                     Issue {article.issueNumber}
                   </Link>
-                  <span aria-hidden="true">·</span>
+                  <span aria-hidden="true">/</span>
                   <time dateTime={article.issueDate}>{formatDate(article.issueDate)}</time>
                 </div>
 
-                {/* Article title */}
                 {article.articleTitle && (
-                  <h2 className="text-[22px] font-black leading-tight mb-3 text-ws-black">
+                  <h2 className="mb-3 max-w-3xl font-[family-name:var(--font-display)] text-[1.65rem] font-medium leading-tight text-ws-black">
                     {article.articleUrl ? (
                       <a
                         href={article.articleUrl}
-                        className="text-ws-black hover:text-ws-accent underline hover:no-underline"
+                        className="text-ws-black no-underline hover:text-ws-accent"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -97,11 +99,10 @@ export default async function SectionPage({ params }: Props) {
                   </h2>
                 )}
 
-                {/* Summary */}
                 {article.summary && (
-                  <p className="text-[17px] leading-[1.5]">{article.summary}</p>
+                  <p className="max-w-3xl text-[16px] leading-[1.65] text-ws-muted">{article.summary}</p>
                 )}
-              </NeoPopCard>
+              </article>
             </li>
           ))}
         </ul>

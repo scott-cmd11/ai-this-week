@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * new-issue.js
  * Creates a new AI Today issue in Notion with all sections pre-populated.

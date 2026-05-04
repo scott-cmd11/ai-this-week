@@ -1,14 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 export function WorkflowGuide() {
-  const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    const stored = localStorage.getItem('aitoday:workflow-guide-open')
-    if (stored === 'closed') setOpen(false)
-  }, [])
+  const [open, setOpen] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('aitoday:workflow-guide-open') === 'open'
+  })
 
   function toggle() {
     const next = !open

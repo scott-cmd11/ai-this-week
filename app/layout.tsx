@@ -1,28 +1,29 @@
 import type { Metadata } from 'next'
-import { DM_Serif_Display, DM_Sans } from 'next/font/google'
+import { IBM_Plex_Sans, Source_Serif_4 } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Analytics } from '@vercel/analytics/react'
 
-const dmSerifDisplay = DM_Serif_Display({
+const sourceSerif = Source_Serif_4({
   subsets: ['latin'],
-  weight: '400',
+  weight: ['400', '500', '600', '700'],
   variable: '--font-display',
   display: 'swap',
 })
 
-const dmSans = DM_Sans({
+const ibmPlexSans = IBM_Plex_Sans({
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-sans',
   display: 'swap',
 })
 
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ai-this-week.vercel.app'
+const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://aitoday.vercel.app'
 
 export const metadata: Metadata = {
   title: 'AI Today',
-  description: 'Daily AI news from Canada and around the world, plus trending stories and research — in plain English.',
+  description: 'Daily AI news from Canada and around the world, plus trending stories and research in plain English.',
   alternates: {
     types: {
       'application/rss+xml': `${SITE_URL}/feed.xml`,
@@ -36,13 +37,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${dmSerifDisplay.variable} ${dmSans.variable}`}>
+    <html lang="en" className={`${sourceSerif.variable} ${ibmPlexSans.variable}`}>
       <body>
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
         <Header />
-        <main id="main-content" className="max-w-4xl mx-auto px-4 py-10" tabIndex={-1}>
+        <main id="main-content" className="site-main" tabIndex={-1}>
           {children}
         </main>
         <Footer />

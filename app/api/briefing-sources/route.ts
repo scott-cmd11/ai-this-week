@@ -56,6 +56,7 @@ async function findPageBriefingForDate(
   notion: Client,
   parentPageId: string,
   date: string,
+  sourceLabel: string,
 ): Promise<{ id: string; title: string } | null> {
   let cursor: string | undefined
   do {
@@ -72,7 +73,53 @@ async function findPageBriefingForDate(
     }
     cursor = res.has_more ? res.next_cursor ?? undefined : undefined
   } while (cursor)
-  return null
+  return findBriefingBySearch(notion, sourceLabel, date)
+}
+
+async function findBriefingBySearch(
+  notion: Client,
+  sourceLabel: string,
+  date: string,
+): Promise<{ id: string; title: string } | null> {
+  const searchQueries = [sourceLabel, date]
+  const candidates: { id: string; title: string; score: number }[] = []
+
+  for (const query of searchQueries) {
+    const res = await notion.search({
+      query,
+      page_size: 25,
+      filter: { property: 'object', value: 'page' },
+    })
+
+    for (const item of res.results) {
+      if (item.object !== 'page' || !('properties' in item)) continue
+      const title = pageTitle(item)
+      if (!title.includes(date) || /^AI Today/i.test(title)) continue
+
+      const sourceWords = sourceLabel.toLowerCase().split(/\s+/).filter(word => word.length > 2)
+      const titleLower = title.toLowerCase()
+      const wordScore = sourceWords.filter(word => titleLower.includes(word)).length
+      const canadaBonus = sourceLabel.toLowerCase().includes('canada') && titleLower.includes('canada') ? 3 : 0
+      const dailyBonus = titleLower.includes('daily') ? 1 : 0
+      candidates.push({ id: item.id, title, score: wordScore + canadaBonus + dailyBonus })
+    }
+  }
+
+  candidates.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+  return candidates[0] ? { id: candidates[0].id, title: candidates[0].title } : null
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function pageTitle(page: any): string {
+  const props = page.properties ?? {}
+  for (const key of Object.keys(props)) {
+    const prop = props[key]
+    if (prop?.type === 'title' && Array.isArray(prop.title)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return prop.title.map((text: any) => text.plain_text ?? '').join('').trim()
+    }
+  }
+  return ''
 }
 
 /**
@@ -167,7 +214,7 @@ export async function GET(request: NextRequest) {
       try {
         const briefingPage = source.type === 'database'
           ? await findDatabaseBriefingForDate(notion, source.id, date, source.dateProperty ?? 'Date')
-          : await findPageBriefingForDate(notion, source.id, date)
+          : await findPageBriefingForDate(notion, source.id, date, source.label)
 
         if (!briefingPage) {
           return {

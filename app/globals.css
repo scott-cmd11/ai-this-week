@@ -1,30 +1,24 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ws-black: #1C1917;
-  --color-ws-text: #1C1917;
-  --color-ws-muted: #78716C;
-  --color-ws-border: #E7E0D8;
+  --color-ws-black: #171412;
+  --color-ws-text: #221F1C;
+  --color-ws-muted: #6F6860;
+  --color-ws-border: #DED6CC;
   --color-ws-surface: #FFFFFF;
-  --color-ws-page: #FAF8F4;
-  --color-ws-accent: #D97706;
-  --color-ws-accent-hover: #B45309;
-  --color-ws-accent-light: #FEF3C7;
+  --color-ws-page: #F7F3EC;
+  --color-ws-accent: #B54818;
+  --color-ws-accent-hover: #8F3510;
+  --color-ws-accent-light: #F5E2D2;
   --color-ws-white: #FFFFFF;
+  --color-ws-elevated: #FFFCF7;
+  --color-ws-tint: #EFE8DE;
 
-  /* Legacy aliases */
-  --color-neopop-black: #1C1917;
-  --color-neopop-white: #FFFFFF;
-  --color-neopop-red: #D97706;
-  --color-neopop-red-dark: #B45309;
-  --color-neopop-yellow: #FEF3C7;
-  --color-neopop-cream: #FAF8F4;
-
-  --color-focus: #D97706;
+  --color-focus: #B54818;
   --color-focus-text: #FFFFFF;
 
-  --font-display: "DM Serif Display", Georgia, serif;
-  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Source Serif 4", Georgia, serif;
+  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* ── Skip link ───────────────────────────────────────────────── */
@@ -55,14 +49,235 @@
 /* ── Base ────────────────────────────────────────────────────── */
 body {
   font-family: var(--font-sans);
-  font-size: 19px;
+  font-size: 16px;
   line-height: 1.5;
   color: var(--color-ws-text);
-  background: var(--color-ws-page);
+  background: #f7f3ec;
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--color-ws-black);
+  color: var(--color-ws-white);
+}
+
+a {
+  text-underline-offset: 0.18em;
+}
+
+.type-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-ws-accent);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.075em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.type-kicker::before {
+  content: "";
+  width: 1.5rem;
+  height: 1px;
+  background: var(--color-ws-accent);
+}
+
+.type-page-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 0.95;
+  color: var(--color-ws-black);
+}
+
+.type-hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(3.15rem, 8vw, 5.6rem);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 0.94;
+  color: var(--color-ws-black);
+}
+
+.type-section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
+  color: var(--color-ws-black);
+}
+
+.type-card-title {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+  color: var(--color-ws-black);
+}
+
+.type-lede {
+  color: var(--color-ws-muted);
+  font-size: clamp(1.08rem, 2vw, 1.28rem);
+  line-height: 1.55;
+}
+
+.type-body {
+  color: var(--color-ws-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.type-meta {
+  color: var(--color-ws-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.065em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.type-inverse {
+  color: var(--color-ws-white);
+}
+
+.type-muted-inverse {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.type-button {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.section-rule {
+  width: 4rem;
+  height: 3px;
+  background: var(--color-ws-accent);
+}
+
+.site-main {
+  width: min(100% - 2rem, 1240px);
+  margin-inline: auto;
+  padding-block: 2.75rem 4rem;
+}
+
+.premium-shell {
+  border: 1px solid rgba(23, 20, 18, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 250, 244, 0.72)),
+    var(--color-ws-elevated);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.72) inset,
+    0 26px 80px rgba(23, 20, 18, 0.08);
+}
+
+.premium-chip {
+  border: 1px solid rgba(23, 20, 18, 0.11);
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+
+.premium-rule {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(23, 20, 18, 0.72), rgba(23, 20, 18, 0.08));
+}
+
+.story-row {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.story-row:hover {
+  background: transparent;
+}
+
+.story-summary {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.editorial-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-ws-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.editorial-label::before {
+  content: "";
+  width: 1.5rem;
+  height: 1px;
+  background: var(--color-ws-accent);
+}
+
+.glass-panel {
+  border: 1px solid var(--color-ws-border);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 12px 34px rgba(20, 17, 15, 0.055);
+}
+
+.ink-panel {
+  background: var(--color-ws-black);
+  color: var(--color-ws-white);
+}
+
+.admin-workspace {
+  --admin-card-shadow: 0 18px 40px rgba(20, 17, 15, 0.08);
+}
+
+.admin-workspace input,
+.admin-workspace textarea,
+.admin-workspace select {
+  border-radius: 0.5rem;
+}
+
+.admin-workspace button {
+  border-radius: 0.5rem;
+}
+
+.admin-workspace [class*="shadow-[4px_4px_0"],
+.admin-workspace [class*="shadow-[3px_3px_0"] {
+  box-shadow: var(--admin-card-shadow);
+}
+
+.admin-workspace [class*="border-[3px]"],
+.admin-workspace [class*="border-[2px]"] {
+  border-width: 1px !important;
+  border-color: var(--color-ws-border) !important;
+  border-radius: 0.65rem;
+}
+
+.admin-workspace [class*="shadow-[6px_6px_0"],
+.admin-workspace [class*="shadow-[5px_5px_0"],
+.admin-workspace [class*="shadow-[4px_4px_0"],
+.admin-workspace [class*="shadow-[3px_3px_0"],
+.admin-workspace [class*="shadow-[2px_2px_0"] {
+  box-shadow: var(--admin-card-shadow) !important;
+}
+
+.admin-workspace [class*="hover:translate-x"],
+.admin-workspace [class*="hover:translate-y"],
+.admin-workspace [class*="active:translate-x"],
+.admin-workspace [class*="active:translate-y"] {
+  transform: none !important;
 }
 
 /* ── Serif body — for article entries inside published issues ── */
 .font-serif-body {
-  font-family: "Iowan Old Style", "Charter", Georgia, "Times New Roman", Times, serif;
+  font-family: var(--font-display);
   font-feature-settings: "liga", "kern";
 }

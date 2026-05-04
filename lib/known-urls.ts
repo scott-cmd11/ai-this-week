@@ -23,10 +23,11 @@ function daysAgoUtc(days: number): string {
 }
 
 /**
- * Walk all blocks of a page (paginated) and collect bookmark URLs.
- * Issues are small (~100 blocks) so this is cheap.
+ * Walk all blocks of a page (paginated) and collect source URLs. Most current
+ * issues store links as bookmark blocks, but older/manual edits can store them
+ * as linked rich-text segments.
  */
-async function fetchBookmarkUrls(notion: Client, pageId: string): Promise<string[]> {
+async function fetchIssueUrls(notion: Client, pageId: string): Promise<string[]> {
   const urls: string[] = []
   let cursor: string | undefined
   do {
@@ -40,6 +41,12 @@ async function fetchBookmarkUrls(notion: Client, pageId: string): Promise<string
       const block = b as any
       if (block.type === 'bookmark' && typeof block.bookmark?.url === 'string') {
         urls.push(block.bookmark.url)
+      }
+      const richText = block[block.type]?.rich_text
+      if (Array.isArray(richText)) {
+        for (const segment of richText) {
+          if (typeof segment?.href === 'string') urls.push(segment.href)
+        }
       }
     }
     cursor = res.has_more ? res.next_cursor ?? undefined : undefined
@@ -86,7 +93,7 @@ export async function buildKnownUrlMap(
   // Fetch bookmarks from every issue in parallel
   const allUrlsArrays = await Promise.all(
     issues.map(async issue => {
-      const urls = await fetchBookmarkUrls(notion, issue.pageId)
+      const urls = await fetchIssueUrls(notion, issue.pageId)
       return { issue, urls }
     }),
   )

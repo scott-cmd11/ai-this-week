@@ -9,12 +9,13 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <>
-      <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-4">
+      <p className="type-kicker mb-5">Contact</p>
+      <h1 className="type-page-title mb-4">
         Contact
       </h1>
-      <div className="w-16 h-[3px] bg-ws-accent mb-8" aria-hidden="true" />
+      <div className="section-rule mb-8" aria-hidden="true" />
 
-      <p className="text-[19px] leading-[1.5] mb-10 max-w-xl">
+      <p className="type-lede mb-10 max-w-xl">
         Questions, corrections, or a story to pass along? Send a message and I&apos;ll
         reply when I can.
       </p>

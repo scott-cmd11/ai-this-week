@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import Image from 'next/image'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

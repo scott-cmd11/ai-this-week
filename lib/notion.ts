@@ -9,16 +9,16 @@ export interface SectionMeta {
   slug: SectionSlug
   label: string
   keyword: string   // matched (case-insensitive, contains) against h2 content
-  emoji: string
+  code: string
 }
 
 export const SECTIONS: SectionMeta[] = [
-  { slug: 'top',      label: 'Top Stories',             keyword: 'Top Stories',       emoji: '📰' },
-  { slug: 'bright',   label: 'Bright Spot of the Week', keyword: 'Bright Spot',       emoji: '🌟' },
-  { slug: 'tool',     label: 'Tool of the Week',        keyword: 'Tool of the Week',  emoji: '🔧' },
-  { slug: 'podcast',  label: 'Podcast of the Week',     keyword: 'Podcast of the Week', emoji: '🎙️' },
-  { slug: 'learning', label: 'Learning',                keyword: 'Learning',          emoji: '💡' },
-  { slug: 'deep',     label: 'Deep Dive',               keyword: 'Deep Dive',         emoji: '📖' },
+  { slug: 'top',      label: 'Top Stories',             keyword: 'Top Stories',       code: 'TOP' },
+  { slug: 'bright',   label: 'Bright Spot of the Week', keyword: 'Bright Spot',       code: 'BRT' },
+  { slug: 'tool',     label: 'Tool of the Week',        keyword: 'Tool of the Week',  code: 'TLS' },
+  { slug: 'podcast',  label: 'Podcast of the Week',     keyword: 'Podcast of the Week', code: 'AUD' },
+  { slug: 'learning', label: 'Learning',                keyword: 'Learning',          code: 'LRN' },
+  { slug: 'deep',     label: 'Deep Dive',               keyword: 'Deep Dive',         code: 'DIP' },
 ]
 
 export interface SectionArticle {
@@ -84,8 +84,21 @@ export async function getIssueByDate(date: string): Promise<Issue | null> {
 }
 
 export async function getIssueBlocks(pageId: string): Promise<NotionBlock[]> {
-  const response = await getNotion().blocks.children.list({ block_id: pageId })
-  return response.results.map(mapBlockToNotionBlock)
+  const notion = getNotion()
+  const blocks = []
+  let cursor: string | undefined
+
+  do {
+    const response = await notion.blocks.children.list({
+      block_id: pageId,
+      page_size: 100,
+      start_cursor: cursor,
+    })
+    blocks.push(...response.results)
+    cursor = response.has_more ? (response.next_cursor ?? undefined) : undefined
+  } while (cursor)
+
+  return blocks.map(mapBlockToNotionBlock)
 }
 
 export async function getAdjacentIssues(date: string): Promise<{ prev: Issue | null; next: Issue | null }> {

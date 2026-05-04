@@ -12,6 +12,7 @@ import { AddArticleManually } from './_add-article-manually'
 import { AddEvent } from './_add-event'
 import { ResearchImport } from './_research-import'
 import { BriefingImport } from './_briefing-import'
+import { AppendToPublishedIssue } from './_append-to-published-issue'
 
 // ─── Main component ─────────────────────────────────────────────────────────────
 
@@ -79,7 +80,11 @@ export default function AdminPage() {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.key !== 'f' && e.key !== 'F') return
       if (e.metaKey || e.ctrlKey || e.altKey) return
-      wizardMode ? exitWizardMode() : enterWizardMode()
+      if (wizardMode) {
+        exitWizardMode()
+      } else {
+        enterWizardMode()
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -93,8 +98,16 @@ export default function AdminPage() {
     setAuthLoading(true)
     try {
       const res = await fetch('/api/today-draft', { headers: { 'x-admin-password': password } })
-      if (res.status === 401) { setAuthError('Incorrect password.'); setAuthLoading(false); return }
-      if (!res.ok) { setAuthError('Server error. Try again.'); setAuthLoading(false); return }
+      if (res.status === 401) {
+        setAuthError('Incorrect password.')
+        setAuthLoading(false)
+        return
+      }
+      if (!res.ok) {
+        setAuthError('Server error. Try again.')
+        setAuthLoading(false)
+        return
+      }
       sessionStorage.setItem('adminAuth', password)
       setAuthed(true)
       if (localStorage.getItem('adminMode') !== 'scroll') setWizardMode(true)
@@ -144,12 +157,15 @@ export default function AdminPage() {
 
   if (!authed) {
     return (
-      <div className="max-w-md">
+      <div className="admin-workspace grid min-h-[60vh] place-items-center">
+        <div className="w-full max-w-md">
         <h1 className="text-[48px] sm:text-[56px] font-black leading-[0.95] tracking-tight mb-3 font-[family-name:var(--font-display)]">
           Admin sign in
         </h1>
-        <div className="w-16 h-[3px] bg-ws-accent mb-8" aria-hidden="true" />
-        <div className="border border-ws-border bg-ws-white p-6 shadow-[0_2px_16px_rgba(28,25,23,0.08)] rounded-sm">
+        <p className="mb-8 text-[16px] leading-[1.55] text-ws-muted">
+          Import sources, assemble the issue, and publish the daily brief from one focused console.
+        </p>
+        <div className="glass-panel rounded-[0.8rem] p-6">
           <form onSubmit={handleSignIn} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="password" className="text-[13px] font-black uppercase tracking-wide">
@@ -178,6 +194,7 @@ export default function AdminPage() {
             </button>
           </form>
         </div>
+        </div>
       </div>
     )
   }
@@ -191,7 +208,7 @@ export default function AdminPage() {
     const wizPrevStep    = wizActiveIndex > 0 ? STEP_KEYS[wizActiveIndex - 1] : null
 
     return (
-      <div className="w-full flex flex-col -mx-4">
+      <div className="admin-workspace w-full flex flex-col">
         {/* Step bar — sticky, full bleed */}
         <div className="sticky top-0 z-40">
           <WizardStepBar
@@ -205,10 +222,10 @@ export default function AdminPage() {
         </div>
 
         {/* Wizard body */}
-        <div className="flex-1 py-8 max-w-3xl w-full mx-auto px-4">
+        <div className="flex-1 py-8 max-w-4xl w-full mx-auto">
 
           {/* Daily header */}
-          <div className="flex items-start justify-between gap-4 mb-8">
+          <div className="glass-panel rounded-[0.8rem] flex items-start justify-between gap-4 mb-8 p-5">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-ws-black/40 mb-1">Today</p>
               <p className="text-[24px] sm:text-[30px] font-semibold tracking-tight leading-none">
@@ -237,6 +254,10 @@ export default function AdminPage() {
           <h2 className="text-[32px] sm:text-[40px] font-black tracking-tight leading-[0.95] mb-6 font-[family-name:var(--font-display)]">
             {STEP_LABELS[activeStep]}
           </h2>
+
+          <div className="mb-8">
+            <AppendToPublishedIssue password={password} />
+          </div>
 
           {/* Sections — all mounted, only active one visible */}
           <div className={activeStep === 'briefings' ? '' : 'hidden'}>
@@ -300,7 +321,7 @@ export default function AdminPage() {
   }))
 
   return (
-    <div className="flex items-start -mx-4">
+    <div className="admin-workspace flex items-start">
       {/* Sticky workflow sidebar */}
       <WorkflowSidebar
         steps={sidebarSteps}
@@ -313,12 +334,15 @@ export default function AdminPage() {
       <div className="flex-1 min-w-0 flex flex-col gap-8 px-6 py-0">
 
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="glass-panel rounded-[0.8rem] flex items-start justify-between gap-4 flex-wrap p-6">
           <div>
-            <h1 className="text-[48px] sm:text-[56px] font-black uppercase leading-[0.95] tracking-tight mb-3">
-              Admin
+            <p className="editorial-label mb-4">Publisher console</p>
+            <h1 className="text-[52px] sm:text-[72px] font-black leading-[0.9] tracking-tight mb-3 font-[family-name:var(--font-display)]">
+              Daily desk
             </h1>
-            <div className="w-16 h-[3px] bg-ws-accent" aria-hidden="true" />
+            <p className="max-w-2xl text-[16px] leading-[1.55] text-ws-muted">
+              Import briefings, review research and events, assemble the issue, then publish with one clean workflow.
+            </p>
           </div>
           <div className="flex items-center gap-4 mt-4">
             <button
@@ -337,6 +361,8 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+
+        <AppendToPublishedIssue password={password} />
 
         {/* ── Step 1: Briefings ─────────────────────────────────────────── */}
         <div ref={briefingsRef}>

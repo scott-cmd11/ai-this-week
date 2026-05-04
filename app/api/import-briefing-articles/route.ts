@@ -3,8 +3,10 @@ import { Client } from '@notionhq/client'
 import OpenAI from 'openai'
 import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/notion-capture'
 import { generateAnnotation } from '@/lib/ai-annotation'
-import { fetchArticleMeta } from '@/lib/article-fetcher'
+import { fetchArticleMeta, isPublishedDateFreshForIssue } from '@/lib/article-fetcher'
 import { CATEGORY_ORDER } from '@/lib/category-mapping'
+import { buildKnownUrlMap } from '@/lib/known-urls'
+import { normalizeUrl } from '@/lib/url-normalize'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -28,6 +30,7 @@ interface ArticleResult {
   title: string
   ok: boolean
   error?: string
+  skippedReason?: string
 }
 
 // ─── Route handler ──────────────────────────────────────────────────────────────
@@ -70,6 +73,9 @@ export async function POST(request: NextRequest) {
 
   const notion = new Client({ auth: notionToken })
   const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null
+  const issueDate = new Date().toISOString().split('T')[0]
+  const knownUrls = await buildKnownUrlMap(notion, notionDatabaseId, 30)
+  const seenThisImport = new Set<string>()
 
   // Sort articles by canonical category order so each h2 section gets all its
   // articles in one contiguous batch (avoids duplicate "## Canada" headings
@@ -96,13 +102,56 @@ export async function POST(request: NextRequest) {
       continue
     }
 
+    const articleUrl = article.url.trim()
+    const normalizedUrl = normalizeUrl(articleUrl)
+    if (!normalizedUrl) {
+      results.push({ url: articleUrl, title: article.title?.trim() || articleUrl, ok: false, error: 'Invalid URL' })
+      continue
+    }
+
+    if (knownUrls.has(normalizedUrl) || seenThisImport.has(normalizedUrl)) {
+      results.push({
+        url: articleUrl,
+        title: article.title?.trim() || articleUrl,
+        ok: false,
+        skippedReason: 'Duplicate source URL already exists in a recent issue or this import batch.',
+      })
+      continue
+    }
+    seenThisImport.add(normalizedUrl)
+
+    // Auto-fetch publisher metadata when briefings omit it. This keeps future
+    // issues visually richer and gives readers source timing when available.
+    let resolvedImageUrl = article.imageUrl?.trim() || null
+    let resolvedPublishedDate: string | null = null
+    if (!resolvedImageUrl || !resolvedPublishedDate) {
+      try {
+        const meta = await fetchArticleMeta(articleUrl)
+        resolvedImageUrl = resolvedImageUrl ?? meta.imageUrl
+        resolvedPublishedDate = meta.publishedDate
+      } catch {
+        // Image fetch is best-effort — if it fails, the article still
+        // imports without one and renders as a quiet text-only entry.
+      }
+    }
+
+    if (!isPublishedDateFreshForIssue(resolvedPublishedDate, issueDate)) {
+      results.push({
+        url: articleUrl,
+        title: article.title?.trim() || articleUrl,
+        ok: false,
+        skippedReason: `Publisher date is older than the daily freshness window: ${resolvedPublishedDate}`,
+      })
+      continue
+    }
+
     // If rewriting: replace the briefing's summary with an AI Today-voiced one.
     // The briefing summary is passed as a fallback so the model has context
     // even if the URL fetch fails (e.g. paywalled article).
     let annotation = article.summary?.trim() || '[Add annotation]'
     if (rewriteWithAi && openai) {
       try {
-        annotation = await generateAnnotation(openai, article.url, {
+        annotation = await generateAnnotation(openai, articleUrl, {
           knownTitle: article.title,
           fallbackSummary: article.summary,
         })
@@ -113,26 +162,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Auto-fetch og:image when none was provided. Briefings and research
-    // papers don't include image URLs in their bullet payloads, so without
-    // this every imported article would land in the issue without a photo
-    // and the page reads as a wall of text. fetchArticleMeta is a cheap
-    // HEAD-style HTML fetch (~2s p95) that only pulls <head>.
-    let resolvedImageUrl = article.imageUrl?.trim() || null
-    if (!resolvedImageUrl) {
-      try {
-        const meta = await fetchArticleMeta(article.url.trim())
-        resolvedImageUrl = meta.imageUrl
-      } catch {
-        // Image fetch is best-effort — if it fails, the article still
-        // imports without one and renders as a quiet text-only entry.
-      }
-    }
-
     const input: CaptureArticleInput = {
-      title: article.title?.trim() || article.url,
+      title: article.title?.trim() || articleUrl,
       annotation,
-      url: article.url.trim(),
+      url: articleUrl,
+      publishedDate: resolvedPublishedDate,
       imageUrl: resolvedImageUrl,
       category: article.category?.trim() || null,
     }

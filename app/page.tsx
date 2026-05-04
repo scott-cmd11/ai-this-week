@@ -2,15 +2,13 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getPublishedIssues } from '@/lib/notion'
 import { nonBreakingDate } from '@/lib/title'
-import { NeoPopCard } from '@/components/NeoPop/NeoPopCard'
-import { NeoPopButton } from '@/components/NeoPop/NeoPopButton'
 
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: 'AI Today — AI news for non-technical professionals',
+  title: 'AI Today - Canadian AI briefing',
   description:
-    'Canadian AI news, trending global stories, and new research — delivered daily for professional, non-technical readers. No hype, no jargon.',
+    'Canadian AI policy, companies, public-sector adoption, global signals, and research in one plain-English daily briefing.',
 }
 
 function formatDate(isoDate: string): string {
@@ -18,122 +16,138 @@ function formatDate(isoDate: string): string {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
+function daysSince(isoDate: string): number {
+  const today = new Date()
+  const issueDate = new Date(isoDate + 'T12:00:00')
+  return Math.max(0, Math.floor((today.getTime() - issueDate.getTime()) / 86_400_000))
+}
+
+const deskNotes = [
+  'Canada-first coverage, with global AI stories included when they change the context.',
+  'Every public story card links back to its original source.',
+  'Summaries are AI-assisted and written for quick professional reading.',
+]
+
 export default async function HomePage() {
   const issues = await getPublishedIssues()
   const [latest, ...allPast] = issues
-  const past = allPast.slice(0, 5)
+  const past = allPast.slice(0, 6)
 
   return (
     <>
-      {/* Hero */}
-      <section aria-label="About this newsletter" className="mb-12">
-        <NeoPopCard bg="yellow">
-          <h1 className="text-[36px] sm:text-[48px] lg:text-[56px] font-black leading-[0.95] tracking-tight mb-4 font-[family-name:var(--font-display)]">
-            AI news for people who aren&apos;t AI people.
-          </h1>
-          <div className="w-16 h-[3px] bg-ws-accent mb-5" aria-hidden="true" />
-          <p className="text-[22px] leading-[1.4] max-w-2xl font-medium">
-            Every day: Canadian AI news, trending global stories, and new research —
-            written for professional, non-technical readers. No hype, no jargon.
-          </p>
-        </NeoPopCard>
+      <section aria-label="AI Today masthead" className="mb-8 border-y border-ws-black py-6 text-center">
+        <p className="type-meta mb-3 text-ws-accent">Canadian AI signal, daily</p>
+        <h1 className="font-[family-name:var(--font-display)] text-[clamp(4rem,13vw,8.5rem)] font-semibold leading-[0.96] tracking-[-0.01em] text-ws-black">
+          AI Today
+        </h1>
+        <p className="mx-auto mt-7 max-w-3xl text-[15px] leading-[1.55] text-ws-muted sm:mt-8 sm:text-[16px]">
+          A plain-English briefing on AI policy, public-sector adoption, companies, models,
+          research, and the Canadian stories that deserve more than a passing headline.
+        </p>
       </section>
 
-      {/* Latest issue */}
       {latest && (
-        <section aria-label="Latest issue" className="mb-14">
-          <p className="text-[14px] font-black uppercase tracking-[0.15em] mb-4 inline-block bg-ws-accent text-ws-white px-3 py-1">
-            Latest issue
-          </p>
-          <NeoPopCard bg="white">
-            <div className="flex gap-3 text-[14px] font-bold uppercase tracking-wide mb-3">
-              <span>Issue {latest.issueNumber}</span>
-              <span aria-hidden="true">·</span>
-              <time dateTime={latest.issueDate}>{formatDate(latest.issueDate)}</time>
-            </div>
-            <h2 className="text-[26px] sm:text-[32px] md:text-[36px] font-black uppercase leading-[1.05] tracking-tight mb-4">
-              <Link href={`/issues/${latest.slug}`} className="text-ws-black hover:text-ws-accent no-underline">
-                {nonBreakingDate(latest.title)}
+        <section aria-label="Latest issue" className="mb-12">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,0.68fr)_minmax(280px,0.32fr)]">
+            <article className="border-b border-ws-border pb-7 lg:border-b-0 lg:border-r lg:pr-8">
+              <div className="type-meta flex flex-wrap gap-3 text-ws-accent">
+                <span>Issue {latest.issueNumber}</span>
+                <span aria-hidden="true">/</span>
+                <time dateTime={latest.issueDate}>{formatDate(latest.issueDate)}</time>
+                <span aria-hidden="true">/</span>
+                <span>{daysSince(latest.issueDate) === 0 ? 'Updated today' : `${daysSince(latest.issueDate)} days old`}</span>
+              </div>
+
+              <Link href={`/issues/${latest.slug}`} className="group no-underline">
+                <h2 className="mt-4 max-w-4xl font-[family-name:var(--font-display)] text-[clamp(2.5rem,6vw,5.15rem)] font-semibold leading-[0.94] tracking-[-0.01em] text-ws-black group-hover:text-ws-accent">
+                  {nonBreakingDate(latest.title)}
+                </h2>
               </Link>
-            </h2>
-            {latest.summary && (
-              <p className="text-[17px] sm:text-[19px] leading-[1.5] mb-6 max-w-2xl">{latest.summary}</p>
-            )}
-            <NeoPopButton href={`/issues/${latest.slug}`} variant="primary">
-              Read this issue →
-            </NeoPopButton>
-          </NeoPopCard>
+
+              {latest.summary && (
+                <p className="mt-5 max-w-3xl text-[18px] leading-[1.6] text-ws-muted">
+                  {latest.summary}
+                </p>
+              )}
+
+              <div className="mt-6">
+                <Link
+                  href={`/issues/${latest.slug}`}
+                  className="type-button inline-flex border-b border-ws-accent pb-1 text-ws-accent no-underline hover:text-ws-accent-hover"
+                >
+                  Open the issue
+                </Link>
+              </div>
+            </article>
+
+            <aside className="grid content-start gap-6">
+              <div>
+                <p className="type-meta text-ws-accent">Editor&apos;s desk</p>
+                <ul className="mt-4 grid gap-4">
+                  {deskNotes.map(note => (
+                    <li key={note} className="border-t border-ws-border pt-4 text-[15px] leading-[1.55] text-ws-muted first:border-t-0 first:pt-0">
+                      {note}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="border-t border-ws-black pt-5">
+                <p className="type-meta text-ws-accent">Coverage</p>
+                <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-[14px] font-semibold text-ws-black">
+                  <span>Canada</span>
+                  <span>Policy</span>
+                  <span>Government</span>
+                  <span>Industry</span>
+                  <span>Applications</span>
+                  <span>Research</span>
+                </div>
+              </div>
+            </aside>
+          </div>
         </section>
       )}
 
-      {/* AI Canada Pulse crosslink */}
-      <section aria-label="Related resource" className="mb-14">
-        <div className="border-l-[4px] border-ws-accent pl-5 py-1">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-ws-muted mb-2">Also from Scott Hazlitt</p>
-          <h2 className="text-[20px] sm:text-[24px] font-black uppercase tracking-tight leading-tight mb-2">
-            <a
-              href="https://www.aicanadapulse.ca/dashboard"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-ws-black hover:text-ws-accent no-underline"
-            >
-              AI Canada Pulse →
-            </a>
-          </h2>
-          <p className="text-[16px] leading-[1.5] text-ws-muted max-w-xl">
-            Canadian AI activity tracked hourly — every story, economic indicators, and
-            deeper data for when today&apos;s digest isn&apos;t enough.
-          </p>
-        </div>
-      </section>
-
-      {/* Past issues */}
       {past.length > 0 && (
-        <section aria-label="Past issues">
-          <h2 className="text-[26px] sm:text-[32px] font-black uppercase tracking-tight mb-6">Past issues</h2>
-          <ul className="list-none p-0 m-0 divide-y divide-ws-border border-t border-ws-border">
+        <section aria-label="Past issues" className="border-t border-ws-black pt-6">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <p className="type-meta text-ws-accent">Archive</p>
+              <h2 className="mt-2 font-[family-name:var(--font-display)] text-[2.25rem] font-semibold leading-none text-ws-black">
+                Previous issues
+              </h2>
+            </div>
+            <Link href="/issues" className="type-meta text-ws-accent hover:text-ws-accent-hover">
+              All issues
+            </Link>
+          </div>
+
+          <ul className="m-0 grid list-none divide-y divide-ws-border border-y border-ws-border p-0">
             {past.map(issue => (
               <li key={issue.id}>
                 <Link
                   href={`/issues/${issue.slug}`}
-                  className="flex items-baseline justify-between gap-4 py-4 group no-underline"
+                  className="grid gap-2 py-4 no-underline transition-colors hover:bg-ws-white/60 sm:grid-cols-[90px_1fr_150px] sm:items-baseline"
                 >
-                  <div className="flex items-baseline gap-3 min-w-0">
-                    <span className="text-[12px] font-black uppercase tracking-[0.1em] text-ws-muted shrink-0">
-                      #{issue.issueNumber}
-                    </span>
-                    <span className="text-[17px] font-black leading-snug text-ws-black group-hover:text-ws-accent transition-colors truncate">
-                      {nonBreakingDate(issue.title)}
-                    </span>
-                  </div>
-                  <time
-                    dateTime={issue.issueDate}
-                    className="text-[12px] font-bold text-ws-muted shrink-0 hidden sm:block"
-                  >
+                  <span className="type-meta text-ws-accent">#{issue.issueNumber}</span>
+                  <span className="font-[family-name:var(--font-display)] text-[1.35rem] font-semibold leading-tight text-ws-black">
+                    {nonBreakingDate(issue.title)}
+                  </span>
+                  <time dateTime={issue.issueDate} className="type-meta normal-case tracking-[0.02em] sm:text-right">
                     {formatDate(issue.issueDate)}
                   </time>
                 </Link>
               </li>
             ))}
           </ul>
-          {allPast.length > 5 && (
-            <div className="mt-5 pt-4 border-t border-ws-border">
-              <Link
-                href="/issues"
-                className="text-[13px] font-black uppercase tracking-[0.1em] text-ws-accent hover:text-ws-accent-hover underline underline-offset-2"
-              >
-                View all {allPast.length + 1} issues →
-              </Link>
-            </div>
-          )}
         </section>
       )}
 
       {issues.length === 0 && (
-        <NeoPopCard bg="white" interactive={false}>
-          <p className="text-[19px] font-bold">No issues published yet.</p>
-          <p className="text-[15px] mt-2">Once the first issue is published it will appear here.</p>
-        </NeoPopCard>
+        <div className="border-y border-ws-border py-6">
+          <p className="type-card-title">No issues published yet.</p>
+          <p className="type-body mt-2 text-[15px]">Once the first issue is published it will appear here.</p>
+        </div>
       )}
     </>
   )

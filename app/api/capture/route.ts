@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     // inside generateAnnotation() if we end up auto-annotating; cheap to
     // call twice since fetchArticle handles its own caching paths.
     const fetchResult = await fetchArticle(url)
-    const { title } = fetchResult
+    const { title, publishedDate } = fetchResult
     const fetchedImageUrl = fetchResult.imageUrl
 
     // Determine annotation: explicit (optionally polished) > AI auto-generated > placeholder
@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
       title: title || hostnameFallback(url),
       annotation: resolvedAnnotation,
       url,
+      publishedDate,
       imageUrl: imageUrlOverride ?? fetchedImageUrl ?? null,
       category: category?.trim() || null,
     })

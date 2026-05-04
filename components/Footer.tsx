@@ -33,62 +33,43 @@ const SOCIAL_LINKS = [
 
 export function Footer() {
   return (
-    <footer
-      className="border-t border-ws-border mt-16 py-8 bg-ws-page"
-      role="contentinfo"
-    >
-      <div className="max-w-4xl mx-auto px-4 flex flex-col gap-4">
-        {/* Top row: disclosure + social icons */}
-        <div className="flex items-start justify-between gap-6 flex-wrap">
-          <p className="text-[15px] text-ws-muted max-w-xl">
-            <span className="font-semibold">AI disclosure —</span>{' '}
+    <footer className="border-t border-ws-border mt-16 py-10 bg-ws-black text-ws-white" role="contentinfo">
+      <div className="w-[min(100%-2rem,1180px)] mx-auto flex flex-col gap-5">
+        <div className="flex items-start justify-between gap-8 flex-wrap">
+          <div>
+            <p className="font-[family-name:var(--font-display)] text-[24px] leading-none">AI Today</p>
+            <p className="type-meta type-muted-inverse mt-2 opacity-65">
+              Canadian AI signal, daily
+            </p>
+          </div>
+          <p className="type-body type-muted-inverse max-w-2xl text-[15px]">
+            <span className="font-semibold text-white">AI disclosure -</span>{' '}
             All summaries are AI-generated. Review official sources. Minor editing happens prior to publishing.{' '}
-            <Link
-              href="/about"
-              className="underline font-semibold text-ws-accent hover:text-ws-accent-hover hover:no-underline"
-            >
+            <Link href="/about" className="underline font-semibold text-ws-accent-light hover:text-ws-white hover:no-underline">
               Learn more
             </Link>
-            {' · '}
-            <Link
-              href="/contact"
-              className="underline font-semibold text-ws-accent hover:text-ws-accent-hover hover:no-underline"
-            >
+            {' / '}
+            <Link href="/contact" className="underline font-semibold text-ws-accent-light hover:text-ws-white hover:no-underline">
               Contact
             </Link>
           </p>
-          <div className="flex items-center gap-3">
-            {SOCIAL_LINKS.map(({ label, href, icon }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={label}
-                className="text-ws-muted transition-opacity hover:opacity-70"
-              >
-                {icon}
-              </a>
-            ))}
-          </div>
         </div>
 
-        {/* Bottom row: byline + Made in Canada */}
-        <div className="flex items-center justify-between gap-4 flex-wrap border-t border-ws-border pt-4">
-          <p className="text-[13px] text-ws-muted">
+        <div className="flex items-center justify-between gap-4 flex-wrap border-t border-white/12 pt-5">
+          <p className="type-body type-muted-inverse text-[13px] opacity-80">
             A project by{' '}
-            <a
-              href="https://scotthazlitt.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-ws-accent hover:text-ws-accent-hover hover:no-underline underline"
-            >
+            <a href="https://scotthazlitt.ai" target="_blank" rel="noopener noreferrer" className="font-semibold text-ws-accent-light hover:text-ws-white hover:no-underline underline">
               Scott Hazlitt
             </a>
           </p>
-          <p className="text-[13px] text-ws-muted font-semibold tracking-wider">
-            Made in Canada
-          </p>
+          <div className="flex items-center gap-3">
+            {SOCIAL_LINKS.map(({ label, href, icon }) => (
+              <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="text-white/55 transition-colors hover:text-ws-accent-light">
+                {icon}
+              </a>
+            ))}
+            <p className="type-button type-muted-inverse text-[13px] opacity-80">Made in Canada</p>
+          </div>
         </div>
       </div>
     </footer>
