@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { getPublishedIssues } from '@/lib/notion'
 import { issueDisplayTitle, nonBreakingDate } from '@/lib/title'
+import { SignalLedger } from '@/components/SignalLedger'
 
 export const revalidate = 300
 
@@ -18,27 +20,46 @@ export default async function HomePage() {
 
   return (
     <>
-      <section aria-label="Publication introduction" className="mb-10 border-y border-ws-black py-8">
+      <section aria-label="Publication introduction" className="mb-10 border-y border-ws-black py-7">
         <p className="type-meta mb-4 text-ws-accent">Canadian AI signal, daily</p>
-        <h1 className="max-w-4xl font-[family-name:var(--font-display)] text-[clamp(3rem,8vw,6rem)] font-semibold leading-[0.96] text-ws-black">
-          A plain-English briefing for people tracking Canadian AI.
+        <h1 className="max-w-3xl font-[family-name:var(--font-display)] text-[clamp(2.65rem,6vw,4.75rem)] font-medium leading-[0.98] text-ws-black">
+          Canadian AI, in plain English.
         </h1>
-        <p className="mt-6 max-w-3xl text-[17px] leading-[1.6] text-ws-muted">
-          Policy, public-sector adoption, companies, models, research, and source-linked global context when it matters.
+        <p className="mt-5 max-w-2xl text-[17px] leading-[1.6] text-ws-muted">
+          A daily briefing for policy, public-sector, and industry readers tracking what changed, why it matters, and where the source record points.
         </p>
+
+        <figure className="mt-8 grid overflow-hidden border-y border-ws-border lg:grid-cols-[240px_minmax(0,1fr)]">
+          <figcaption className="border-b border-ws-border py-3 lg:border-b-0 lg:border-r lg:pr-5">
+            <p className="type-meta text-ws-accent">Signal desk</p>
+            <p className="mt-2 text-[13px] leading-[1.45] text-ws-muted">
+              Canada-first coverage with linked public sources.
+            </p>
+          </figcaption>
+          <div className="relative h-34 min-h-[8.5rem] overflow-hidden sm:h-40 lg:h-44">
+            <Image
+              src="/images/homepage-signal-map-v2.png"
+              alt="Abstract dotted map of Canada with restrained data signal marks."
+              fill
+              priority
+              sizes="(min-width: 1024px) 44vw, 100vw"
+              className="object-cover object-center opacity-90"
+            />
+            <div className="absolute inset-0 bg-ws-page/20" aria-hidden="true" />
+          </div>
+        </figure>
       </section>
 
       {latest && (
         <section aria-label="Latest issue" className="mb-12">
           <article className="border-b border-ws-border pb-8">
-            <div className="type-meta flex flex-wrap gap-3 text-ws-accent">
-              <span>Latest published issue</span>
-              <span aria-hidden="true">/</span>
-              <span>Issue {latest.issueNumber}</span>
-            </div>
-            <p className="type-meta mt-3 text-ws-muted">
-              Today&apos;s issue is published in the evening.
-            </p>
+            <SignalLedger
+              items={[
+                { label: 'Latest published', value: `Issue ${latest.issueNumber}` },
+                { label: 'Publishing rhythm', value: 'Today\'s issue is published in the evening.' },
+                { label: 'Editorial standard', value: 'Source-linked, AI-assisted, Canada-first.' },
+              ]}
+            />
 
             <Link href={`/issues/${latest.slug}`} className="group no-underline">
               <h2 className="mt-4 max-w-4xl font-[family-name:var(--font-display)] text-[clamp(2.75rem,7vw,5.75rem)] font-semibold leading-[0.94] text-ws-black group-hover:text-ws-accent">
@@ -59,9 +80,6 @@ export default async function HomePage() {
               >
                 Open the issue
               </Link>
-              <p className="type-meta text-ws-muted">
-                Source-linked / AI-assisted / Canada-first
-              </p>
             </div>
           </article>
         </section>

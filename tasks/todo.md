@@ -99,3 +99,44 @@
 - Issue cards now show the issue number plus a clean date title, without repeating the brand or duplicating the date on the right.
 - The issue list uses one continuous ruled list instead of separated repeated cards.
 - Verification: targeted ESLint passed, TypeScript passed, and `http://127.0.0.1:3027/issues` returned HTTP 200.
+
+# Task: Homepage Editorial Graphic
+
+- [x] Generate a restrained homepage visual asset.
+- [x] Add the graphic to the homepage hero.
+- [x] Verify lint, TypeScript, build, and local homepage response.
+
+## Review
+
+- Generated a restrained editorial bitmap using the built-in image generation path.
+- Saved the project asset at `public/images/homepage-signal-map-v2.png`.
+- Added it to the homepage introduction as a restrained Signal desk strip with accessible alt text.
+- Verification: `npx eslint app/page.tsx` passed, `npx tsc --noEmit` passed, `npm run build` passed, and `http://127.0.0.1:3027/` returned HTTP 200 with the image reference present.
+
+# Task: AI Today Visual System Direction
+
+- [x] Define a broader visual system direction.
+- [x] Add one reusable pattern to start applying it in code.
+- [x] Verify lint, TypeScript, build, and local homepage response.
+
+## Review
+
+- Added `docs/visual-system.md` to define the "Signal desk" direction: calm, sourced, Canadian, ruled metadata, restrained data/document/map graphics, and minimal brand repetition.
+- Added `components/SignalLedger.tsx` as the first reusable pattern for issue state, publishing rhythm, and editorial standard.
+- Updated the homepage latest-issue block to use the Signal Ledger instead of scattered metadata lines.
+- Verification: targeted ESLint passed, TypeScript passed, `npm run build` passed, and `http://127.0.0.1:3027/` returned HTTP 200 with the Signal Ledger and hero image present.
+
+# Task: Issue Page Briefing File Format
+
+- [x] Make issue pages date-led instead of repeating the brand in the headline.
+- [x] Replace scattered metadata and stats with the Signal Ledger pattern.
+- [x] Simplify the issue signal graphic so it supports the article instead of competing with it.
+- [x] Make previous/next issue navigation date-led.
+- [x] Verify lint, TypeScript, build, and local issue response.
+
+## Review
+
+- The issue page now presents as a briefing file: date-led H1, compact metadata ledger, editorial summary, and a quieter signal map.
+- Section counts now use unique section labels so duplicated Notion headings do not show as duplicated totals.
+- Previous/next issue links now display date-led titles rather than repeating the brand.
+- Verification: targeted ESLint passed, TypeScript passed, `npm run build` passed, and `http://127.0.0.1:3027/issues/2026-05-04` returned HTTP 200 with `May 4, 2026`, `Issue 04`, `53 stories / 6 sections`, and `Signal map`.
