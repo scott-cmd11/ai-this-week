@@ -5,8 +5,8 @@ import { IssueSearch } from '@/components/IssueSearch'
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: 'All Issues | AI Today',
-  description: 'Browse every edition of AI Today.',
+  title: 'Issue Archive | AI Today',
+  description: 'Browse the AI Today issue archive.',
 }
 
 export default async function IssuesPage() {
@@ -14,10 +14,13 @@ export default async function IssuesPage() {
 
   return (
     <>
-      <p className="type-kicker mb-5">Archive</p>
+      <p className="type-kicker mb-5">Issue archive</p>
       <h1 className="type-page-title mb-4">
-        All Issues
+        Previous briefings
       </h1>
+      <p className="type-lede mb-8 max-w-3xl">
+        A chronological record of published editions. Each issue is source-linked and written for quick professional reading.
+      </p>
       <div className="section-rule mb-10" aria-hidden="true" />
       <IssueSearch issues={issues} />
     </>

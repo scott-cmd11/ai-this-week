@@ -51,7 +51,7 @@ export function IssueSearch({ issues }: Props) {
         )}
       </div>
 
-      <ul id="issue-list" className="list-none space-y-10 p-0" aria-label="Newsletter issues">
+      <ul id="issue-list" className="m-0 list-none divide-y divide-ws-border border-y border-ws-border p-0" aria-label="Newsletter issues">
         {filtered.map(issue => (
           <li key={issue.id}>
             <IssueCard issue={issue} />

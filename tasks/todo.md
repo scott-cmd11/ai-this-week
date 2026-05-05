@@ -72,3 +72,30 @@
 - Added a clear note separating "publish today's issue" from "already-live issue updates."
 - Guarded both wizard and full admin completion so the workflow cannot be marked done while today's draft still has unpublished articles.
 - Verification: targeted ESLint passed, TypeScript passed, Vitest passed, and the local admin sign-in page rendered on `http://127.0.0.1:3023/admin`. The protected wizard itself was not clicked through because local admin/Notion secrets are not loaded in this workspace.
+
+# Task: Homepage Brand Repetition Cleanup
+
+- [x] Reduce repeated "AI Today" text on the homepage.
+- [x] Simplify the latest-issue area so the page feels calmer.
+- [x] Verify lint/build and local render.
+
+## Review
+
+- Replaced the repeated homepage masthead with a descriptive H1: "A plain-English briefing for people tracking Canadian AI."
+- Removed the busy editor's-desk / coverage sidebar from the latest issue section.
+- Latest and previous issue links now display date-only titles instead of repeating "AI Today - May ...".
+- Fixed local preview instability by keeping the existing Turbopack root pinned to this app folder in `next.config.ts`.
+- Verification: `npx eslint app/page.tsx next.config.ts` passed, `npx tsc --noEmit` passed, `npm run build` passed, and `http://127.0.0.1:3027/` returned HTTP 200 with the simplified homepage HTML.
+
+# Task: Issues Archive Repetition Cleanup
+
+- [x] Remove repeated brand/date text from issue archive rows.
+- [x] Make the archive page heading and intro more professional.
+- [x] Verify targeted lint, TypeScript, and local archive response.
+
+## Review
+
+- The archive page now uses "Previous briefings" instead of "All Issues".
+- Issue cards now show the issue number plus a clean date title, without repeating the brand or duplicating the date on the right.
+- The issue list uses one continuous ruled list instead of separated repeated cards.
+- Verification: targeted ESLint passed, TypeScript passed, and `http://127.0.0.1:3027/issues` returned HTTP 200.

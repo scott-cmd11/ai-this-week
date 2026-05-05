@@ -11,3 +11,7 @@
 export function nonBreakingDate(title: string): string {
   return title.replace(/([A-Z][a-z]+) (\d+), (\d{4})/, '$1\u00A0$2,\u00A0$3')
 }
+
+export function issueDisplayTitle(title: string): string {
+  return title.replace(/^AI Today\s+[\u2014-]\s+/, '')
+}
