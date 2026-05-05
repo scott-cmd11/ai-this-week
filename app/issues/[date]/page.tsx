@@ -63,6 +63,9 @@ export default async function IssuePage({ params }: Props) {
   const tocEntries = blocks
     .filter(b => b.type === 'heading_2' && b.headingId && b.content)
     .map(b => ({ id: b.headingId!, label: b.content }))
+    .filter((entry, index, entries) =>
+      entries.findIndex(candidate => candidate.label === entry.label) === index
+    )
 
   return (
     <>

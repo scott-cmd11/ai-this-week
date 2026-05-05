@@ -7,6 +7,7 @@ import { fetchArticleMeta, isPublishedDateFreshForIssue } from '@/lib/article-fe
 import { CATEGORY_ORDER } from '@/lib/category-mapping'
 import { buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
+import { chooseSourceTitle, type TitleQualityWarning } from '@/lib/title-quality'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ interface ArticleResult {
   ok: boolean
   error?: string
   skippedReason?: string
+  warnings?: TitleQualityWarning[]
 }
 
 // ─── Route handler ──────────────────────────────────────────────────────────────
@@ -121,12 +123,18 @@ export async function POST(request: NextRequest) {
     seenThisImport.add(normalizedUrl)
 
     // Auto-fetch publisher metadata when briefings omit it. This keeps future
-    // issues visually richer and gives readers source timing when available.
+    // issues visually richer, gives readers source timing when available, and
+    // catches briefing titles that were truncated in source notes.
     let resolvedImageUrl = article.imageUrl?.trim() || null
+    let resolvedTitle = article.title?.trim() || articleUrl
     let resolvedPublishedDate: string | null = null
+    let warnings: TitleQualityWarning[] = []
     if (!resolvedImageUrl || !resolvedPublishedDate) {
       try {
         const meta = await fetchArticleMeta(articleUrl)
+        const titleChoice = chooseSourceTitle(resolvedTitle, meta.title)
+        resolvedTitle = titleChoice.title
+        warnings = titleChoice.warnings
         resolvedImageUrl = resolvedImageUrl ?? meta.imageUrl
         resolvedPublishedDate = meta.publishedDate
       } catch {
@@ -163,7 +171,7 @@ export async function POST(request: NextRequest) {
     }
 
     const input: CaptureArticleInput = {
-      title: article.title?.trim() || articleUrl,
+      title: resolvedTitle,
       annotation,
       url: articleUrl,
       publishedDate: resolvedPublishedDate,
@@ -177,7 +185,7 @@ export async function POST(request: NextRequest) {
       lastIssueId = result.issueId
       lastIssueNumber = result.issueNumber
       lastIssueDate = result.issueDate
-      results.push({ url: input.url, title: input.title, ok: true })
+      results.push({ url: input.url, title: input.title, ok: true, warnings })
     } catch (err) {
       results.push({
         url: input.url,

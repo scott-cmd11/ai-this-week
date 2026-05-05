@@ -162,14 +162,31 @@ function groupBlocks(blocks: NotionBlock[]): RenderItem[] {
 
 function chunkBySections(items: RenderItem[]): SectionChunk[] {
   const chunks: SectionChunk[] = []
+  const chunksByHeading = new Map<string, SectionChunk>()
   let current: SectionChunk = { header: null, count: 0, articles: [], trailingBlocks: [] }
+
+  const pushCurrent = () => {
+    if (current.header === null && current.articles.length === 0 && current.trailingBlocks.length === 0) return
+
+    const heading = current.header?.block.content.trim()
+    if (heading) {
+      const existing = chunksByHeading.get(heading)
+      if (existing) {
+        existing.count += current.count
+        existing.articles.push(...current.articles)
+        existing.trailingBlocks.push(...current.trailingBlocks)
+        return
+      }
+      chunksByHeading.set(heading, current)
+    }
+
+    chunks.push(current)
+  }
 
   for (const item of items) {
     if (item.kind === 'block' && item.block.type === 'heading_2') {
-      if (current.header !== null || current.articles.length > 0 || current.trailingBlocks.length > 0) {
-        chunks.push(current)
-      }
-      current = { header: item, count: 0, articles: [], trailingBlocks: [] }
+      pushCurrent()
+      current = { header: item as PassthroughBlock, count: 0, articles: [], trailingBlocks: [] }
       continue
     }
     if (item.kind === 'article') {
@@ -180,9 +197,7 @@ function chunkBySections(items: RenderItem[]): SectionChunk[] {
     current.trailingBlocks.push(item as ListGroup | PassthroughBlock)
   }
 
-  if (current.header !== null || current.articles.length > 0 || current.trailingBlocks.length > 0) {
-    chunks.push(current)
-  }
+  pushCurrent()
 
   return mergeRepeatedSections(chunks)
 }

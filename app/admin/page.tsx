@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { STEP_KEYS, STEP_LABELS, type StepKey } from './_constants'
+import { STEP_HELP, STEP_KEYS, STEP_LABELS, type StepKey } from './_constants'
 import { CaptureSettings } from './_capture-settings'
 import { WizardStepBar } from './_wizard-step-bar'
 import { WorkflowSidebar } from './_workflow-sidebar'
@@ -44,6 +44,8 @@ export default function AdminPage() {
   const [activeStep, setActiveStep] = useState<StepKey>('briefings')
   const [wizardMode, setWizardMode] = useState(false)
   const [flashingStep, setFlashingStep] = useState<StepKey | null>(null)
+  const [workflowComplete, setWorkflowComplete] = useState(false)
+  const [publishDraftStatus, setPublishDraftStatus] = useState({ hasDraft: false, articleCount: 0 })
 
   // ── Document title
   useEffect(() => {
@@ -130,6 +132,7 @@ export default function AdminPage() {
     setCompletedSteps(prev => new Set([...prev, key]))
     setFlashingStep(key)
     setTimeout(() => setFlashingStep(null), 600)
+    if (!nextKey) setWorkflowComplete(true)
     if (nextKey) setActiveStep(nextKey)
     if (nextRef?.current) nextRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -143,6 +146,7 @@ export default function AdminPage() {
     localStorage.setItem('adminMode', 'focus')
     const firstIncomplete = STEP_KEYS.find(k => !completedSteps.has(k)) ?? STEP_KEYS[0]
     setActiveStep(firstIncomplete)
+    setWorkflowComplete(false)
     setWizardMode(true)
     if (typeof window !== 'undefined') window.scrollTo({ top: 0 })
   }
@@ -206,6 +210,10 @@ export default function AdminPage() {
     const wizActiveIndex = STEP_KEYS.indexOf(activeStep)
     const wizNextStep    = wizActiveIndex < STEP_KEYS.length - 1 ? STEP_KEYS[wizActiveIndex + 1] : null
     const wizPrevStep    = wizActiveIndex > 0 ? STEP_KEYS[wizActiveIndex - 1] : null
+    const publishStillPending =
+      activeStep === 'publish' &&
+      publishDraftStatus.hasDraft &&
+      publishDraftStatus.articleCount > 0
 
     return (
       <div className="admin-workspace w-full flex flex-col">
@@ -254,6 +262,13 @@ export default function AdminPage() {
           <h2 className="text-[32px] sm:text-[40px] font-black tracking-tight leading-[0.95] mb-6 font-[family-name:var(--font-display)]">
             {STEP_LABELS[activeStep]}
           </h2>
+          <p className="text-[14px] leading-relaxed text-ws-black/65 max-w-2xl -mt-3 mb-6">
+            <span className="font-black uppercase tracking-[0.12em] text-[11px] text-ws-black/45">
+              Step {wizActiveIndex + 1} of {STEP_KEYS.length}
+            </span>
+            <br />
+            {STEP_HELP[activeStep]}
+          </p>
 
           <div className="mb-8">
             <AppendToPublishedIssue password={password} />
@@ -270,10 +285,22 @@ export default function AdminPage() {
             <AddEvent password={password} />
           </div>
           <div className={activeStep === 'draft' ? '' : 'hidden'}>
-            <TodaysDraft password={password} />
+            <TodaysDraft password={password} showPublishAction={false} />
             <AddArticleManually password={password} />
           </div>
           <div className={activeStep === 'publish' ? '' : 'hidden'}>
+            {workflowComplete && (
+              <div className="mb-5 border-[3px] border-ws-black bg-ws-accent-light/40 px-5 py-4 shadow-[4px_4px_0_0_var(--color-ws-black)]">
+                <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Workflow complete</p>
+                <p className="text-[14px] text-ws-black/75 mt-1">You can view all sections or reopen this step if you need another publish update.</p>
+              </div>
+            )}
+            <div className="mb-5 border-l-[4px] border-ws-accent bg-ws-white px-4 py-3">
+              <p className="text-[13px] font-bold text-ws-black">
+                Daily order: publish today&apos;s issue here first, then use live-issue updates only for corrections or late additions.
+              </p>
+            </div>
+            <TodaysDraft password={password} onDraftStatusChange={setPublishDraftStatus} />
             <PublishDrafts password={password} />
           </div>
           {/* Wizard nav footer */}
@@ -298,6 +325,23 @@ export default function AdminPage() {
               >
                 Continue to {STEP_LABELS[wizNextStep]} →
               </button>
+            ) : publishStillPending ? (
+              <button
+                type="button"
+                disabled
+                className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold opacity-50 cursor-not-allowed"
+                title="Publish today's issue before completing the workflow"
+              >
+                Publish today&apos;s issue first
+              </button>
+            ) : workflowComplete ? (
+              <button
+                type="button"
+                onClick={exitWizardMode}
+                className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150"
+              >
+                View all sections
+              </button>
             ) : (
               <button
                 type="button"
@@ -319,6 +363,9 @@ export default function AdminPage() {
     label: STEP_LABELS[key],
     ref:   stepRefs[key],
   }))
+  const publishStillPending =
+    publishDraftStatus.hasDraft &&
+    publishDraftStatus.articleCount > 0
 
   return (
     <div className="admin-workspace flex items-start">
@@ -405,7 +452,7 @@ export default function AdminPage() {
 
         {/* ── Step 4: Review Draft + manual article add ─────────────────── */}
         <div ref={draftRef}>
-          <TodaysDraft password={password} />
+          <TodaysDraft password={password} showPublishAction={false} />
           <AddArticleManually password={password} />
           <StepDoneButton
             currentKey="draft"
@@ -419,6 +466,12 @@ export default function AdminPage() {
 
         {/* ── Step 5: Publish ───────────────────────────────────────────── */}
         <div ref={publishRef}>
+          <div className="border-l-[4px] border-ws-accent bg-ws-white px-4 py-3 mb-5">
+            <p className="text-[13px] font-bold text-ws-black">
+              Daily order: publish today&apos;s issue here first, then use live-issue updates only for corrections or late additions.
+            </p>
+          </div>
+          <TodaysDraft password={password} onDraftStatusChange={setPublishDraftStatus} />
           <PublishDrafts password={password} />
           <StepDoneButton
             currentKey="publish"
@@ -427,6 +480,9 @@ export default function AdminPage() {
             nextRef={null}
             completedSteps={completedSteps}
             onDone={handleStepDone}
+            disabled={publishStillPending}
+            disabledLabel="Publish today first"
+            title="Publish today's issue before marking the workflow complete"
           />
         </div>
 

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client } from '@notionhq/client'
 import OpenAI from 'openai'
+import { revalidatePath } from 'next/cache'
 import { fetchArticle, hostnameFallback } from '@/lib/article-fetcher'
-import { captureArticleToTodaysDraft } from '@/lib/notion-capture'
+import { captureArticleToIssue, captureArticleToTodaysDraft } from '@/lib/notion-capture'
 import { generateAnnotation, polishAnnotation } from '@/lib/ai-annotation'
 import { buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
@@ -24,6 +25,7 @@ interface RequestBody {
   force?: boolean
   imageUrl?: string
   category?: string         // canonical category, e.g. "Canada"
+  targetIssueId?: string
 }
 
 // ─── Route handler ───────────────────────────────────────────────────────────────
@@ -59,6 +61,10 @@ export async function POST(request: NextRequest) {
   }
 
   const { url, annotation, autoAnnotate = true, polishAnnotation: polishFlag = false, force = false, imageUrl: imageUrlOverride, category } = body
+  const targetIssueId = body.targetIssueId?.trim()
+  if (targetIssueId && !adminOk) {
+    return NextResponse.json({ error: 'Admin password is required to update an existing issue.' }, { status: 401 })
+  }
 
   const notion = new Client({ auth: notionToken })
   const openai = new OpenAI({ apiKey: openaiApiKey })
@@ -102,15 +108,19 @@ export async function POST(request: NextRequest) {
       resolvedAnnotation = '[Add annotation]'
     }
 
-    // Append to today's draft (creating one if needed) — shared logic in lib/notion-capture
-    const result = await captureArticleToTodaysDraft(notion, notionDatabaseId, {
+    const article = {
       title: title || hostnameFallback(url),
       annotation: resolvedAnnotation,
       url,
       publishedDate,
       imageUrl: imageUrlOverride ?? fetchedImageUrl ?? null,
       category: category?.trim() || null,
-    })
+    }
+    const result = targetIssueId
+      ? await captureArticleToIssue(notion, targetIssueId, article)
+      : await captureArticleToTodaysDraft(notion, notionDatabaseId, article)
+
+    if (targetIssueId) revalidatePath('/', 'layout')
 
     return NextResponse.json({
       success: true,

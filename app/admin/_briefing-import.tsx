@@ -31,6 +31,12 @@ interface BriefingApiResponse {
   sources: BriefingSourceData[]
 }
 
+interface ImportWarning {
+  url: string
+  title: string
+  message: string
+}
+
 function articleKey(sourceId: string, sectionName: string, article: BriefingArticle): string {
   return `${sourceId}::${sectionName}::${article.urls[0] ?? article.title}`
 }
@@ -42,6 +48,7 @@ export function BriefingImport({ password }: { password: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [importing, setImporting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [warnings, setWarnings] = useState<ImportWarning[]>([])
   const [rewriteWithAi, setRewriteWithAi] = useState(true)
   const [overrides, setOverrides] = useState<Map<string, Category>>(new Map())
   const userUncheckedRef = useRef<Set<string>>(new Set())
@@ -126,6 +133,7 @@ export function BriefingImport({ password }: { password: string }) {
     if (!data || selected.size === 0) return
     setImporting(true)
     setMessage(null)
+    setWarnings([])
     setError(null)
 
     const toImport: { title: string; summary: string; url: string; category: Category }[] = []
@@ -161,6 +169,12 @@ export function BriefingImport({ password }: { password: string }) {
         return
       }
       const failed = (payload.results ?? []).filter((r: { ok: boolean }) => !r.ok).length
+      const importWarnings: ImportWarning[] = (payload.results ?? []).flatMap((r: {
+        url: string
+        title: string
+        warnings?: Array<{ message: string }>
+      }) => (r.warnings ?? []).map(w => ({ url: r.url, title: r.title, message: w.message })))
+      setWarnings(importWarnings)
       setMessage(
         failed > 0
           ? `✓ Imported ${payload.added} of ${payload.attempted} (${failed} failed). Today's draft now has ${payload.articleCount} article${payload.articleCount === 1 ? '' : 's'}.`
@@ -199,6 +213,18 @@ export function BriefingImport({ password }: { password: string }) {
 
       {error && <p className="text-[14px] font-bold text-ws-accent">{error}</p>}
       {message && <p className="text-[14px] font-bold text-ws-black">{message}</p>}
+      {warnings.length > 0 && (
+        <div className="border-[2px] border-ws-accent bg-ws-accent/10 px-4 py-3 text-[13px]">
+          <p className="font-black uppercase tracking-wide text-ws-accent mb-2">Review title changes</p>
+          <ul className="list-disc pl-5 flex flex-col gap-1">
+            {warnings.map((warning, index) => (
+              <li key={`${warning.url}-${index}`}>
+                <strong>{warning.title}</strong> - {warning.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {loading && !data && <p className="text-[14px] text-ws-black/70">Loading briefings…</p>}
 

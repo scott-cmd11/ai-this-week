@@ -3,7 +3,15 @@
 import { useState } from 'react'
 import { CATEGORY_ORDER, CATEGORY_META, type Category } from '@/lib/category-mapping'
 
-export function AddArticleManually({ password }: { password: string }) {
+export function AddArticleManually({
+  password,
+  targetIssueId,
+  targetIssueLabel = "today's issue",
+}: {
+  password: string
+  targetIssueId?: string
+  targetIssueLabel?: string
+}) {
   const [open, setOpen] = useState(false)
   const [addUrl, setAddUrl] = useState('')
   const [addAnnotation, setAddAnnotation] = useState('')
@@ -36,6 +44,7 @@ export function AddArticleManually({ password }: { password: string }) {
           autoAnnotate: !addAnnotation.trim(),
           polishAnnotation: !!addAnnotation.trim() && polishMyNote,
           category: addCategory,
+          targetIssueId,
           force,
         }),
       })
@@ -55,7 +64,7 @@ export function AddArticleManually({ password }: { password: string }) {
       setAddImageUrl('')
       setShowImageField(false)
       setDuplicateWarning(null)
-      setSuccess(`✓ Added to today's draft under ${addCategory}.`)
+      setSuccess(`✓ Added to ${targetIssueLabel} under ${addCategory}.`)
       setTimeout(() => setSuccess(null), 4000)
       window.dispatchEvent(new CustomEvent('aitoday:refresh-draft'))
     } catch {
@@ -259,7 +268,7 @@ export function AddArticleManually({ password }: { password: string }) {
               Adding…
             </>
           ) : (
-            '+ Add to today’s issue'
+            `+ Add to ${targetIssueLabel}`
           )}
         </button>
       </form>

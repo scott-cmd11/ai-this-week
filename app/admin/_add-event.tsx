@@ -2,7 +2,15 @@
 
 import { useState, useRef } from 'react'
 
-export function AddEvent({ password }: { password: string }) {
+export function AddEvent({
+  password,
+  targetIssueId,
+  targetIssueLabel = "today's issue",
+}: {
+  password: string
+  targetIssueId?: string
+  targetIssueLabel?: string
+}) {
   const [open, setOpen] = useState(false)
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
@@ -86,6 +94,7 @@ export function AddEvent({ password }: { password: string }) {
           where: where.trim(),
           description: description.trim(),
           url: url.trim(),
+          targetIssueId,
           force,
         }),
       })
@@ -96,7 +105,7 @@ export function AddEvent({ password }: { password: string }) {
       }
       if (!res.ok) { setSubmitError(data.error ?? `Error ${res.status}`); return }
 
-      setSuccess('✓ Event added to today’s draft (under “Upcoming”).')
+      setSuccess(`✓ Event added to ${targetIssueLabel} (under "Upcoming").`)
       setUrl(''); setTitle(''); setWhen(''); setWhere(''); setDescription('')
       setExtracted(false)
       setEventDuplicate(null)
@@ -127,7 +136,7 @@ export function AddEvent({ password }: { password: string }) {
         >
           <div>
             <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Add a learning event</p>
-            <p className="text-[12px] text-ws-black/50 mt-0.5">Drop an event URL — AI extracts the details for you. Goes under “Upcoming” in today’s issue.</p>
+            <p className="text-[12px] text-ws-black/50 mt-0.5">Drop an event URL — AI extracts the details for you. Goes under &quot;Upcoming&quot;.</p>
           </div>
           <span className="text-[12px] font-medium text-ws-black/50 shrink-0">+ Show</span>
         </button>
@@ -294,7 +303,7 @@ export function AddEvent({ password }: { password: string }) {
               Adding event…
             </>
           ) : (
-            '+ Add event to today’s issue'
+            `+ Add event to ${targetIssueLabel}`
           )}
         </button>
       </form>

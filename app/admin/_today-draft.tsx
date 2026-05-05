@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { CATEGORY_ORDER, CATEGORY_META, type Category } from '@/lib/category-mapping'
+import { titleQualityWarnings } from '@/lib/title-quality'
 
 interface DailyArticle {
   title: string | null
@@ -12,7 +13,15 @@ interface DailyArticle {
   category: string | null
 }
 
-export function TodaysDraft({ password }: { password: string }) {
+export function TodaysDraft({
+  password,
+  showPublishAction = true,
+  onDraftStatusChange,
+}: {
+  password: string
+  showPublishAction?: boolean
+  onDraftStatusChange?: (status: { hasDraft: boolean; articleCount: number }) => void
+}) {
   const [draft, setDraft] = useState<{ id: string; issueNumber: number; issueDate: string; title: string } | null>(null)
   const [articles, setArticles] = useState<DailyArticle[]>([])
   const [draftLoading, setDraftLoading] = useState(true)
@@ -102,6 +111,10 @@ export function TodaysDraft({ password }: { password: string }) {
       const data = await res.json()
       setDraft(data.draft ?? null)
       setArticles(data.articles ?? [])
+      onDraftStatusChange?.({
+        hasDraft: !!data.draft,
+        articleCount: Array.isArray(data.articles) ? data.articles.length : 0,
+      })
     } catch {
       setDraftError('Network error.')
     } finally {
@@ -144,6 +157,13 @@ export function TodaysDraft({ password }: { password: string }) {
   const notionUrl = draft ? `https://notion.so/${draft.id.replace(/-/g, '')}` : null
 
   function renderGroupedArticles() {
+    const titleWarnings = articles.flatMap((article, index) =>
+      titleQualityWarnings(article.title).map(warning => ({
+        index: index + 1,
+        title: article.title ?? '(untitled)',
+        message: warning.message,
+      }))
+    )
     const grouped = new Map<string, Array<{ n: number; a: DailyArticle }>>()
     articles.forEach((a, i) => {
       const cat = a.category ?? 'Uncategorized'
@@ -156,6 +176,20 @@ export function TodaysDraft({ password }: { password: string }) {
     ]
     return (
       <div className="flex flex-col gap-5">
+        {titleWarnings.length > 0 && (
+          <div className="border-[3px] border-ws-accent bg-ws-accent-light/40 px-4 py-3">
+            <p className="text-[12px] font-black uppercase tracking-[0.12em] text-ws-accent mb-2">
+              Review title warnings before publishing
+            </p>
+            <ul className="list-disc pl-5 text-[13px] text-ws-black/75 flex flex-col gap-1">
+              {titleWarnings.map(warning => (
+                <li key={`${warning.index}-${warning.title}`}>
+                  #{warning.index}: <strong>{warning.title}</strong> - {warning.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {orderedCats.map(cat => {
           const items = grouped.get(cat)!
           const meta = CATEGORY_META[cat as Category]
@@ -272,7 +306,11 @@ export function TodaysDraft({ password }: { password: string }) {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Today&apos;s draft</p>
-          <p className="text-[12px] text-ws-black/50 mt-0.5">Review the assembled issue. When it looks right, publish.</p>
+          <p className="text-[12px] text-ws-black/50 mt-0.5">
+            {showPublishAction
+              ? 'Review the final issue. When it looks right, publish.'
+              : 'Review the assembled issue. Publishing happens in the next step.'}
+          </p>
         </div>
         <button
           type="button"
@@ -311,7 +349,7 @@ export function TodaysDraft({ password }: { password: string }) {
 
       {articles.length > 0 && renderGroupedArticles()}
 
-      {draft && articles.length > 0 && (
+      {draft && articles.length > 0 && showPublishAction && (
         <div className="border-t-[2px] border-ws-black/20 pt-5 flex items-center justify-between gap-3 flex-wrap">
           <p className="text-[12px] text-ws-black/60">
             Once you click <strong>Publish now</strong>, this issue is live on the public site immediately.
@@ -324,6 +362,14 @@ export function TodaysDraft({ password }: { password: string }) {
           >
             {publishing ? 'Publishing…' : 'Publish now ↗'}
           </button>
+        </div>
+      )}
+
+      {draft && articles.length > 0 && !showPublishAction && (
+        <div className="border-t-[2px] border-ws-black/20 pt-5">
+          <p className="text-[12px] text-ws-black/60">
+            Review and add anything missing here. Publishing happens in the next step.
+          </p>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client } from '@notionhq/client'
-import { captureEventToTodaysDraft } from '@/lib/notion-capture'
+import { revalidatePath } from 'next/cache'
+import { captureEventToIssue, captureEventToTodaysDraft } from '@/lib/notion-capture'
 import { buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
 
@@ -15,6 +16,7 @@ interface RequestBody {
   url?: string
   /** When true, skip the duplicate-URL check. */
   force?: boolean
+  targetIssueId?: string
 }
 
 // ─── Route handler ──────────────────────────────────────────────────────────────
@@ -65,13 +67,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const result = await captureEventToTodaysDraft(notion, notionDatabaseId, {
+    const event = {
       title,
       when: body.when?.trim() ?? '',
       where: body.where?.trim() ?? '',
       description: body.description?.trim() || null,
       url,
-    })
+    }
+    const targetIssueId = body.targetIssueId?.trim()
+    const result = targetIssueId
+      ? await captureEventToIssue(notion, targetIssueId, event)
+      : await captureEventToTodaysDraft(notion, notionDatabaseId, event)
+
+    if (targetIssueId) revalidatePath('/', 'layout')
     return NextResponse.json({ success: true, ...result })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
