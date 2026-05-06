@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client } from '@notionhq/client'
 import { fetchResearchPapersForDate } from '@/lib/research-papers'
-
-function todayUtc(): string {
-  return new Date().toISOString().split('T')[0]
-}
+import { issueDateFor } from '@/lib/issue-date'
 
 export async function GET(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
@@ -23,7 +20,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
   }
 
-  const date = request.nextUrl.searchParams.get('date') ?? todayUtc()
+  const date = request.nextUrl.searchParams.get('date') ?? issueDateFor()
   const notion = new Client({ auth: notionToken })
 
   try {

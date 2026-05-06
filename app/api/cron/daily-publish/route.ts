@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client } from '@notionhq/client'
 import { revalidatePath } from 'next/cache'
+import { issueDateFor } from '@/lib/issue-date'
 
 // Called by Vercel Cron at 23:00 UTC (= 6pm Central).
 // Publishes today's draft if it exists and has at least one article.
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const today = new Date().toISOString().split('T')[0]
+    const today = issueDateFor()
     const notion = new Client({ auth: notionToken })
 
     // Query for today's draft

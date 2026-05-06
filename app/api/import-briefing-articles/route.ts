@@ -8,6 +8,7 @@ import { CATEGORY_ORDER } from '@/lib/category-mapping'
 import { buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
 import { chooseSourceTitle, type TitleQualityWarning } from '@/lib/title-quality'
+import { issueDateFor } from '@/lib/issue-date'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
 
   const notion = new Client({ auth: notionToken })
   const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null
-  const issueDate = new Date().toISOString().split('T')[0]
+  const issueDate = issueDateFor()
   const knownUrls = await buildKnownUrlMap(notion, notionDatabaseId, 30)
   const seenThisImport = new Set<string>()
 

@@ -1,3 +1,14 @@
+# Task: Website Workflow Diagram
+
+- [x] Inspect the actual website routes and admin workflow.
+- [x] Create an editable Excalidraw workflow diagram.
+- [x] Validate the Excalidraw file.
+
+## Review
+
+- Created `docs/ai-today-workflow.excalidraw`, showing the source-input lane, admin production workflow, Notion draft/publish state, live-issue update path, Vercel cron notes, and public reader outputs.
+- Validation passed with the Excalidraw skill validator.
+
 # Task: Publish Workflow Fixes
 
 - [x] Trace why "Complete workflow" does nothing.
@@ -140,3 +151,16 @@
 - Section counts now use unique section labels so duplicated Notion headings do not show as duplicated totals.
 - Previous/next issue links now display date-led titles rather than repeating the brand.
 - Verification: targeted ESLint passed, TypeScript passed, `npm run build` passed, and `http://127.0.0.1:3027/issues/2026-05-04` returned HTTP 200 with `May 4, 2026`, `Issue 04`, `53 stories / 6 sections`, and `Signal map`.
+
+# Task: Daily Import Date Drift
+
+- [x] Trace why the admin header showed May 5 while briefing import queried May 6.
+- [x] Add one shared publication-timezone issue date helper.
+- [x] Use the helper in briefing imports, research imports, draft lookup, daily assemble, daily publish, and capture-to-draft writes.
+- [x] Verify targeted lint, TypeScript, local API date, and build.
+
+## Review
+
+- Root cause: server routes used UTC ISO dates, so evening Central/Winnipeg admin sessions could roll the import date to tomorrow.
+- Fix: daily issue routes now default to `America/Winnipeg` via `issueDateFor()`.
+- Verification: `/api/briefing-sources` returned `2026-05-05` locally during the May 5 evening session, targeted ESLint passed, TypeScript passed, and `npm run build` passed.

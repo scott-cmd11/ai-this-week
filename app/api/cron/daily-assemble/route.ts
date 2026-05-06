@@ -10,6 +10,7 @@ import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/not
 import { buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
 import { fetchResearchPapersForDate } from '@/lib/research-papers'
+import { issueDateFor } from '@/lib/issue-date'
 
 type SourceType = 'page' | 'database'
 
@@ -86,7 +87,7 @@ async function assemble(
   }
 
   const { searchParams } = new URL(request.url)
-  const date = opts.dateOverride ?? searchParams.get('date') ?? new Date().toISOString().split('T')[0]
+  const date = opts.dateOverride ?? searchParams.get('date') ?? issueDateFor()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: 'date must be YYYY-MM-DD.' }, { status: 400 })
   }

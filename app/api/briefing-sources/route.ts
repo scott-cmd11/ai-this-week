@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client } from '@notionhq/client'
 import { parseBriefingBlocks, type ParsedBriefing } from '@/lib/briefing-parser'
+import { issueDateFor } from '@/lib/issue-date'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -199,7 +200,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Default date to today (UTC) — same convention as /api/capture and cron
-  const date = searchParams.get('date') ?? new Date().toISOString().split('T')[0]
+  const date = searchParams.get('date') ?? issueDateFor()
 
   const sources = parseSourcesEnv(briefingSourcesRaw)
   if (sources.length === 0) {

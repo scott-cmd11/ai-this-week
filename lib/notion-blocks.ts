@@ -51,7 +51,3 @@ export function formatIsoDate(iso: string): string {
   })
 }
 
-/** Returns today's date as YYYY-MM-DD (UTC) */
-export function todayUtc(): string {
-  return new Date().toISOString().split('T')[0]
-}

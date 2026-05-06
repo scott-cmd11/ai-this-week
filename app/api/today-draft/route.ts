@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client } from '@notionhq/client'
+import { issueDateFor } from '@/lib/issue-date'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Incorrect password.' }, { status: 401 })
     }
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = issueDateFor()
     const notion = new Client({ auth: notionToken })
 
     // Query for today's draft issue

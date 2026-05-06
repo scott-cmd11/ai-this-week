@@ -2,7 +2,8 @@
 // Used by capture routes and bulk imports.
 
 import { Client } from '@notionhq/client'
-import { block, richText, formatIsoDate, todayUtc } from './notion-blocks'
+import { issueDateFor } from './issue-date'
+import { block, richText, formatIsoDate } from './notion-blocks'
 
 export interface CaptureArticleInput {
   title: string
@@ -230,7 +231,7 @@ export async function captureArticleToTodaysDraft(
   databaseId: string,
   article: CaptureArticleInput,
 ): Promise<CaptureResult> {
-  const today = todayUtc()
+  const today = issueDateFor()
   const { issueId, issueNumber } = await findOrCreateTodaysDraft(notion, databaseId, today)
   return appendArticleToIssue(
     notion,
@@ -264,7 +265,7 @@ export async function captureEventToTodaysDraft(
   databaseId: string,
   event: CaptureEventInput,
 ): Promise<CaptureResult> {
-  const today = todayUtc()
+  const today = issueDateFor()
   const { issueId, issueNumber } = await findOrCreateTodaysDraft(notion, databaseId, today)
   return appendEventToIssue(
     notion,
