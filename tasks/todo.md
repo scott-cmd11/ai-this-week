@@ -192,3 +192,19 @@
 - Root cause: the Notion issue contained a `Repair Note` heading, and the public renderer treated every `heading_2` as a reader-facing section.
 - Fix: issue pages now filter internal sections such as `Repair Note`, `Internal Note`, and `Ops Note` before building the TOC, stats, markdown export, and visible body.
 - Verification: `http://127.0.0.1:3027/issues/2026-05-05` returned 200 without `Repair Note`, targeted ESLint passed, TypeScript passed, and `npm run build` passed.
+
+# Task: Published Issue Editing Flow
+
+- [x] Review the current admin wizard and identify why live issue updates feel hidden.
+- [x] Add a dedicated published-issue editing step to the wizard and full console.
+- [x] Let editors update existing published item titles/summaries through the site.
+- [x] Keep late article/event additions in the same live-issue editing step.
+- [x] Verify lint, TypeScript, build, tests, and local admin response.
+
+## Review
+
+- Root cause: the existing "Published issue updates" tool worked, but it was repeated as a side panel above the daily workflow instead of being a named step in the process.
+- Added a sixth workflow step, "Edit Live Issue", after "Publish & Refresh" in both wizard and full admin modes.
+- Added a live issue editor that lists existing published issue items by section and lets editors update story titles/summaries through the site.
+- Kept late article/event additions in the same live issue desk, sharing the selected published issue instead of forcing a separate hidden picker.
+- Verification: targeted ESLint passed, TypeScript passed, `npm run build` passed, `npm run test` passed, `/admin` returned 200 locally, and `/api/published-issue-items` returned 401 without admin auth.

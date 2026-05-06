@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { CATEGORY_ORDER, CATEGORY_META, type Category } from '@/lib/category-mapping'
 
-interface PublishedIssue {
+export interface PublishedIssue {
   id: string
   title: string
   issueDate: string
@@ -18,10 +18,28 @@ interface DuplicateWarning {
 
 type ItemType = 'article' | 'event'
 
-export function AppendToPublishedIssue({ password }: { password: string }) {
-  const [open, setOpen] = useState(false)
-  const [issues, setIssues] = useState<PublishedIssue[]>([])
-  const [issueId, setIssueId] = useState('')
+export function AppendToPublishedIssue({
+  password,
+  defaultOpen = false,
+  lockedOpen = false,
+  issues: providedIssues,
+  issueId: providedIssueId,
+  onIssueIdChange,
+  hideIssuePicker = false,
+  onAppended,
+}: {
+  password: string
+  defaultOpen?: boolean
+  lockedOpen?: boolean
+  issues?: PublishedIssue[]
+  issueId?: string
+  onIssueIdChange?: (issueId: string) => void
+  hideIssuePicker?: boolean
+  onAppended?: () => void
+}) {
+  const [open, setOpen] = useState(defaultOpen || lockedOpen)
+  const [internalIssues, setInternalIssues] = useState<PublishedIssue[]>([])
+  const [internalIssueId, setInternalIssueId] = useState('')
   const [loadingIssues, setLoadingIssues] = useState(false)
   const [type, setType] = useState<ItemType>('article')
   const [url, setUrl] = useState('')
@@ -39,6 +57,9 @@ export function AppendToPublishedIssue({ password }: { password: string }) {
   const [success, setSuccess] = useState<string | null>(null)
   const [duplicate, setDuplicate] = useState<DuplicateWarning | null>(null)
   const [staleBlocked, setStaleBlocked] = useState(false)
+  const issues = providedIssues ?? internalIssues
+  const issueId = providedIssueId ?? internalIssueId
+  const setIssueId = onIssueIdChange ?? setInternalIssueId
 
   async function loadIssues() {
     setLoadingIssues(true)
@@ -53,8 +74,8 @@ export function AppendToPublishedIssue({ password }: { password: string }) {
         return
       }
       const nextIssues = (payload.issues ?? []) as PublishedIssue[]
-      setIssues(nextIssues)
-      setIssueId(current => current || nextIssues[0]?.id || '')
+      setInternalIssues(nextIssues)
+      if (!issueId && nextIssues[0]?.id) setIssueId(nextIssues[0].id)
     } catch {
       setError('Could not load published issues.')
     } finally {
@@ -63,9 +84,9 @@ export function AppendToPublishedIssue({ password }: { password: string }) {
   }
 
   useEffect(() => {
-    if (open) loadIssues()
+    if (open && !providedIssues) loadIssues()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, providedIssues])
 
   function resetItemFields() {
     setUrl('')
@@ -178,6 +199,7 @@ export function AppendToPublishedIssue({ password }: { password: string }) {
       const issueLabel = `Issue #${payload.issueNumber} (${payload.issueDate})`
       setSuccess(`Added to ${issueLabel}. The public page was refreshed.`)
       resetItemFields()
+      onAppended?.()
     } catch {
       setError('Could not add item.')
     } finally {
@@ -185,7 +207,7 @@ export function AppendToPublishedIssue({ password }: { password: string }) {
     }
   }
 
-  if (!open) {
+  if (!open && !lockedOpen) {
     return (
       <div className="border border-ws-black/15 bg-ws-white">
         <button
@@ -214,38 +236,47 @@ export function AppendToPublishedIssue({ password }: { password: string }) {
             Use this after publishing when you find one more source worth adding. It appends to the selected live issue and refreshes the public page.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-[12px] font-medium text-ws-black/50 hover:underline hover:text-ws-accent"
-        >
-          Hide
-        </button>
+        {!lockedOpen && (
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="text-[12px] font-medium text-ws-black/50 hover:underline hover:text-ws-accent"
+          >
+            Hide
+          </button>
+        )}
       </div>
 
       {success && <p className="border border-ws-black/15 bg-ws-page px-3 py-2 text-[13px] font-bold">{success}</p>}
       {error && <p className="border border-red-300 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-700">{error}</p>}
 
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-4">
-        <div>
-          <label htmlFor="published-issue-target" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
-            Published issue
-          </label>
-          <select
-            id="published-issue-target"
-            value={issueId}
-            onChange={e => setIssueId(e.target.value)}
-            disabled={loadingIssues || submitting}
-            className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
-          >
-            {issues.length === 0 && <option value="">{loadingIssues ? 'Loading issues...' : 'No published issues found'}</option>}
-            {issues.map(issue => (
-              <option key={issue.id} value={issue.id}>
-                Issue #{issue.issueNumber} - {issue.issueDate}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className={hideIssuePicker ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-4'}>
+        {!hideIssuePicker && (
+          <div>
+            <label htmlFor="published-issue-target" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
+              Published issue
+            </label>
+            <select
+              id="published-issue-target"
+              value={issueId}
+              onChange={e => setIssueId(e.target.value)}
+              disabled={loadingIssues || submitting}
+              className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+            >
+              {issues.length === 0 && <option value="">{loadingIssues ? 'Loading issues...' : 'No published issues found'}</option>}
+              {issues.map(issue => (
+                <option key={issue.id} value={issue.id}>
+                  Issue #{issue.issueNumber} - {issue.issueDate}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {hideIssuePicker && !issueId && (
+          <p className="border border-ws-black/15 bg-ws-page px-3 py-2 text-[13px] font-bold text-ws-black/70">
+            Choose a published issue above before adding a late article or event.
+          </p>
+        )}
 
         <div>
           <span className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">Item type</span>

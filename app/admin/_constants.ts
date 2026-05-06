@@ -1,4 +1,4 @@
-export const STEP_KEYS = ['briefings', 'research', 'events', 'draft', 'publish'] as const
+export const STEP_KEYS = ['briefings', 'research', 'events', 'draft', 'publish', 'live'] as const
 export type StepKey = typeof STEP_KEYS[number]
 
 export const STEP_LABELS: Record<StepKey, string> = {
@@ -7,6 +7,7 @@ export const STEP_LABELS: Record<StepKey, string> = {
   events:    'Add Events',
   draft:     'Review Issue',
   publish:   'Publish & Refresh',
+  live:      'Edit Live Issue',
 }
 
 export const STEP_HELP: Record<StepKey, string> = {
@@ -14,5 +15,6 @@ export const STEP_HELP: Record<StepKey, string> = {
   research:  'Add papers or reports that should sit alongside the news coverage.',
   events:    'Add learning events only when they belong in today\'s issue.',
   draft:     'Review today\'s assembled issue and add anything missing. Publishing happens in the next step.',
-  publish:   'Publish today\'s issue first. Use live-issue updates only after an issue is already public.',
+  publish:   'Publish today\'s issue and refresh the public site. Live corrections happen in the next step.',
+  live:      'Update an issue that is already public: edit story text, add a late article, or add a learning event.',
 }

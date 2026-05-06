@@ -6,3 +6,4 @@
 - Daily admin workflows must use the publication timezone for "today." Do not use UTC ISO dates for issue imports, draft lookup, or publish jobs because evening Central time can become tomorrow in UTC.
 - Briefing import rows must never be keyed only by URL. Some source briefings provide generic source homepage links, so use row-specific keys and title/topic duplicate checks as a second guardrail.
 - Public issue rendering should hide operational sections such as `Repair Note`; Notion can hold internal repair context, but reader-facing pages should only render briefing content.
+- Published issue edits must be a first-class admin step with in-site controls. A repeated side panel is too easy to miss and makes live corrections feel separate from the real publishing process.

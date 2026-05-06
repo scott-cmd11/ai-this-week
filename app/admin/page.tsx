@@ -12,7 +12,7 @@ import { AddArticleManually } from './_add-article-manually'
 import { AddEvent } from './_add-event'
 import { ResearchImport } from './_research-import'
 import { BriefingImport } from './_briefing-import'
-import { AppendToPublishedIssue } from './_append-to-published-issue'
+import { PublishedIssueEditor } from './_published-issue-editor'
 
 // ─── Main component ─────────────────────────────────────────────────────────────
 
@@ -30,6 +30,7 @@ export default function AdminPage() {
   const eventsRef    = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
   const draftRef     = useRef<HTMLDivElement>(null)
   const publishRef   = useRef<HTMLDivElement>(null) // attached to JSX in Task 4
+  const liveRef      = useRef<HTMLDivElement>(null)
 
   const stepRefs: Record<StepKey, { current: HTMLDivElement | null }> = {
     briefings: briefingsRef,
@@ -37,6 +38,7 @@ export default function AdminPage() {
     events:    eventsRef,
     draft:     draftRef,
     publish:   publishRef,
+    live:      liveRef,
   }
 
   // ── Workflow progress
@@ -211,9 +213,11 @@ export default function AdminPage() {
     const wizNextStep    = wizActiveIndex < STEP_KEYS.length - 1 ? STEP_KEYS[wizActiveIndex + 1] : null
     const wizPrevStep    = wizActiveIndex > 0 ? STEP_KEYS[wizActiveIndex - 1] : null
     const publishStillPending =
-      activeStep === 'publish' &&
       publishDraftStatus.hasDraft &&
       publishDraftStatus.articleCount > 0
+    const activeStepBlockedByPublish =
+      (activeStep === 'publish' || activeStep === 'live') &&
+      publishStillPending
 
     return (
       <div className="admin-workspace w-full flex flex-col">
@@ -270,10 +274,6 @@ export default function AdminPage() {
             {STEP_HELP[activeStep]}
           </p>
 
-          <div className="mb-8">
-            <AppendToPublishedIssue password={password} />
-          </div>
-
           {/* Sections — all mounted, only active one visible */}
           <div className={activeStep === 'briefings' ? '' : 'hidden'}>
             <BriefingImport password={password} />
@@ -289,19 +289,22 @@ export default function AdminPage() {
             <AddArticleManually password={password} />
           </div>
           <div className={activeStep === 'publish' ? '' : 'hidden'}>
-            {workflowComplete && (
-              <div className="mb-5 border-[3px] border-ws-black bg-ws-accent-light/40 px-5 py-4 shadow-[4px_4px_0_0_var(--color-ws-black)]">
-                <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Workflow complete</p>
-                <p className="text-[14px] text-ws-black/75 mt-1">You can view all sections or reopen this step if you need another publish update.</p>
-              </div>
-            )}
             <div className="mb-5 border-l-[4px] border-ws-accent bg-ws-white px-4 py-3">
               <p className="text-[13px] font-bold text-ws-black">
-                Daily order: publish today&apos;s issue here first, then use live-issue updates only for corrections or late additions.
+                Daily order: publish today&apos;s issue here first, then use Edit Live Issue only for corrections or late additions.
               </p>
             </div>
             <TodaysDraft password={password} onDraftStatusChange={setPublishDraftStatus} />
             <PublishDrafts password={password} />
+          </div>
+          <div className={activeStep === 'live' ? '' : 'hidden'}>
+            {workflowComplete && (
+              <div className="mb-5 border-[3px] border-ws-black bg-ws-accent-light/40 px-5 py-4 shadow-[4px_4px_0_0_var(--color-ws-black)]">
+                <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Workflow complete</p>
+                <p className="text-[14px] text-ws-black/75 mt-1">The daily issue is published, and live edits are available here whenever you need them.</p>
+              </div>
+            )}
+            <PublishedIssueEditor password={password} />
           </div>
           {/* Wizard nav footer */}
           <div className="flex items-center justify-between mt-10 pt-6 border-t border-ws-border">
@@ -318,6 +321,16 @@ export default function AdminPage() {
 
             {/* Continue / Complete */}
             {wizNextStep ? (
+              activeStepBlockedByPublish ? (
+                <button
+                  type="button"
+                  disabled
+                  className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold opacity-50 cursor-not-allowed"
+                  title="Publish today's issue before moving to live edits"
+                >
+                  Publish today&apos;s issue first
+                </button>
+              ) : (
               <button
                 type="button"
                 onClick={() => handleStepDone(activeStep, wizNextStep, null)}
@@ -325,6 +338,7 @@ export default function AdminPage() {
               >
                 Continue to {STEP_LABELS[wizNextStep]} →
               </button>
+              )
             ) : publishStillPending ? (
               <button
                 type="button"
@@ -388,7 +402,7 @@ export default function AdminPage() {
               Daily desk
             </h1>
             <p className="max-w-2xl text-[16px] leading-[1.55] text-ws-muted">
-              Import briefings, review research and events, assemble the issue, then publish with one clean workflow.
+              Import briefings, review research and events, assemble the issue, publish it, then handle live edits from one clean workflow.
             </p>
           </div>
           <div className="flex items-center gap-4 mt-4">
@@ -408,8 +422,6 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
-
-        <AppendToPublishedIssue password={password} />
 
         {/* ── Step 1: Briefings ─────────────────────────────────────────── */}
         <div ref={briefingsRef}>
@@ -468,13 +480,29 @@ export default function AdminPage() {
         <div ref={publishRef}>
           <div className="border-l-[4px] border-ws-accent bg-ws-white px-4 py-3 mb-5">
             <p className="text-[13px] font-bold text-ws-black">
-              Daily order: publish today&apos;s issue here first, then use live-issue updates only for corrections or late additions.
+              Daily order: publish today&apos;s issue here first, then use Edit Live Issue only for corrections or late additions.
             </p>
           </div>
           <TodaysDraft password={password} onDraftStatusChange={setPublishDraftStatus} />
           <PublishDrafts password={password} />
           <StepDoneButton
             currentKey="publish"
+            nextKey="live"
+            nextLabel={STEP_LABELS.live}
+            nextRef={liveRef}
+            completedSteps={completedSteps}
+            onDone={handleStepDone}
+            disabled={publishStillPending}
+            disabledLabel="Publish today first"
+            title="Publish today's issue before moving to live edits"
+          />
+        </div>
+
+        {/* Step 6: Edit an already-published issue */}
+        <div ref={liveRef}>
+          <PublishedIssueEditor password={password} />
+          <StepDoneButton
+            currentKey="live"
             nextKey={null}
             nextLabel={null}
             nextRef={null}
