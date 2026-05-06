@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useReadingProgress } from './useReadingProgress'
 
 interface TocEntry {
   id: string
@@ -14,6 +15,8 @@ interface Props {
 export function TableOfContents({ entries }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const observerRef = useRef<IntersectionObserver | null>(null)
+  const progress = useReadingProgress()
+  const rounded = Math.round(progress)
 
   useEffect(() => {
     if (entries.length === 0) return
@@ -56,6 +59,15 @@ export function TableOfContents({ entries }: Props) {
       <p className="type-meta type-inverse mb-3 inline-block bg-ws-black px-2 py-1">
         Contents
       </p>
+      <div className="mb-4 border-y border-ws-border py-2">
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <p className="type-meta text-ws-muted">Reading</p>
+          <p className="type-meta text-ws-accent tabular-nums">{rounded}%</p>
+        </div>
+        <div className="h-1 bg-ws-border" aria-hidden="true">
+          <div className="h-full bg-ws-accent" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
       <ol className="list-none p-0 space-y-1 mt-1">
         {entries.map(({ id, label }) => (
           <li key={id}>
