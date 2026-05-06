@@ -8,6 +8,7 @@ interface EditablePublishedItem {
   section: string
   title: string
   titleBlockId: string
+  blockIds: string[]
   summary: string
   summaryBlockId: string | null
   sourceUrl: string | null
@@ -210,6 +211,7 @@ export function PublishedIssueEditor({ password }: { password: string }) {
                   issueId={issueId}
                   password={password}
                   onSaved={() => refreshItems(issueId)}
+                  onRemoved={() => refreshItems(issueId)}
                 />
               ))}
             </div>
@@ -238,15 +240,19 @@ function EditableItemRow({
   issueId,
   password,
   onSaved,
+  onRemoved,
 }: {
   item: EditablePublishedItem
   issueId: string
   password: string
   onSaved: () => void
+  onRemoved: () => void
 }) {
   const [title, setTitle] = useState(item.title)
   const [summary, setSummary] = useState(item.summary)
   const [saving, setSaving] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -255,6 +261,7 @@ function EditableItemRow({
     setSummary(item.summary)
     setMessage(null)
     setError(null)
+    setConfirmRemove(false)
   }, [item.id, item.title, item.summary])
 
   const changed = title.trim() !== item.title.trim() || summary.trim() !== item.summary.trim()
@@ -294,6 +301,34 @@ function EditableItemRow({
     }
   }
 
+  async function remove() {
+    setRemoving(true)
+    setMessage(null)
+    setError(null)
+    try {
+      const res = await fetch('/api/remove-published-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminPassword: password,
+          issueId,
+          itemId: item.id,
+        }),
+      })
+      const payload = await res.json()
+      if (!res.ok) {
+        setError(payload.error ?? `Could not remove item (${res.status}).`)
+        return
+      }
+      onRemoved()
+    } catch {
+      setError('Could not remove item.')
+    } finally {
+      setRemoving(false)
+      setConfirmRemove(false)
+    }
+  }
+
   return (
     <details className="group bg-ws-white open:bg-ws-page/40">
       <summary className="cursor-pointer list-none px-3 py-3 hover:bg-ws-page">
@@ -317,7 +352,7 @@ function EditableItemRow({
             value={title}
             onChange={event => setTitle(event.target.value)}
             rows={2}
-            disabled={saving}
+            disabled={saving || removing}
             className="w-full border border-ws-black/30 bg-ws-white px-3 py-2.5 text-[14px] font-semibold leading-[1.35] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
           />
         </label>
@@ -330,7 +365,7 @@ function EditableItemRow({
             value={summary}
             onChange={event => setSummary(event.target.value)}
             rows={4}
-            disabled={saving || !item.summaryBlockId}
+            disabled={saving || removing || !item.summaryBlockId}
             className="w-full border border-ws-black/30 bg-ws-white px-3 py-2.5 text-[14px] leading-[1.45] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
           />
         </label>
@@ -339,7 +374,7 @@ function EditableItemRow({
           <button
             type="button"
             onClick={save}
-            disabled={saving || !changed || !title.trim()}
+            disabled={saving || removing || !changed || !title.trim()}
             className="bg-ws-black text-ws-white px-4 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving...' : 'Save edit'}
@@ -356,7 +391,41 @@ function EditableItemRow({
           )}
           {message && <span className="text-[12px] font-bold text-ws-black/70">{message}</span>}
           {error && <span className="text-[12px] font-bold text-red-700">{error}</span>}
+          <button
+            type="button"
+            onClick={() => setConfirmRemove(true)}
+            disabled={saving || removing}
+            className="ml-auto text-[12px] font-black uppercase tracking-[0.08em] text-red-700 underline decoration-red-700/30 underline-offset-2 hover:decoration-red-700 disabled:opacity-40"
+          >
+            Remove
+          </button>
         </div>
+
+        {confirmRemove && (
+          <div className="border border-red-300 bg-red-50 px-3 py-3 flex flex-col gap-3">
+            <p className="text-[13px] font-bold leading-snug text-red-800">
+              Remove this item from the published issue? This archives the story blocks in Notion and refreshes the public page.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={remove}
+                disabled={removing}
+                className="bg-red-700 px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-white hover:bg-red-800 disabled:opacity-50"
+              >
+                {removing ? 'Removing...' : 'Remove from issue'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmRemove(false)}
+                disabled={removing}
+                className="px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-ws-black/60 underline hover:text-ws-black disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </details>
   )

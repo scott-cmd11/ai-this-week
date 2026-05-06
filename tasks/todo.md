@@ -208,3 +208,17 @@
 - Added a live issue editor that lists existing published issue items by section and lets editors update story titles/summaries through the site.
 - Kept late article/event additions in the same live issue desk, sharing the selected published issue instead of forcing a separate hidden picker.
 - Verification: targeted ESLint passed, TypeScript passed, `npm run build` passed, `npm run test` passed, `/admin` returned 200 locally, and `/api/published-issue-items` returned 401 without admin auth.
+
+# Task: Live Issue Remove Action
+
+- [x] Track the full Notion block group for each live issue item.
+- [x] Add a protected API route to remove an item from a published issue.
+- [x] Add an inline confirmed remove action to each live issue desk item.
+- [x] Verify lint, TypeScript, build, tests, and local protected endpoint response.
+
+## Review
+
+- Each live issue item now carries its full Notion block group, so removal archives the title, summary, source link, image, and divider together.
+- Added `/api/remove-published-item`, protected by admin auth and limited to published issues.
+- Added an inline Remove action on each live desk row with a second confirmation before the item is removed.
+- Verification: targeted ESLint passed, TypeScript passed, `npm run build` passed, `npm run test` passed, `/admin` returned 200 locally, and `/api/remove-published-item` returned 401 without admin auth.

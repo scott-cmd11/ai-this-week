@@ -5,6 +5,7 @@ export interface EditablePublishedIssueItem {
   section: string
   title: string
   titleBlockId: string
+  blockIds: string[]
   summary: string
   summaryBlockId: string | null
   sourceUrl: string | null
@@ -44,6 +45,7 @@ export async function listEditablePublishedIssueItems(
         section,
         title: plainText(block),
         titleBlockId: block.id,
+        blockIds: [block.id],
         summary: '',
         summaryBlockId: null,
         sourceUrl: null,
@@ -53,6 +55,7 @@ export async function listEditablePublishedIssueItems(
     }
 
     if (!current) continue
+    current.blockIds.push(block.id)
 
     if (block.type === 'divider') {
       flush()

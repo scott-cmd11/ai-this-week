@@ -7,3 +7,4 @@
 - Briefing import rows must never be keyed only by URL. Some source briefings provide generic source homepage links, so use row-specific keys and title/topic duplicate checks as a second guardrail.
 - Public issue rendering should hide operational sections such as `Repair Note`; Notion can hold internal repair context, but reader-facing pages should only render briefing content.
 - Published issue edits must be a first-class admin step with in-site controls. A repeated side panel is too easy to miss and makes live corrections feel separate from the real publishing process.
+- Destructive live issue actions need inline confirmation and must remove the complete Notion item block group, not only the visible title or summary block.
