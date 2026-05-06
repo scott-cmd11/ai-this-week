@@ -179,3 +179,16 @@
 - Fix: import rows now use a row-specific key based on source, section, index, title, and URL.
 - Duplicate guardrail: `/api/known-urls` now also returns recent issue article titles, and the admin import UI flags similar titles as "Already covered."
 - Verification: targeted ESLint passed, TypeScript passed, `/api/known-urls` returned recent Sanofi titles for matching, and `npm run build` passed.
+
+# Task: Hide Internal Repair Notes
+
+- [x] Identify why the public issue showed a Repair Note.
+- [x] Filter internal operational sections out of public issue rendering.
+- [x] Verify the May 5 issue no longer renders the note.
+- [x] Verify lint, TypeScript, and build.
+
+## Review
+
+- Root cause: the Notion issue contained a `Repair Note` heading, and the public renderer treated every `heading_2` as a reader-facing section.
+- Fix: issue pages now filter internal sections such as `Repair Note`, `Internal Note`, and `Ops Note` before building the TOC, stats, markdown export, and visible body.
+- Verification: `http://127.0.0.1:3027/issues/2026-05-05` returned 200 without `Repair Note`, targeted ESLint passed, TypeScript passed, and `npm run build` passed.

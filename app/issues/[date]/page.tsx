@@ -21,6 +21,7 @@ import { IssueCard } from '@/components/IssueCard'
 import { SignalLedger } from '@/components/SignalLedger'
 import { estimateReadingTime } from '@/lib/reading-time'
 import { blocksToMarkdown } from '@/lib/to-markdown'
+import { publicIssueBlocks } from '@/lib/issue-block-filter'
 
 export const revalidate = 300
 
@@ -55,7 +56,7 @@ export default async function IssuePage({ params }: Props) {
   ])
   if (!issue) notFound()
 
-  const blocks = await getIssueBlocks(issue.id)
+  const blocks = publicIssueBlocks(await getIssueBlocks(issue.id))
   const readingTime = estimateReadingTime(blocks)
   const markdown = blocksToMarkdown(issue.title, blocks)
   const issueStats = getIssueStats(blocks)
