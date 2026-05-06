@@ -13,6 +13,10 @@ export interface KnownUrlEntry {
   published: boolean
 }
 
+export interface KnownTitleEntry extends KnownUrlEntry {
+  title: string
+}
+
 /** Map of normalized URL → metadata for the issue where it first appeared. */
 export type KnownUrlMap = Map<string, KnownUrlEntry>
 
@@ -52,6 +56,31 @@ async function fetchIssueUrls(notion: Client, pageId: string): Promise<string[]>
     cursor = res.has_more ? res.next_cursor ?? undefined : undefined
   } while (cursor)
   return urls
+}
+
+async function fetchIssueTitles(notion: Client, pageId: string): Promise<string[]> {
+  const titles: string[] = []
+  let cursor: string | undefined
+  do {
+    const res = await notion.blocks.children.list({
+      block_id: pageId,
+      page_size: 100,
+      start_cursor: cursor,
+    })
+    for (const b of res.results) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const block = b as any
+      if (block.type !== 'heading_3') continue
+      const title = (block.heading_3?.rich_text ?? [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((segment: any) => segment?.plain_text ?? '')
+        .join('')
+        .trim()
+      if (title) titles.push(title)
+    }
+    cursor = res.has_more ? res.next_cursor ?? undefined : undefined
+  } while (cursor)
+  return titles
 }
 
 /**
@@ -111,4 +140,42 @@ export async function buildKnownUrlMap(
   }
 
   return map
+}
+
+export async function buildKnownTitleList(
+  notion: Client,
+  databaseId: string,
+  days = 30,
+): Promise<KnownTitleEntry[]> {
+  const sinceDate = daysAgoUtc(days)
+
+  const queryRes = await notion.databases.query({
+    database_id: databaseId,
+    filter: {
+      property: 'Issue Date',
+      date: { on_or_after: sinceDate },
+    },
+    sorts: [{ property: 'Issue Date', direction: 'descending' }],
+    page_size: 100,
+  })
+
+  const issues: KnownUrlEntry[] = []
+  for (const page of queryRes.results) {
+    if (page.object !== 'page' || !('properties' in page)) continue
+    const props = page.properties
+    const issueNumber = props['Issue Number']?.type === 'number' ? (props['Issue Number'].number ?? 0) : 0
+    const issueDate = props['Issue Date']?.type === 'date' ? (props['Issue Date'].date?.start ?? '') : ''
+    const published = props['Published']?.type === 'checkbox' ? props['Published'].checkbox : false
+    if (!issueDate) continue
+    issues.push({ pageId: page.id, issueNumber, issueDate, published })
+  }
+
+  const titleGroups = await Promise.all(
+    issues.map(async issue => {
+      const titles = await fetchIssueTitles(notion, issue.pageId)
+      return titles.map(title => ({ ...issue, title }))
+    }),
+  )
+
+  return titleGroups.flat()
 }

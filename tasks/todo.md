@@ -164,3 +164,18 @@
 - Root cause: server routes used UTC ISO dates, so evening Central/Winnipeg admin sessions could roll the import date to tomorrow.
 - Fix: daily issue routes now default to `America/Winnipeg` via `issueDateFor()`.
 - Verification: `/api/briefing-sources` returned `2026-05-05` locally during the May 5 evening session, targeted ESLint passed, TypeScript passed, and `npm run build` passed.
+
+# Task: Briefing Import Row Selection And Topic Duplicates
+
+- [x] Trace why unchecking one article could uncheck a whole source group.
+- [x] Make imported article row keys unique even when source URLs are generic or duplicated.
+- [x] Extend duplicate checks to recent issue titles/topics, not only exact URLs.
+- [x] Pre-uncheck similar-title repeats such as Sanofi and show the matching prior issue.
+- [x] Verify build and deploy.
+
+## Review
+
+- Root cause: some briefing rows only provided a generic source homepage URL, such as `http://newswire.ca/`, so multiple articles shared the same checkbox key.
+- Fix: import rows now use a row-specific key based on source, section, index, title, and URL.
+- Duplicate guardrail: `/api/known-urls` now also returns recent issue article titles, and the admin import UI flags similar titles as "Already covered."
+- Verification: targeted ESLint passed, TypeScript passed, `/api/known-urls` returned recent Sanofi titles for matching, and `npm run build` passed.

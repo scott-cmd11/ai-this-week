@@ -37,8 +37,8 @@ interface ImportWarning {
   message: string
 }
 
-function articleKey(sourceId: string, sectionName: string, article: BriefingArticle): string {
-  return `${sourceId}::${sectionName}::${article.urls[0] ?? article.title}`
+function articleKey(sourceId: string, sectionName: string, article: BriefingArticle, index: number): string {
+  return `${sourceId}::${sectionName}::${index}::${article.title}::${article.urls[0] ?? ''}`
 }
 
 export function BriefingImport({ password }: { password: string }) {
@@ -53,7 +53,7 @@ export function BriefingImport({ password }: { password: string }) {
   const [overrides, setOverrides] = useState<Map<string, Category>>(new Map())
   const userUncheckedRef = useRef<Set<string>>(new Set())
   const isFirstLoadRef = useRef(true)
-  const { isKnown, windowDays } = useKnownUrls(password)
+  const { isKnown, findSimilarTitle, windowDays, loaded: knownLoaded } = useKnownUrls(password)
 
   function setOverride(key: string, category: Category) {
     setOverrides(prev => {
@@ -81,9 +81,11 @@ export function BriefingImport({ password }: { password: string }) {
       for (const source of payload.sources) {
         if (!source.briefing) continue
         for (const section of source.briefing.sections) {
-          for (const a of section.articles) {
+          for (let index = 0; index < section.articles.length; index++) {
+            const a = section.articles[index]
             if (a.urls[0] && isKnown(a.urls[0])) continue
-            initial.add(articleKey(source.sourceId, section.name, a))
+            if (findSimilarTitle(a.title)) continue
+            initial.add(articleKey(source.sourceId, section.name, a, index))
           }
         }
       }
@@ -101,9 +103,10 @@ export function BriefingImport({ password }: { password: string }) {
   }
 
   useEffect(() => {
+    if (!knownLoaded) return
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [knownLoaded])
 
   function toggle(key: string) {
     setSelected(prev => {
@@ -139,10 +142,11 @@ export function BriefingImport({ password }: { password: string }) {
     const toImport: { title: string; summary: string; url: string; category: Category }[] = []
     for (const source of data.sources) {
       if (!source.briefing) continue
-      for (const section of source.briefing.sections) {
+        for (const section of source.briefing.sections) {
         const autoCat = categorize(source.sourceLabel, section.name)
-        for (const a of section.articles) {
-          const k = articleKey(source.sourceId, section.name, a)
+        for (let index = 0; index < section.articles.length; index++) {
+          const a = section.articles[index]
+          const k = articleKey(source.sourceId, section.name, a, index)
           if (selected.has(k) && a.urls[0]) {
             const cat = overrides.get(k) ?? autoCat
             toImport.push({ title: a.title, summary: a.summary, url: a.urls[0], category: cat })
@@ -235,14 +239,14 @@ export function BriefingImport({ password }: { password: string }) {
           if (!source.briefing) continue
           for (const section of source.briefing.sections) {
             for (const a of section.articles) {
-              if (a.urls[0] && isKnown(a.urls[0])) dupeCount++
+              if ((a.urls[0] && isKnown(a.urls[0])) || findSimilarTitle(a.title)) dupeCount++
             }
           }
         }
         if (dupeCount === 0) return null
         return (
           <p className="border-[2px] border-ws-accent bg-ws-accent/10 px-4 py-3 text-[13px] font-bold">
-            ⚠ <strong>{dupeCount} article{dupeCount === 1 ? '' : 's'}</strong> already published in the last {windowDays} days — pre-unchecked. Re-check any you want to include anyway.
+            ⚠ <strong>{dupeCount} article{dupeCount === 1 ? '' : 's'}</strong> already covered in the last {windowDays} days — pre-unchecked. Re-check any you want to include anyway.
           </p>
         )
       })()}
@@ -328,8 +332,9 @@ export function BriefingImport({ password }: { password: string }) {
           if (!source.briefing) continue
           for (const section of source.briefing.sections) {
             const autoCat = categorize(source.sourceLabel, section.name)
-            for (const a of section.articles) {
-              const k = articleKey(source.sourceId, section.name, a)
+            for (let index = 0; index < section.articles.length; index++) {
+              const a = section.articles[index]
+              const k = articleKey(source.sourceId, section.name, a, index)
               const effective = overrides.get(k) ?? autoCat
               entries.push({
                 key: k,
@@ -379,7 +384,8 @@ export function BriefingImport({ password }: { password: string }) {
                   <ul className="list-none p-0 m-0 flex flex-col gap-1.5">
                     {bucket.map(e => {
                       const checked = selected.has(e.key)
-                      const dupe = isKnown(e.article.urls[0])
+                      const similarTitle = findSimilarTitle(e.article.title)
+                      const dupe = isKnown(e.article.urls[0]) || Boolean(similarTitle)
                       const hostname = e.article.urls[0]
                         ? new URL(e.article.urls[0]).hostname.replace(/^www\./, '')
                         : ''
@@ -400,10 +406,15 @@ export function BriefingImport({ password }: { password: string }) {
                               {e.article.title}
                               {dupe && (
                                 <span className="ml-2 text-[10px] font-black uppercase tracking-wide text-ws-accent border border-ws-accent px-1.5 py-0.5 align-middle whitespace-nowrap">
-                                  ⚠ Already published
+                                  Already covered
                                 </span>
                               )}
                             </p>
+                            {similarTitle && (
+                              <p className="text-[11px] font-semibold text-ws-accent">
+                                Similar to Issue {similarTitle.issueNumber} ({similarTitle.issueDate}): {similarTitle.title}
+                              </p>
+                            )}
                             {e.article.summary && (
                               <p className="text-[12px] text-ws-black/70 line-clamp-2 leading-snug">
                                 {e.article.summary}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client } from '@notionhq/client'
-import { buildKnownUrlMap } from '@/lib/known-urls'
+import { buildKnownTitleList, buildKnownUrlMap } from '@/lib/known-urls'
 
 // ─── Route handler ──────────────────────────────────────────────────────────────
 
@@ -34,10 +34,14 @@ export async function GET(request: NextRequest) {
   const notion = new Client({ auth: notionToken })
 
   try {
-    const map = await buildKnownUrlMap(notion, notionDatabaseId, days)
+    const [map, titles] = await Promise.all([
+      buildKnownUrlMap(notion, notionDatabaseId, days),
+      buildKnownTitleList(notion, notionDatabaseId, days),
+    ])
 
     return NextResponse.json({
       urls: [...map.keys()],
+      titles,
       windowDays: days,
       issueCount: new Set([...map.values()].map(v => v.pageId)).size,
     })
