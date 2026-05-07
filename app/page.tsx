@@ -56,7 +56,6 @@ export default async function HomePage() {
             <SignalLedger
               items={[
                 { label: 'Latest published', value: `Issue ${latest.issueNumber}` },
-                { label: 'Publishing rhythm', value: 'Today\'s issue is published in the evening.' },
                 { label: 'Editorial standard', value: 'Source-linked, AI-assisted, Canada-first.' },
               ]}
             />

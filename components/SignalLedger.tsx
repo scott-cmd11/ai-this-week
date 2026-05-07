@@ -4,8 +4,10 @@ interface SignalLedgerItem {
 }
 
 export function SignalLedger({ items }: { items: SignalLedgerItem[] }) {
+  const columnClass = items.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'
+
   return (
-    <dl className="grid border-y border-ws-border sm:grid-cols-3">
+    <dl className={`grid border-y border-ws-border ${columnClass}`}>
       {items.map((item, index) => (
         <div
           key={`${item.label}-${item.value}`}
