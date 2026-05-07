@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { track } from '@vercel/analytics/react'
 
 interface Props {
   url?: string   // if omitted, copies window.location.href
@@ -14,6 +15,7 @@ export function CopyLinkButton({ url, label = 'Copy link' }: Props) {
     try {
       const target = url ?? window.location.href
       await navigator.clipboard.writeText(target)
+      track('Issue tool used', { tool: 'copy-link' })
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
     } catch { /* clipboard blocked — silently ignore */ }

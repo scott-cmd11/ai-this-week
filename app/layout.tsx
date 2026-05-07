@@ -4,6 +4,7 @@ import './globals.css'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Analytics } from '@vercel/analytics/react'
+import { UsageTracker } from '@/components/UsageTracker'
 
 const sourceSerif = Source_Serif_4({
   subsets: ['latin'],
@@ -48,6 +49,7 @@ export default function RootLayout({
         </main>
         <Footer />
         <Analytics />
+        <UsageTracker />
       </body>
     </html>
   )

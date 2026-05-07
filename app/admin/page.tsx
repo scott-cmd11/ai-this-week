@@ -13,6 +13,7 @@ import { AddEvent } from './_add-event'
 import { ResearchImport } from './_research-import'
 import { BriefingImport } from './_briefing-import'
 import { PublishedIssueEditor } from './_published-issue-editor'
+import { SiteStats } from './_site-stats'
 
 // ─── Main component ─────────────────────────────────────────────────────────────
 
@@ -422,6 +423,8 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+
+        <SiteStats password={password} />
 
         {/* ── Step 1: Briefings ─────────────────────────────────────────── */}
         <div ref={briefingsRef}>

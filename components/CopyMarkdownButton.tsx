@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { track } from '@vercel/analytics/react'
 
 interface Props {
   markdown: string
@@ -12,6 +13,7 @@ export function CopyMarkdownButton({ markdown }: Props) {
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(markdown)
+      track('Issue tool used', { tool: 'copy-markdown' })
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
     } catch { /* clipboard blocked */ }

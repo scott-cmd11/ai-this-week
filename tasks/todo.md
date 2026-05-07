@@ -249,3 +249,19 @@
 - Added an About-page related-project panel explaining the difference between AI Today as the daily briefing and AI Canada Pulse as the wider Canadian AI dashboard.
 - Verification: `npx eslint app/about/page.tsx components/Footer.tsx`, `npx tsc --noEmit`, and `npm run build` passed.
 
+
+# Task: Usage Tracking System
+
+- [x] Inspect existing analytics and admin stats surfaces.
+- [x] Add privacy-conscious usage events for public pages and key interactions.
+- [x] Surface usage-tracking guidance in admin.
+- [x] Verify lint, TypeScript, tests, and production build.
+
+## Review
+
+- Existing state: Vercel Analytics was already mounted globally, but the admin stats panel only counted editorial inventory, not reader usage.
+- Added `UsageTracker`, which records Vercel custom events for public page views by page type, issue link clicks, outbound source clicks, AI Canada Pulse referrals, and issue tool usage.
+- Kept admin activity out of public usage events.
+- Surfaced the existing admin overview panel in the main admin console and added direct Vercel Analytics guidance.
+- Verification: focused ESLint passed, `npx tsc --noEmit` passed, `npm run test` passed, and `npm run build` passed.
+

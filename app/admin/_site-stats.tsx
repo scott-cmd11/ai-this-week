@@ -11,6 +11,7 @@ interface StatsData {
 
 const CACHE_KEY = 'aitoday:stats-cache'
 const CACHE_TTL = 5 * 60 * 1000
+const VERCEL_ANALYTICS_URL = 'https://vercel.com/scotts-projects-4ef44000/ai-today/analytics'
 
 export function SiteStats({ password }: { password: string }) {
   const [stats, setStats] = useState<StatsData | null>(null)
@@ -30,14 +31,17 @@ export function SiteStats({ password }: { password: string }) {
           return
         }
       }
-    } catch { /* corrupt cache — ignore, fall through to fetch */ }
+    } catch { /* corrupt cache, ignore and fetch */ }
 
     ;(async () => {
       try {
         const res = await fetch('/api/stats', {
           headers: { 'x-admin-password': password },
         })
-        if (!res.ok) { if (!cancelled) setError('Could not load stats.'); return }
+        if (!res.ok) {
+          if (!cancelled) setError('Could not load stats.')
+          return
+        }
         const data = await res.json() as StatsData
         if (!cancelled) {
           setStats(data)
@@ -56,7 +60,7 @@ export function SiteStats({ password }: { password: string }) {
     <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
       <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70 mb-4">Overview</p>
 
-      {loading && <p className="text-[14px] text-ws-black/70">Loading…</p>}
+      {loading && <p className="text-[14px] text-ws-black/70">Loading...</p>}
       {error && <p className="text-[14px] text-ws-accent font-bold">{error}</p>}
 
       {stats && (
@@ -87,7 +91,7 @@ export function SiteStats({ password }: { password: string }) {
               </>
             ) : (
               <>
-                <p className="text-[32px] font-black leading-none">—</p>
+                <p className="text-[32px] font-black leading-none">-</p>
                 <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Latest issue</p>
               </>
             )}
@@ -96,17 +100,24 @@ export function SiteStats({ password }: { password: string }) {
       )}
 
       {stats && (
-        <p className="text-[12px] text-ws-black/50 mt-3">
-          Visitor data →{' '}
+        <div className="mt-4 border-[2px] border-ws-black/20 bg-ws-page px-4 py-3">
+          <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">
+            Usage tracking
+          </p>
+          <p className="mt-1 text-[13px] leading-snug text-ws-black/65">
+            Page views, visitors, referrers, devices, and countries are tracked in Vercel Analytics.
+            Custom events now record public page views by type, issue link clicks, outbound source clicks,
+            AI Canada Pulse referrals, and issue copy/share tool usage.
+          </p>
           <a
-            href="https://vercel.com/dashboard"
+            href={VERCEL_ANALYTICS_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:no-underline hover:text-ws-accent"
+            className="mt-2 inline-flex text-[12px] font-bold uppercase tracking-wide text-ws-accent underline hover:no-underline hover:text-ws-accent-hover"
           >
-            Vercel Analytics dashboard
+            Open Vercel Analytics
           </a>
-        </p>
+        </div>
       )}
     </div>
   )
