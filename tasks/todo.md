@@ -222,3 +222,17 @@
 - Added `/api/remove-published-item`, protected by admin auth and limited to published issues.
 - Added an inline Remove action on each live desk row with a second confirmation before the item is removed.
 - Verification: targeted ESLint passed, TypeScript passed, `npm run build` passed, `npm run test` passed, `/admin` returned 200 locally, and `/api/remove-published-item` returned 401 without admin auth.
+
+# Task: May 6 Extra Articles Investigation
+
+- [x] Confirm what is visible on the live issue.
+- [x] Trace whether extra stories came from rendering, Notion, cron, or admin import.
+- [x] Patch the approval/import flow guardrail.
+- [x] Verify focused checks.
+
+## Review
+
+- Root cause evidence: the May 6 Notion issue had a first batch at 2026-05-07 00:24 UTC, then a second import wave at 2026-05-07 02:56-03:12 UTC. Vercel logs show POST /api/import-briefing-articles at 22:10 Winnipeg time and POST /api/publish-issue at 22:17, so the extras were appended before publish by a second import pass.
+- Fix: the briefing import panel still preselects fresh candidates for an empty daily draft, but once today's draft already has articles, refreshes leave the remaining briefing items unchecked and show an explanatory note. This prevents a second import from treating every leftover candidate as approved.
+- Verification: `npx eslint app/admin/_briefing-import.tsx`, `npx tsc --noEmit`, and `npm run test` passed.
+

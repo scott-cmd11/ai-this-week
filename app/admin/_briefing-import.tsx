@@ -37,6 +37,15 @@ interface ImportWarning {
   message: string
 }
 
+async function loadDraftArticleCount(password: string): Promise<number> {
+  const res = await fetch('/api/today-draft', {
+    headers: { 'x-admin-password': password },
+  })
+  if (!res.ok) return 0
+  const payload = await res.json()
+  return typeof payload.articleCount === 'number' ? payload.articleCount : 0
+}
+
 function articleKey(sourceId: string, sectionName: string, article: BriefingArticle, index: number): string {
   return `${sourceId}::${sectionName}::${index}::${article.title}::${article.urls[0] ?? ''}`
 }
@@ -51,6 +60,7 @@ export function BriefingImport({ password }: { password: string }) {
   const [warnings, setWarnings] = useState<ImportWarning[]>([])
   const [rewriteWithAi, setRewriteWithAi] = useState(true)
   const [overrides, setOverrides] = useState<Map<string, Category>>(new Map())
+  const [draftArticleCount, setDraftArticleCount] = useState(0)
   const userUncheckedRef = useRef<Set<string>>(new Set())
   const isFirstLoadRef = useRef(true)
   const { isKnown, findSimilarTitle, windowDays, loaded: knownLoaded } = useKnownUrls(password)
@@ -76,16 +86,20 @@ export function BriefingImport({ password }: { password: string }) {
         return
       }
       const payload = (await res.json()) as BriefingApiResponse
+      const currentDraftArticleCount = await loadDraftArticleCount(password)
+      setDraftArticleCount(currentDraftArticleCount)
       setData(payload)
       const initial = new Set<string>()
-      for (const source of payload.sources) {
-        if (!source.briefing) continue
-        for (const section of source.briefing.sections) {
-          for (let index = 0; index < section.articles.length; index++) {
-            const a = section.articles[index]
-            if (a.urls[0] && isKnown(a.urls[0])) continue
-            if (findSimilarTitle(a.title)) continue
-            initial.add(articleKey(source.sourceId, section.name, a, index))
+      if (currentDraftArticleCount === 0) {
+        for (const source of payload.sources) {
+          if (!source.briefing) continue
+          for (const section of source.briefing.sections) {
+            for (let index = 0; index < section.articles.length; index++) {
+              const a = section.articles[index]
+              if (a.urls[0] && isKnown(a.urls[0])) continue
+              if (findSimilarTitle(a.title)) continue
+              initial.add(articleKey(source.sourceId, section.name, a, index))
+            }
           }
         }
       }
@@ -217,6 +231,11 @@ export function BriefingImport({ password }: { password: string }) {
 
       {error && <p className="text-[14px] font-bold text-ws-accent">{error}</p>}
       {message && <p className="text-[14px] font-bold text-ws-black">{message}</p>}
+      {data && draftArticleCount > 0 && selected.size === 0 && (
+        <p className="border-[2px] border-ws-black/20 bg-ws-page px-4 py-3 text-[13px] text-ws-black/70">
+          Today&apos;s draft already has {draftArticleCount} article{draftArticleCount === 1 ? '' : 's'}, so remaining briefing items are left unchecked. Check only the extra articles you want to add.
+        </p>
+      )}
       {warnings.length > 0 && (
         <div className="border-[2px] border-ws-accent bg-ws-accent/10 px-4 py-3 text-[13px]">
           <p className="font-black uppercase tracking-wide text-ws-accent mb-2">Review title changes</p>
