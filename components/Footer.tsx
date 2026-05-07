@@ -55,6 +55,21 @@ export function Footer() {
           </p>
         </div>
 
+        <div className="border-t border-white/12 pt-5">
+          <p className="type-body type-muted-inverse max-w-3xl text-[14px] opacity-85">
+            For a deeper view of Canadian AI adoption, policy, infrastructure, and public-sector signals, visit{' '}
+            <a
+              href="https://www.aicanadapulse.ca/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-ws-accent-light underline hover:text-ws-white hover:no-underline"
+            >
+              AI Canada Pulse
+            </a>
+            , a companion project tracking how AI is showing up across Canada.
+          </p>
+        </div>
+
         <div className="flex items-center justify-between gap-4 flex-wrap border-t border-white/12 pt-5">
           <p className="type-body type-muted-inverse text-[13px] opacity-80">
             A project by{' '}

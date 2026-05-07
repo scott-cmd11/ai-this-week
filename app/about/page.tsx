@@ -131,6 +131,30 @@ export default function AboutPage() {
         </EditorialPanel>
       </section>
 
+      <section aria-label="Related project" className="mb-10">
+        <EditorialPanel>
+          <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div>
+              <p className="type-kicker">Related project</p>
+              <h2 className="type-section-title mt-4 text-[2rem]">AI Canada Pulse</h2>
+              <p className="type-body mt-3 max-w-3xl text-[17px]">
+                AI Canada Pulse is a companion site that tracks Canadian AI adoption, public-sector activity,
+                infrastructure, policy, and market signals in more depth. AI Today is the daily briefing;
+                AI Canada Pulse is the wider dashboard for the Canadian AI landscape.
+              </p>
+            </div>
+            <a
+              href="https://www.aicanadapulse.ca/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-ws-black px-5 py-3 text-[14px] font-semibold tracking-wide text-ws-white no-underline transition-colors hover:bg-ws-accent focus-visible:outline-2 focus-visible:outline-ws-accent focus-visible:outline-offset-2"
+            >
+              Visit AI Canada Pulse
+            </a>
+          </div>
+        </EditorialPanel>
+      </section>
+
       <section aria-label="Contact" className="mb-10">
         <EditorialPanel>
           <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">

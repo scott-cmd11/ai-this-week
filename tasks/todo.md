@@ -236,3 +236,16 @@
 - Fix: the briefing import panel still preselects fresh candidates for an empty daily draft, but once today's draft already has articles, refreshes leave the remaining briefing items unchecked and show an explanatory note. This prevents a second import from treating every leftover candidate as approved.
 - Verification: `npx eslint app/admin/_briefing-import.tsx`, `npx tsc --noEmit`, and `npm run test` passed.
 
+
+# Task: AI Canada Pulse Cross-Link
+
+- [x] Add a persistent public link to AI Canada Pulse.
+- [x] Add a short explanatory About-page panel.
+- [x] Verify lint, TypeScript, and build.
+
+## Review
+
+- Added a footer mention linking to https://www.aicanadapulse.ca/ as a companion project for deeper Canadian AI adoption, policy, infrastructure, and public-sector signals.
+- Added an About-page related-project panel explaining the difference between AI Today as the daily briefing and AI Canada Pulse as the wider Canadian AI dashboard.
+- Verification: `npx eslint app/about/page.tsx components/Footer.tsx`, `npx tsc --noEmit`, and `npm run build` passed.
+
