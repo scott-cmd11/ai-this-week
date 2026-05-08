@@ -1,3 +1,18 @@
+# Task: Pre-Publish Article Review Visibility And Duplicates
+
+- [x] Trace why saved draft articles can be missing from Today's Draft review.
+- [x] Fix draft review parsing so it reads the full Notion draft.
+- [x] Strengthen duplicate-subject detection before import/publish.
+- [x] Verify with targeted tests, TypeScript, and lint.
+
+## Review
+
+- Root cause for hidden review articles: `/api/today-draft` only read the first Notion child-block page. Long issues can exceed 100 blocks, so later articles existed in Notion but did not appear in Today's Draft review.
+- Fix: `/api/today-draft` now paginates through all Notion child blocks and parses the full draft through a shared `parseDailyArticles` helper.
+- Root cause for duplicate subjects: duplicate protection was strongest for exact/normalized URLs. Similar-title detection existed in the admin import UI, but the server import path did not enforce it and same-batch subject duplicates could still be selected.
+- Fix: title similarity now lives in `lib/title-dedupe.ts`, the UI pre-unchecks same-batch similar subjects, and `/api/import-briefing-articles` skips similar subjects from recent issues or earlier in the same import batch.
+- Verification: targeted tests passed, targeted ESLint passed, TypeScript passed, and the full Vitest suite passed.
+
 # Task: Website Workflow Diagram
 
 - [x] Inspect the actual website routes and admin workflow.

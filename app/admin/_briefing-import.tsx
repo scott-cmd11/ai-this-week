@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { categorize, CATEGORY_ORDER, CATEGORY_META, type Category } from '@/lib/category-mapping'
+import { findSimilarTitle as findSimilarTitleMatch } from '@/lib/title-dedupe'
 import { useKnownUrls } from './_use-known-urls'
 
 interface BriefingArticle {
@@ -91,6 +92,7 @@ export function BriefingImport({ password }: { password: string }) {
       setData(payload)
       const initial = new Set<string>()
       if (currentDraftArticleCount === 0) {
+        const selectedTitles: Array<{ title: string }> = []
         for (const source of payload.sources) {
           if (!source.briefing) continue
           for (const section of source.briefing.sections) {
@@ -98,7 +100,9 @@ export function BriefingImport({ password }: { password: string }) {
               const a = section.articles[index]
               if (a.urls[0] && isKnown(a.urls[0])) continue
               if (findSimilarTitle(a.title)) continue
+              if (findSimilarTitleMatch(a.title, selectedTitles)) continue
               initial.add(articleKey(source.sourceId, section.name, a, index))
+              selectedTitles.push({ title: a.title })
             }
           }
         }
@@ -367,6 +371,13 @@ export function BriefingImport({ password }: { password: string }) {
           }
         }
         if (entries.length === 0) return null
+        const firstSimilarByKey = new Map<string, Entry>()
+        const previousEntries: Entry[] = []
+        for (const entry of entries) {
+          const similar = findSimilarTitleMatch(entry.article.title, previousEntries.map(e => ({ ...e, title: e.article.title })))
+          if (similar) firstSimilarByKey.set(entry.key, similar)
+          previousEntries.push(entry)
+        }
 
         const byCategory = new Map<Category, Entry[]>()
         for (const cat of CATEGORY_ORDER) byCategory.set(cat, [])
@@ -404,7 +415,8 @@ export function BriefingImport({ password }: { password: string }) {
                     {bucket.map(e => {
                       const checked = selected.has(e.key)
                       const similarTitle = findSimilarTitle(e.article.title)
-                      const dupe = isKnown(e.article.urls[0]) || Boolean(similarTitle)
+                      const similarImportTitle = firstSimilarByKey.get(e.key)
+                      const dupe = isKnown(e.article.urls[0]) || Boolean(similarTitle) || Boolean(similarImportTitle)
                       const hostname = e.article.urls[0]
                         ? new URL(e.article.urls[0]).hostname.replace(/^www\./, '')
                         : ''
@@ -432,6 +444,11 @@ export function BriefingImport({ password }: { password: string }) {
                             {similarTitle && (
                               <p className="text-[11px] font-semibold text-ws-accent">
                                 Similar to Issue {similarTitle.issueNumber} ({similarTitle.issueDate}): {similarTitle.title}
+                              </p>
+                            )}
+                            {similarImportTitle && (
+                              <p className="text-[11px] font-semibold text-ws-accent">
+                                Similar to another briefing item today: {similarImportTitle.article.title}
                               </p>
                             )}
                             {e.article.summary && (

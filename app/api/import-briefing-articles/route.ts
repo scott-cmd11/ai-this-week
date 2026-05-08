@@ -5,10 +5,11 @@ import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/not
 import { generateAnnotation } from '@/lib/ai-annotation'
 import { fetchArticleMeta, isPublishedDateFreshForIssue } from '@/lib/article-fetcher'
 import { CATEGORY_ORDER } from '@/lib/category-mapping'
-import { buildKnownUrlMap } from '@/lib/known-urls'
+import { buildKnownTitleList, buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
 import { chooseSourceTitle, type TitleQualityWarning } from '@/lib/title-quality'
 import { issueDateFor } from '@/lib/issue-date'
+import { findSimilarTitle } from '@/lib/title-dedupe'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -77,8 +78,12 @@ export async function POST(request: NextRequest) {
   const notion = new Client({ auth: notionToken })
   const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null
   const issueDate = issueDateFor()
-  const knownUrls = await buildKnownUrlMap(notion, notionDatabaseId, 30)
+  const [knownUrls, knownTitles] = await Promise.all([
+    buildKnownUrlMap(notion, notionDatabaseId, 30),
+    buildKnownTitleList(notion, notionDatabaseId, 30),
+  ])
   const seenThisImport = new Set<string>()
+  const importedTitlesThisBatch: Array<{ title: string }> = []
 
   // Sort articles by canonical category order so each h2 section gets all its
   // articles in one contiguous batch (avoids duplicate "## Canada" headings
@@ -154,6 +159,28 @@ export async function POST(request: NextRequest) {
       continue
     }
 
+    const similarKnownTitle = findSimilarTitle(resolvedTitle, knownTitles)
+    if (similarKnownTitle) {
+      results.push({
+        url: articleUrl,
+        title: resolvedTitle,
+        ok: false,
+        skippedReason: `Similar subject already exists in Issue #${similarKnownTitle.issueNumber} (${similarKnownTitle.issueDate}): ${similarKnownTitle.title}`,
+      })
+      continue
+    }
+
+    const similarBatchTitle = findSimilarTitle(resolvedTitle, importedTitlesThisBatch)
+    if (similarBatchTitle) {
+      results.push({
+        url: articleUrl,
+        title: resolvedTitle,
+        ok: false,
+        skippedReason: `Similar subject already selected in this import: ${similarBatchTitle.title}`,
+      })
+      continue
+    }
+
     // If rewriting: replace the briefing's summary with an AI Today-voiced one.
     // The briefing summary is passed as a fallback so the model has context
     // even if the URL fetch fails (e.g. paywalled article).
@@ -187,6 +214,7 @@ export async function POST(request: NextRequest) {
       lastIssueNumber = result.issueNumber
       lastIssueDate = result.issueDate
       results.push({ url: input.url, title: input.title, ok: true, warnings })
+      importedTitlesThisBatch.push({ title: input.title })
     } catch (err) {
       results.push({
         url: input.url,
