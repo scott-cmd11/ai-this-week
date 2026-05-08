@@ -21,7 +21,7 @@ export function WizardStepBar({
     <div
       role="navigation"
       aria-label="Wizard steps"
-      className="bg-ws-black px-4 py-3 flex items-center gap-1.5 flex-wrap"
+      className="bg-ws-black px-3 py-2.5 flex items-center gap-2 overflow-x-auto overscroll-x-contain md:flex-wrap md:px-4 md:py-3"
     >
       {steps.map((step, i) => {
         const isDone    = completedSteps.has(step)
@@ -34,7 +34,7 @@ export function WizardStepBar({
             onClick={() => onStepClick(step)}
             aria-current={isActive ? 'step' : undefined}
             className={[
-              'flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.1em] border-[2px] transition-colors duration-75',
+              'flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2 text-[11px] font-black uppercase tracking-[0.08em] border-[2px] transition-colors duration-75',
               isFlashing
                 ? 'border-ws-accent bg-ws-accent text-ws-black animate-pulse'
                 : isActive
@@ -45,8 +45,8 @@ export function WizardStepBar({
             ].join(' ')}
           >
             {isDone && !isActive && <span aria-hidden="true">✓</span>}
-            <span className="sm:hidden" aria-hidden="true">{i + 1}</span>
-            <span className="hidden sm:inline">{i + 1}. {labels[step]}</span>
+            <span className="md:hidden" aria-hidden="true">{i + 1}</span>
+            <span className="hidden md:inline">{i + 1}. {labels[step]}</span>
           </button>
         )
       })}

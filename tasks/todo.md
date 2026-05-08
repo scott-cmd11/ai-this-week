@@ -1,3 +1,17 @@
+# Task: Admin Mobile Optimization
+
+- [x] Audit current admin mobile layout in code and rendered browser.
+- [x] Patch responsive admin chrome and workflow controls.
+- [x] Verify mobile render, interactions, and checks.
+- [x] Document results and remaining risks.
+
+## Review
+
+- The mobile sign-in screen was visually checked at 390x844 and now fits as a single clean column with readable heading, form, and tap target sizing.
+- The authenticated wizard was checked in the in-app browser at a phone-sized viewport: the admin route loaded, the wizard controls rendered, and tapping Add Research changed the active step and visible panel.
+- Mobile changes keep the admin workflow content intact while improving the shell: horizontal step scrolling, larger step tap targets, body padding, stacked header actions, full-width mobile continue buttons, and global admin min-width/overflow guardrails.
+- Verification: targeted ESLint passed with no errors, TypeScript passed, and the full Vitest suite passed.
+
 # Task: Pre-Publish Article Review Visibility And Duplicates
 
 - [x] Trace why saved draft articles can be missing from Today's Draft review.

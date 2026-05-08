@@ -164,15 +164,15 @@ export default function AdminPage() {
 
   if (!authed) {
     return (
-      <div className="admin-workspace grid min-h-[60vh] place-items-center">
+      <div className="admin-workspace grid min-h-[60vh] place-items-center px-1 py-6">
         <div className="w-full max-w-md">
-        <h1 className="text-[48px] sm:text-[56px] font-black leading-[0.95] tracking-tight mb-3 font-[family-name:var(--font-display)]">
+        <h1 className="text-[42px] sm:text-[56px] font-black leading-[0.95] tracking-tight mb-3 font-[family-name:var(--font-display)]">
           Admin sign in
         </h1>
         <p className="mb-8 text-[16px] leading-[1.55] text-ws-muted">
           Import sources, assemble the issue, and publish the daily brief from one focused console.
         </p>
-        <div className="glass-panel rounded-[0.8rem] p-6">
+        <div className="glass-panel rounded-[0.8rem] p-4 sm:p-6">
           <form onSubmit={handleSignIn} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="password" className="text-[13px] font-black uppercase tracking-wide">
@@ -235,28 +235,28 @@ export default function AdminPage() {
         </div>
 
         {/* Wizard body */}
-        <div className="flex-1 py-8 max-w-4xl w-full mx-auto">
+        <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
 
           {/* Daily header */}
-          <div className="glass-panel rounded-[0.8rem] flex items-start justify-between gap-4 mb-8 p-5">
+          <div className="glass-panel rounded-[0.8rem] flex flex-col gap-4 mb-6 p-4 sm:flex-row sm:items-start sm:justify-between sm:mb-8 sm:p-5">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-ws-black/40 mb-1">Today</p>
               <p className="text-[24px] sm:text-[30px] font-semibold tracking-tight leading-none">
                 {new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
             </div>
-            <div className="flex items-center gap-4 mt-1 shrink-0">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-4 sm:mt-1 sm:shrink-0">
               <button
                 type="button"
                 onClick={exitWizardMode}
-                className="text-[12px] font-black uppercase tracking-[0.1em] text-ws-black/40 hover:text-ws-black transition-colors"
+                className="text-[12px] font-black uppercase tracking-[0.08em] text-ws-black/55 hover:text-ws-black transition-colors"
               >
                 View all sections
               </button>
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="text-[12px] font-black uppercase tracking-[0.1em] text-ws-black/40 hover:text-ws-black transition-colors"
+                className="text-[12px] font-black uppercase tracking-[0.08em] text-ws-black/55 hover:text-ws-black transition-colors"
               >
                 Sign out
               </button>
@@ -264,7 +264,7 @@ export default function AdminPage() {
           </div>
 
           {/* Step title */}
-          <h2 className="text-[32px] sm:text-[40px] font-black tracking-tight leading-[0.95] mb-6 font-[family-name:var(--font-display)]">
+          <h2 className="text-[34px] sm:text-[40px] font-black tracking-tight leading-[0.95] mb-6 font-[family-name:var(--font-display)]">
             {STEP_LABELS[activeStep]}
           </h2>
           <p className="text-[14px] leading-relaxed text-ws-black/65 max-w-2xl -mt-3 mb-6">
@@ -308,7 +308,7 @@ export default function AdminPage() {
             <PublishedIssueEditor password={password} />
           </div>
           {/* Wizard nav footer */}
-          <div className="flex items-center justify-between mt-10 pt-6 border-t border-ws-border">
+          <div className="flex flex-col-reverse gap-3 mt-8 pt-5 border-t border-ws-border sm:flex-row sm:items-center sm:justify-between sm:mt-10 sm:pt-6">
             {/* Back */}
             {wizPrevStep ? (
               <button
@@ -326,7 +326,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   disabled
-                  className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold opacity-50 cursor-not-allowed"
+                  className="w-full bg-ws-accent text-white px-5 py-3 rounded-sm text-[15px] font-semibold opacity-50 cursor-not-allowed sm:w-auto sm:px-8"
                   title="Publish today's issue before moving to live edits"
                 >
                   Publish today&apos;s issue first
@@ -335,7 +335,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => handleStepDone(activeStep, wizNextStep, null)}
-                className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150"
+                className="w-full bg-ws-accent text-white px-5 py-3 rounded-sm text-[15px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150 sm:w-auto sm:px-8"
               >
                 Continue to {STEP_LABELS[wizNextStep]} →
               </button>
@@ -344,7 +344,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 disabled
-                className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold opacity-50 cursor-not-allowed"
+                className="w-full bg-ws-accent text-white px-5 py-3 rounded-sm text-[15px] font-semibold opacity-50 cursor-not-allowed sm:w-auto sm:px-8"
                 title="Publish today's issue before completing the workflow"
               >
                 Publish today&apos;s issue first
@@ -353,7 +353,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={exitWizardMode}
-                className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150"
+                className="w-full bg-ws-accent text-white px-5 py-3 rounded-sm text-[15px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150 sm:w-auto sm:px-8"
               >
                 View all sections
               </button>
@@ -361,7 +361,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => handleStepDone(activeStep, null, null)}
-                className="bg-ws-accent text-white px-8 py-3 rounded-sm text-[15px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150"
+                className="w-full bg-ws-accent text-white px-5 py-3 rounded-sm text-[15px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all duration-150 sm:w-auto sm:px-8"
               >
                 Complete workflow ✓
               </button>
@@ -393,24 +393,24 @@ export default function AdminPage() {
       />
 
       {/* Main content column */}
-      <div className="flex-1 min-w-0 flex flex-col gap-8 px-6 py-0">
+      <div className="flex-1 min-w-0 flex flex-col gap-6 px-0 py-0 md:gap-8 md:px-6">
 
         {/* Header */}
-        <div className="glass-panel rounded-[0.8rem] flex items-start justify-between gap-4 flex-wrap p-6">
+        <div className="glass-panel rounded-[0.8rem] flex items-start justify-between gap-4 flex-wrap p-4 sm:p-6">
           <div>
             <p className="editorial-label mb-4">Publisher console</p>
-            <h1 className="text-[52px] sm:text-[72px] font-black leading-[0.9] tracking-tight mb-3 font-[family-name:var(--font-display)]">
+            <h1 className="text-[42px] sm:text-[72px] font-black leading-[0.9] tracking-tight mb-3 font-[family-name:var(--font-display)]">
               Daily desk
             </h1>
             <p className="max-w-2xl text-[16px] leading-[1.55] text-ws-muted">
               Import briefings, review research and events, assemble the issue, publish it, then handle live edits from one clean workflow.
             </p>
           </div>
-          <div className="flex items-center gap-4 mt-4">
+          <div className="grid w-full grid-cols-1 gap-2 mt-2 sm:w-auto sm:grid-cols-2 sm:mt-4">
             <button
               type="button"
               onClick={enterWizardMode}
-              className="border-[2px] border-ws-black px-3 py-2 text-[12px] font-black uppercase tracking-[0.1em] hover:bg-ws-page hover:border-ws-accent transition-colors"
+              className="border-[2px] border-ws-black px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-page hover:border-ws-accent transition-colors"
             >
               Daily workflow →
             </button>
