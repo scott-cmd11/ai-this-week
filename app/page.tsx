@@ -8,9 +8,14 @@ import { SignalLedger } from '@/components/SignalLedger'
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: 'AI Today - Canadian AI briefing',
+  title: {
+    absolute: 'AI Today - Canadian AI briefing',
+  },
   description:
     'Canadian AI policy, companies, public-sector adoption, global signals, and research in one plain-English daily briefing.',
+  alternates: {
+    canonical: '/',
+  },
 }
 
 export default async function HomePage() {

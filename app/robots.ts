@@ -1,18 +1,16 @@
 import type { MetadataRoute } from 'next'
+import { SITE_URL } from '@/lib/site'
 
 export default function robots(): MetadataRoute.Robots {
-  const BASE_URL =
-    process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ai-this-week.vercel.app'
-
   return {
     rules: [
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/admin/', '/api/'],
+        disallow: ['/admin', '/admin/', '/api/', '/capture'],
       },
     ],
-    sitemap: `${BASE_URL}/sitemap.xml`,
-    host: BASE_URL,
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   }
 }

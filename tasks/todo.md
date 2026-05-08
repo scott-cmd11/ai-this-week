@@ -1,3 +1,41 @@
+# Goal: Whole Website UI, Performance, Polish, And SEO Audit
+
+- [x] Inventory public routes, metadata, and visual-system intent.
+- [x] Run local build/static checks and inspect performance-sensitive code.
+- [x] Render key public pages on desktop and mobile.
+- [x] Review SEO/crawl assets, structured data, headings, and share metadata.
+- [x] Document prioritized recommendations with evidence and tradeoffs.
+
+## Review
+
+- Baseline health is good: `npm run build`, targeted ESLint, TypeScript, and Vitest all passed. Live checks for `/`, `/issues`, `/issues/2026-05-07`, `/sections`, `/sections/top`, `/capture`, `/robots.txt`, `/sitemap.xml`, and `/feed.xml` all returned 200.
+- Highest-priority SEO issue: `/sections/*` is indexed and in the sitemap, but the section taxonomy still uses old labels such as Top Stories / Tool of the Week while current issues use Canada / Policy & Regulation / Government & Public Sector / Industry & Models / Sectors & Applications / Research.
+- Crawl hygiene issues: public pages do not emit canonical links, `/capture` is reachable/indexable, `/contact` is linked but missing from the sitemap, and robots/sitemap/feed still have an old `ai-this-week.vercel.app` fallback in code if `NEXT_PUBLIC_BASE_URL` is missing.
+- Structured-data issue: issue JSON-LD is currently emitted through `next/script`, which appears inside the RSC payload rather than as a simple server-rendered JSON-LD script in initial HTML.
+- UI/polish issue: the issue-page H1 uses very large responsive type, negative tracking, non-breaking dates, and disabled word wrapping, which is brittle on narrow screens and with longer issue titles.
+- Performance/polish issue: issue pages load multiple client-side scroll helpers, raw remote story images, and the archive search sends all issue data into a client component. This is acceptable today but should be tightened before the archive grows.
+- Asset cleanup: two public PNGs are roughly 2.3 MB each and appear unused on current public routes; the active homepage image is about 695 KB.
+- Recommended implementation order: fix section taxonomy/sitemap first, then canonical/noindex/base-url metadata, then JSON-LD rendering, then issue-page mobile typography and scroll-helper simplification, then image/archive/search polish.
+
+# Goal: Implement Website Audit Updates And Ship
+
+- [x] Patch crawl hygiene: canonical URLs, unified site URL, `/capture` noindex, `/contact` sitemap coverage.
+- [x] Replace stale section taxonomy with the current editorial categories.
+- [x] Render issue JSON-LD as server HTML.
+- [x] Improve issue-page mobile title wrapping and remove redundant floating section progress.
+- [x] Clean polish/performance items: public asset weight, metadata mojibake, and image alt fallback.
+- [ ] Verify locally, commit, push, deploy, and check production.
+
+## Review
+
+- Added a shared `lib/site.ts` source for the canonical site URL and site metadata.
+- Added canonical metadata, sitewide Open Graph/Twitter defaults, `/capture` noindex metadata, `/capture` robots blocking, and `/contact` sitemap coverage.
+- Replaced stale public section routes with the current editorial taxonomy: Canada, Policy & Regulation, Government & Public Sector, Industry & Models, Sectors & Applications, and Research.
+- Issue JSON-LD now renders as a normal server HTML `<script type="application/ld+json">`.
+- Issue pages no longer mount the extra floating section-progress pill, and the issue H1 now wraps more safely on mobile.
+- Removed two unused public PNGs totalling roughly 4.6 MB, leaving the active homepage signal-map image.
+- Local verification passed so far: ESLint, TypeScript, Vitest, production build, and local production smoke checks for canonical links, `/capture` noindex, JSON-LD, current section route, old section 404, robots, and sitemap.
+
 # Task: Admin Mobile Optimization
 
 - [x] Audit current admin mobile layout in code and rendered browser.

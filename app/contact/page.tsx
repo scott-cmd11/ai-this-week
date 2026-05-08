@@ -2,8 +2,11 @@ import type { Metadata } from 'next'
 import { ContactForm } from '@/components/ContactForm'
 
 export const metadata: Metadata = {
-  title: 'Contact | AI Today',
-  description: 'Get in touch with AI Today — questions, corrections, story tips.',
+  title: 'Contact',
+  description: 'Get in touch with AI Today - questions, corrections, story tips.',
+  alternates: {
+    canonical: '/contact',
+  },
 }
 
 export default function ContactPage() {

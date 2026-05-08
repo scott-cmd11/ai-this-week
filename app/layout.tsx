@@ -5,6 +5,7 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Analytics } from '@vercel/analytics/react'
 import { UsageTracker } from '@/components/UsageTracker'
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site'
 
 const sourceSerif = Source_Serif_4({
   subsets: ['latin'],
@@ -20,15 +21,39 @@ const ibmPlexSans = IBM_Plex_Sans({
   display: 'swap',
 })
 
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://aitoday.vercel.app'
-
 export const metadata: Metadata = {
-  title: 'AI Today',
-  description: 'Daily AI news from Canada and around the world, plus trending stories and research in plain English.',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
   alternates: {
+    canonical: '/',
     types: {
-      'application/rss+xml': `${SITE_URL}/feed.xml`,
+      'application/rss+xml': '/feed.xml',
     },
+  },
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    url: '/',
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    images: [
+      {
+        url: '/images/homepage-signal-map-v2.png',
+        width: 1200,
+        height: 630,
+        alt: 'AI Today signal desk map.',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    images: ['/images/homepage-signal-map-v2.png'],
   },
 }
 

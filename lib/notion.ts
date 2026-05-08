@@ -3,7 +3,13 @@ import type { Issue, NotionBlock, RichTextSegment } from './types'
 
 // ─── Section types ────────────────────────────────────────────────────────────
 
-export type SectionSlug = 'top' | 'bright' | 'tool' | 'podcast' | 'learning' | 'deep'
+export type SectionSlug =
+  | 'canada'
+  | 'policy-regulation'
+  | 'government-public-sector'
+  | 'industry-models'
+  | 'sectors-applications'
+  | 'research'
 
 export interface SectionMeta {
   slug: SectionSlug
@@ -13,12 +19,22 @@ export interface SectionMeta {
 }
 
 export const SECTIONS: SectionMeta[] = [
-  { slug: 'top',      label: 'Top Stories',             keyword: 'Top Stories',       code: 'TOP' },
-  { slug: 'bright',   label: 'Bright Spot of the Week', keyword: 'Bright Spot',       code: 'BRT' },
-  { slug: 'tool',     label: 'Tool of the Week',        keyword: 'Tool of the Week',  code: 'TLS' },
-  { slug: 'podcast',  label: 'Podcast of the Week',     keyword: 'Podcast of the Week', code: 'AUD' },
-  { slug: 'learning', label: 'Learning',                keyword: 'Learning',          code: 'LRN' },
-  { slug: 'deep',     label: 'Deep Dive',               keyword: 'Deep Dive',         code: 'DIP' },
+  { slug: 'canada', label: 'Canada', keyword: 'Canada', code: 'CAN' },
+  { slug: 'policy-regulation', label: 'Policy & Regulation', keyword: 'Policy & Regulation', code: 'POL' },
+  {
+    slug: 'government-public-sector',
+    label: 'Government & Public Sector',
+    keyword: 'Government & Public Sector',
+    code: 'GOV',
+  },
+  { slug: 'industry-models', label: 'Industry & Models', keyword: 'Industry & Models', code: 'IND' },
+  {
+    slug: 'sectors-applications',
+    label: 'Sectors & Applications',
+    keyword: 'Sectors & Applications',
+    code: 'APP',
+  },
+  { slug: 'research', label: 'Research', keyword: 'Research', code: 'RES' },
 ]
 
 export interface SectionArticle {

@@ -3,9 +3,12 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 export const metadata: Metadata = {
-  title: 'About | AI Today',
+  title: 'About',
   description:
     'AI Today is a source-linked daily briefing on Canadian AI policy, public sector adoption, industry moves, research, and applied AI.',
+  alternates: {
+    canonical: '/about',
+  },
 }
 
 const sections = [

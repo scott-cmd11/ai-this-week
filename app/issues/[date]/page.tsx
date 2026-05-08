@@ -14,18 +14,15 @@ import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { CopyMarkdownButton } from '@/components/CopyMarkdownButton'
 import { TableOfContents } from '@/components/TableOfContents'
 import { MobileToc } from '@/components/MobileToc'
-import { SectionProgress } from '@/components/SectionProgress'
-import { ReadingProgress } from '@/components/ReadingProgress'
 import { ArticleJsonLd } from '@/components/ArticleJsonLd'
 import { IssueCard } from '@/components/IssueCard'
 import { SignalLedger } from '@/components/SignalLedger'
 import { estimateReadingTime } from '@/lib/reading-time'
 import { blocksToMarkdown } from '@/lib/to-markdown'
 import { publicIssueBlocks } from '@/lib/issue-block-filter'
+import { SITE_URL } from '@/lib/site'
 
 export const revalidate = 300
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://aitoday.vercel.app'
 
 interface Props {
   params: Promise<{ date: string }>
@@ -41,9 +38,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { date } = await params
   const issue = await getIssueByDate(date)
   if (!issue) return {}
+  const title = `${issueDisplayTitle(issue.title)} | AI Today`
   return {
-    title: `${issue.title} | AI Today`,
+    title: {
+      absolute: title,
+    },
     description: issue.summary,
+    alternates: {
+      canonical: `/issues/${issue.slug}`,
+    },
+    openGraph: {
+      type: 'article',
+      url: `/issues/${issue.slug}`,
+      title,
+      description: issue.summary,
+      publishedTime: new Date(issue.issueDate + 'T12:00:00Z').toISOString(),
+      images: [`/issues/${issue.slug}/opengraph-image`],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: issue.summary,
+      images: [`/issues/${issue.slug}/opengraph-image`],
+    },
   }
 }
 
@@ -71,9 +88,7 @@ export default async function IssuePage({ params }: Props) {
 
   return (
     <>
-      <ArticleJsonLd issue={issue} baseUrl={BASE_URL} />
-      <ReadingProgress />
-      <SectionProgress sections={tocEntries} />
+      <ArticleJsonLd issue={issue} baseUrl={SITE_URL} />
 
       <div className="xl:flex xl:gap-12 xl:items-start">
         <article aria-label={visibleIssueTitle} className="min-w-0 flex-1">
@@ -87,7 +102,7 @@ export default async function IssuePage({ params }: Props) {
               </p>
             </div>
 
-            <h1 className="mb-8 max-w-6xl break-normal font-[family-name:var(--font-display)] text-[clamp(3rem,9vw,8.5rem)] font-medium leading-[0.94] tracking-[-0.035em] text-ws-black [overflow-wrap:normal] [word-break:normal] sm:leading-[0.9]">
+            <h1 className="mb-8 max-w-6xl font-[family-name:var(--font-display)] text-[clamp(2.7rem,12vw,5.1rem)] font-medium leading-[0.98] tracking-normal text-ws-black [overflow-wrap:anywhere] sm:text-[clamp(4rem,9vw,8.5rem)] sm:leading-[0.9] sm:tracking-[-0.02em] sm:[overflow-wrap:normal]">
               {nonBreakingDate(visibleIssueTitle)}
             </h1>
 

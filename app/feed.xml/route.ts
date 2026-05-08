@@ -1,6 +1,5 @@
 import { getPublishedIssues } from '@/lib/notion'
-
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ai-this-week.vercel.app'
+import { SITE_URL } from '@/lib/site'
 
 function escapeXml(str: string): string {
   return str
@@ -12,7 +11,7 @@ function escapeXml(str: string): string {
 }
 
 function isoToRfc2822(isoDate: string): string {
-  // e.g. "2024-01-15" → RFC 2822 date
+  // e.g. "2024-01-15" to RFC 2822 date
   return new Date(isoDate + 'T12:00:00Z').toUTCString()
 }
 
@@ -42,7 +41,7 @@ export async function GET() {
   <channel>
     <title>AI Today</title>
     <link>${SITE_URL}</link>
-    <description>The most important stories in artificial intelligence — for professional, non-technical readers. No hype, no jargon.</description>
+    <description>The most important stories in artificial intelligence - for professional, non-technical readers. No hype, no jargon.</description>
     <language>en-gb</language>
     <lastBuildDate>${lastBuildDate}</lastBuildDate>
     <atom:link href="${SITE_URL}/feed.xml" rel="self" type="application/rss+xml" />

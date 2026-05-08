@@ -5,8 +5,11 @@ import { IssueSearch } from '@/components/IssueSearch'
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: 'Issue Archive | AI Today',
+  title: 'Issue Archive',
   description: 'Browse the AI Today issue archive.',
+  alternates: {
+    canonical: '/issues',
+  },
 }
 
 export default async function IssuesPage() {

@@ -3,8 +3,12 @@ import Link from 'next/link'
 import { SECTIONS } from '@/lib/notion'
 
 export const metadata: Metadata = {
-  title: 'Browse by Section | AI Today',
-  description: 'Explore all Tool of the Week picks, Deep Dives, Bright Spots, and more across every issue.',
+  title: 'Browse by Section',
+  description:
+    'Explore AI Today coverage by Canadian AI, policy, public-sector, industry, applied AI, and research sections.',
+  alternates: {
+    canonical: '/sections',
+  },
 }
 
 export default function SectionsPage() {
@@ -16,8 +20,8 @@ export default function SectionsPage() {
       </h1>
       <div className="section-rule mb-6" aria-hidden="true" />
       <p className="type-lede mb-10 max-w-xl">
-        Every issue is organised into sections. Browse all picks from a single section across
-        every edition.
+        Every issue is organised into a stable editorial taxonomy. Browse coverage from one
+        section across every edition.
       </p>
       <ul className="space-y-5 list-none p-0">
         {SECTIONS.map(section => (

@@ -341,7 +341,7 @@ function ArticleRow({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imageUrl}
-            alt={imageAlt}
+            alt={imageAlt || title}
             className="aspect-[4/3] w-full object-cover"
             loading="lazy"
           />
@@ -540,7 +540,7 @@ function Block({ block }: { block: NotionBlock }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={block.href}
-            alt={block.content !== block.href ? block.content : ''}
+            alt={block.content !== block.href ? block.content : 'Issue image'}
             className="w-full max-w-2xl rounded-[0.35rem]"
             loading="lazy"
           />

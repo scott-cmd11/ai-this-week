@@ -1,4 +1,3 @@
-import Script from 'next/script'
 import type { Issue } from '@/lib/types'
 
 interface Props {
@@ -44,8 +43,10 @@ export function ArticleJsonLd({ issue, baseUrl }: Props) {
   const serialized = JSON.stringify(jsonLd).replace(/</g, '\\u003c')
 
   return (
-    <Script id={`jsonld-issue-${issue.id}`} type="application/ld+json">
-      {serialized}
-    </Script>
+    <script
+      id={`jsonld-issue-${issue.id}`}
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: serialized }}
+    />
   )
 }
