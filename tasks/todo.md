@@ -24,7 +24,7 @@
 - [x] Render issue JSON-LD as server HTML.
 - [x] Improve issue-page mobile title wrapping and remove redundant floating section progress.
 - [x] Clean polish/performance items: public asset weight, metadata mojibake, and image alt fallback.
-- [ ] Verify locally, commit, push, deploy, and check production.
+- [x] Verify locally, commit, push, deploy, and check production.
 
 ## Review
 
@@ -35,6 +35,8 @@
 - Issue pages no longer mount the extra floating section-progress pill, and the issue H1 now wraps more safely on mobile.
 - Removed two unused public PNGs totalling roughly 4.6 MB, leaving the active homepage signal-map image.
 - Local verification passed so far: ESLint, TypeScript, Vitest, production build, and local production smoke checks for canonical links, `/capture` noindex, JSON-LD, current section route, old section 404, robots, and sitemap.
+- Shipped commit `6b2b391` to GitHub and deployed production to `https://aitoday.vercel.app`.
+- Production verification passed: homepage, issue page, section index, current section route, robots, sitemap, and feed returned 200; `/sections/top` returned 404; `/capture` returned noindex; issue pages emitted canonical URLs and JSON-LD; sitemap includes `/contact` and `/sections/canada` but not `/sections/top`.
 
 # Task: Admin Mobile Optimization
 
