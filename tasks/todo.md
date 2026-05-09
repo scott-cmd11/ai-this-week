@@ -18,4 +18,5 @@
 - Added `scripts/migrate-notion-issues-to-supabase.mjs` to copy existing Notion issues into Supabase before deployment.
 - Verification passed: TypeScript, ESLint, targeted Vitest, production build, and migration dry-run against the current Notion issue database.
 - Migration dry-run found 8 published issues from 2026-05-01 through 2026-05-08 and no current Notion draft.
-- Deployment is intentionally blocked until `docs/supabase/issues.sql` is applied and the migration script is run with Supabase credentials, otherwise production would point to an empty issue table.
+- `docs/supabase/issues.sql` was applied in Supabase and the migration script moved 8 published issues into `public.issues`.
+- Shipped to production at `https://aitoday.vercel.app`; live checks passed for archive, May 8 issue page, feed, sitemap, admin, published-issues API, candidate inbox, and today-draft API.
