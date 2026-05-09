@@ -3,7 +3,8 @@ import { revalidatePath } from 'next/cache'
 import OpenAI from 'openai'
 import { fetchArticle, hostnameFallback, isPublishedDateFreshForIssue } from '@/lib/article-fetcher'
 import { generateAnnotation, polishAnnotation } from '@/lib/ai-annotation'
-import { buildKnownUrlMap } from '@/lib/known-urls'
+import { buildKnownTitleList, buildKnownUrlMap } from '@/lib/known-urls'
+import { findIssueMemoryWarnings } from '@/lib/issue-memory'
 import { normalizeUrl } from '@/lib/url-normalize'
 import {
   appendArticleToIssue,
@@ -120,6 +121,15 @@ async function appendArticle(
   const publishedDate = fetchResult.publishedDate
   const imageUrl = body.imageUrl?.trim() || fetchResult.imageUrl || null
 
+  const issueMemoryWarnings = await findIssueMemory(title, issue.issueId)
+  if (issueMemoryWarnings.length > 0 && !body.force) {
+    return NextResponse.json({
+      error: 'issue_memory',
+      message: issueMemoryWarnings[0].message,
+      warnings: issueMemoryWarnings,
+    }, { status: 409 })
+  }
+
   if (!body.allowOlderSource && !isPublishedDateFreshForIssue(publishedDate, issue.issueDate)) {
     return NextResponse.json({
       error: 'stale_source',
@@ -147,6 +157,7 @@ async function appendArticle(
       issue,
       article: { title, url, publishedDate, imageUrl, annotation, category: body.category?.trim() || null },
       duplicate,
+      issueMemoryWarnings,
     })
   }
 
@@ -168,6 +179,7 @@ async function appendArticle(
     imageUrl,
     issue,
     ...result,
+    issueMemoryWarnings,
     path: `/issues/${issue.issueDate}`,
     requestUrl: request.url,
   })
@@ -195,6 +207,15 @@ async function appendEvent(
     }, { status: 409 })
   }
 
+  const issueMemoryWarnings = await findIssueMemory(title, issue.issueId)
+  if (issueMemoryWarnings.length > 0 && !body.force) {
+    return NextResponse.json({
+      error: 'issue_memory',
+      message: issueMemoryWarnings[0].message,
+      warnings: issueMemoryWarnings,
+    }, { status: 409 })
+  }
+
   if (body.dryRun) {
     return NextResponse.json({
       success: true,
@@ -208,6 +229,7 @@ async function appendEvent(
         url,
       },
       duplicate,
+      issueMemoryWarnings,
     })
   }
 
@@ -225,6 +247,7 @@ async function appendEvent(
     success: true,
     issue,
     ...result,
+    issueMemoryWarnings,
     path: `/issues/${issue.issueDate}`,
   })
 }
@@ -234,4 +257,10 @@ async function findDuplicate(url: string) {
   if (!normalized) return null
   const knownMap = await buildKnownUrlMap(90)
   return knownMap.get(normalized) ?? null
+}
+
+async function findIssueMemory(title: string, targetIssueId: string) {
+  const knownTitles = (await buildKnownTitleList(90))
+    .filter(entry => entry.pageId !== targetIssueId)
+  return findIssueMemoryWarnings(title, knownTitles)
 }

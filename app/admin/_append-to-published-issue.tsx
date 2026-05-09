@@ -16,6 +16,16 @@ interface DuplicateWarning {
   published: boolean
 }
 
+interface IssueMemoryWarning {
+  level: 'likely_same_story' | 'related_topic'
+  message: string
+  matchedTitle: string
+  issueNumber?: number
+  issueDate?: string
+  sharedSignals?: string[]
+  similarity: number
+}
+
 type ItemType = 'article' | 'event'
 
 export function AppendToPublishedIssue({
@@ -56,6 +66,7 @@ export function AppendToPublishedIssue({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [duplicate, setDuplicate] = useState<DuplicateWarning | null>(null)
+  const [memoryWarnings, setMemoryWarnings] = useState<IssueMemoryWarning[]>([])
   const [staleBlocked, setStaleBlocked] = useState(false)
   const issues = providedIssues ?? internalIssues
   const issueId = providedIssueId ?? internalIssueId
@@ -96,6 +107,7 @@ export function AppendToPublishedIssue({
     setEventWhere('')
     setEventDescription('')
     setDuplicate(null)
+    setMemoryWarnings([])
     setStaleBlocked(false)
   }
 
@@ -147,6 +159,7 @@ export function AppendToPublishedIssue({
     setError(null)
     setSuccess(null)
     setDuplicate(null)
+    setMemoryWarnings([])
     setStaleBlocked(false)
 
     const body = type === 'article'
@@ -184,6 +197,11 @@ export function AppendToPublishedIssue({
 
       if (res.status === 409 && payload.duplicate) {
         setDuplicate(payload.duplicate)
+        return
+      }
+      if (res.status === 409 && payload.error === 'issue_memory') {
+        setMemoryWarnings(payload.warnings ?? [])
+        setError(payload.message ?? 'This looks similar to something from a recent issue.')
         return
       }
       if (res.status === 409 && payload.error === 'stale_source') {
@@ -305,7 +323,7 @@ export function AppendToPublishedIssue({
           id="append-url"
           type="url"
           value={url}
-          onChange={e => { setUrl(e.target.value); setDuplicate(null); setStaleBlocked(false); setSuccess(null) }}
+          onChange={e => { setUrl(e.target.value); setDuplicate(null); setMemoryWarnings([]); setStaleBlocked(false); setSuccess(null) }}
           disabled={submitting}
           placeholder={type === 'article' ? 'https://source-article...' : 'https://event-or-registration-page...'}
           className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[15px] font-mono outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
@@ -426,6 +444,49 @@ export function AppendToPublishedIssue({
         </div>
       )}
 
+      {memoryWarnings.length > 0 && (
+        <div className="border border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
+          <div>
+            <p className="text-[12px] font-black uppercase tracking-[0.12em] text-ws-accent">
+              Issue memory warning
+            </p>
+            <p className="mt-1 text-[13px] text-ws-black/75">
+              This may repeat a recent article or topic. Add it only if the angle is meaningfully different.
+            </p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {memoryWarnings.map((warning, index) => (
+              <li key={`${warning.matchedTitle}-${index}`} className="text-[13px] leading-snug text-ws-black">
+                <strong>{warning.level === 'likely_same_story' ? 'Likely same story' : 'Related topic'}:</strong>{' '}
+                {warning.message}
+                {warning.sharedSignals && warning.sharedSignals.length > 0 && (
+                  <span className="block text-[12px] text-ws-black/55">
+                    Shared signals: {warning.sharedSignals.join(', ')}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => submit(true)}
+              disabled={submitting}
+              className="border border-ws-black bg-ws-accent text-ws-white px-3 py-1.5 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
+            >
+              Add anyway
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMemoryWarnings([]); setError(null) }}
+              className="text-[12px] font-medium text-ws-black/60 hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {staleBlocked && (
         <button
           type="button"
@@ -440,7 +501,7 @@ export function AppendToPublishedIssue({
       <button
         type="button"
         onClick={() => submit(false)}
-        disabled={submitting || loadingIssues || !issueId || !url.trim() || !!duplicate || staleBlocked}
+        disabled={submitting || loadingIssues || !issueId || !url.trim() || !!duplicate || memoryWarnings.length > 0 || staleBlocked}
         className="self-start bg-ws-black text-ws-white px-5 py-3 text-[13px] font-black uppercase tracking-[0.08em] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {submitting ? 'Adding...' : `Add ${type} to published issue`}

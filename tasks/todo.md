@@ -53,3 +53,18 @@
 - Updated `/api/append-to-issue` so it no longer only accepts published issues.
 - Added `findOrCreateDraftByDate` to create future issue shells when needed.
 - Verification passed: ESLint, targeted Vitest tests, production build, and a local browser smoke check of the new admin desk. Local Supabase env is not configured, so the browser check verified UI loading rather than live issue data.
+
+# Task: Strengthen Duplicate Topic Checks
+
+- [x] Add issue-memory matching for likely same stories and related topics.
+- [x] Apply issue-memory warnings to article/event append API.
+- [x] Show actionable warnings in admin append flows with an explicit override.
+- [x] Add tests for similar-story and related-topic warnings.
+- [x] Verify lint, tests, and build.
+
+## Review
+
+- Added `lib/issue-memory.ts` to flag likely same stories and related topics from recent issue titles.
+- `/api/append-to-issue` now checks the last 90 days of issue titles before appending articles or events.
+- Add-to-issue admin surfaces now show "Issue memory warning" with matched title, issue reference, shared signals, and an explicit add-anyway override.
+- Verification passed: issue-memory/title tests, ESLint, and production build.
