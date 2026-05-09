@@ -10,6 +10,7 @@ import { TodaysDraft } from './_today-draft'
 import { PublishDrafts } from './_publish-drafts'
 import { AddArticleManually } from './_add-article-manually'
 import { AddEvent } from './_add-event'
+import { AddToIssue } from './_add-to-issue'
 import { ResearchImport } from './_research-import'
 import { BriefingImport } from './_briefing-import'
 import { CandidateInbox } from './_candidate-inbox'
@@ -161,6 +162,14 @@ export default function AdminPage() {
     setTimeout(() => stepRefs[activeStep]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
 
+  function openAddToIssueDesk() {
+    localStorage.setItem('adminMode', 'scroll')
+    setWizardMode(false)
+    setTimeout(() => {
+      document.getElementById('add-to-issue')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
+
   // ── Render: sign-in ──────────────────────────────────────────────────────────
 
   if (!authed) {
@@ -253,6 +262,13 @@ export default function AdminPage() {
                 className="text-[12px] font-black uppercase tracking-[0.08em] text-ws-black/55 hover:text-ws-black transition-colors"
               >
                 View all sections
+              </button>
+              <button
+                type="button"
+                onClick={openAddToIssueDesk}
+                className="text-[12px] font-black uppercase tracking-[0.08em] text-ws-black/55 hover:text-ws-black transition-colors"
+              >
+                Add to issue
               </button>
               <button
                 type="button"
@@ -421,13 +437,20 @@ export default function AdminPage() {
               Review candidates from the automations, assemble the issue, publish it, then handle live edits from one clean workflow.
             </p>
           </div>
-          <div className="grid w-full grid-cols-1 gap-2 mt-2 sm:w-auto sm:grid-cols-2 sm:mt-4">
+          <div className="grid w-full grid-cols-1 gap-2 mt-2 sm:w-auto sm:grid-cols-3 sm:mt-4">
             <button
               type="button"
               onClick={enterWizardMode}
               className="border-[2px] border-ws-black px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-page hover:border-ws-accent transition-colors"
             >
               Daily workflow →
+            </button>
+            <button
+              type="button"
+              onClick={openAddToIssueDesk}
+              className="border-[2px] border-ws-black px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-page hover:border-ws-accent transition-colors"
+            >
+              Add to issue
             </button>
             <button
               type="button"
@@ -440,6 +463,8 @@ export default function AdminPage() {
         </div>
 
         <SiteStats password={password} />
+
+        <AddToIssue password={password} />
 
         {/* ── Step 1: Briefings ─────────────────────────────────────────── */}
         <div ref={briefingsRef}>

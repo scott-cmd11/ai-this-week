@@ -358,6 +358,47 @@ export async function findOrCreateTodaysDraft(today = issueDateFor()): Promise<I
   }
 }
 
+export async function findOrCreateDraftByDate(issueDate: string): Promise<IssueTarget> {
+  const normalizedDate = issueDate.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
+    throw new Error('Issue date must use YYYY-MM-DD format.')
+  }
+
+  const existing = await getIssueByDate(normalizedDate, false)
+  if (existing) {
+    return {
+      issueId: existing.id,
+      issueNumber: existing.issueNumber,
+      issueDate: existing.issueDate,
+      title: existing.title,
+      published: existing.published,
+    }
+  }
+
+  const issueNumber = await getNextIssueNumber()
+  const title = `AI Today - ${formatIsoDate(normalizedDate)}`
+  const rows = await supabaseRequest<IssueRow[]>('issues', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({
+      title,
+      issue_date: normalizedDate,
+      issue_number: issueNumber,
+      published: false,
+      ai_assisted: true,
+      blocks: [],
+    }),
+  })
+  const issue = mapIssue(rows[0])
+  return {
+    issueId: issue.id,
+    issueNumber: issue.issueNumber,
+    issueDate: issue.issueDate,
+    title: issue.title,
+    published: issue.published,
+  }
+}
+
 export async function getIssueTargetById(issueId: string): Promise<IssueTarget | null> {
   const row = await getIssueRowById(issueId)
   if (!row) return null

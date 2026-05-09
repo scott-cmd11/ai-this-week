@@ -13,11 +13,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Incorrect password.' }, { status: 401 })
   }
 
-  const issues = (await getPublishedIssues()).slice(0, 10).map(issue => ({
+  const issues = (await getPublishedIssues()).slice(0, 30).map(issue => ({
     id: issue.id,
     issueNumber: issue.issueNumber,
     issueDate: issue.issueDate,
     title: issue.title,
+    published: true,
   }))
 
   return NextResponse.json({ issues })

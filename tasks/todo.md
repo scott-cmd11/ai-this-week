@@ -37,3 +37,19 @@
 - Legacy Notion briefing import is tucked behind an explicit fallback panel in the all-sections view.
 - Draft review no longer exposes the old Notion-backed annotation regeneration action.
 - Verification passed: ESLint, targeted Vitest candidate/draft tests, production build, and a local browser check of `/admin`.
+
+# Task: Add Separate Issue Append Flow
+
+- [x] Allow article/event append API to target drafts, published issues, or an issue date.
+- [x] Create upcoming draft shells when adding to a future issue date.
+- [x] Build a standalone admin "Add to Issue" desk.
+- [x] Keep the daily candidate review flow separate from issue append/scheduling.
+- [x] Verify lint, tests, build, and local admin behaviour.
+
+## Review
+
+- Added an admin "Issue append desk" outside the daily workflow for articles and learning events.
+- The desk can target an existing draft, an existing published issue, or a date that creates/fetches that issue draft.
+- Updated `/api/append-to-issue` so it no longer only accepts published issues.
+- Added `findOrCreateDraftByDate` to create future issue shells when needed.
+- Verification passed: ESLint, targeted Vitest tests, production build, and a local browser smoke check of the new admin desk. Local Supabase env is not configured, so the browser check verified UI loading rather than live issue data.

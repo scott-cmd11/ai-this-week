@@ -8,6 +8,7 @@ import { normalizeUrl } from '@/lib/url-normalize'
 import {
   appendArticleToIssue,
   appendEventToIssue,
+  findOrCreateDraftByDate,
   getIssueTargetByDate,
   getIssueTargetById,
 } from '@/lib/issue-store'
@@ -67,14 +68,11 @@ export async function POST(request: NextRequest) {
   const issue = body.issueId
     ? await getIssueTargetById(body.issueId)
     : body.issueDate
-      ? await getIssueTargetByDate(body.issueDate, true)
+      ? (await getIssueTargetByDate(body.issueDate, false)) ?? await findOrCreateDraftByDate(body.issueDate)
       : null
 
   if (!issue) {
-    return NextResponse.json({ error: 'Choose a published issue first.' }, { status: 404 })
-  }
-  if (!issue.published) {
-    return NextResponse.json({ error: 'This shortcut is only for published issues. Use the daily draft tools for drafts.' }, { status: 400 })
+    return NextResponse.json({ error: 'Choose an issue or enter an issue date first.' }, { status: 404 })
   }
 
   if (body.type === 'article') {
