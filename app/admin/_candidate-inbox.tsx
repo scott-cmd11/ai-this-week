@@ -27,6 +27,7 @@ export function CandidateInbox({ password }: { password: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [filter, setFilter] = useState<CandidateFilter>('active')
   const [loading, setLoading] = useState(true)
+  const [configured, setConfigured] = useState(true)
   const [working, setWorking] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,6 +48,7 @@ export function CandidateInbox({ password }: { password: string }) {
         setError(payload.error ?? `Error ${res.status}`)
         return
       }
+      setConfigured(payload.configured !== false)
       setCandidates(payload.candidates ?? [])
       setSelected(new Set())
     } catch {
@@ -201,8 +203,13 @@ export function CandidateInbox({ password }: { password: string }) {
 
       {error && <p className="text-[14px] font-bold text-ws-accent">{error}</p>}
       {message && <p className="text-[14px] font-bold text-ws-black">{message}</p>}
+      {!configured && (
+        <p className="border-[2px] border-ws-black/20 bg-ws-page px-4 py-3 text-[13px] text-ws-black/70">
+          Candidate inbox is ready, but Supabase is not connected yet. Add the Supabase environment variables and run the schema SQL, then refresh this panel.
+        </p>
+      )}
 
-      {selected.size > 0 && (
+      {configured && selected.size > 0 && (
         <div className="border-[2px] border-ws-black bg-ws-page px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
           <p className="text-[13px] font-bold text-ws-black">
             {selected.size} candidate{selected.size === 1 ? '' : 's'} selected for today&apos;s draft.
@@ -220,7 +227,7 @@ export function CandidateInbox({ password }: { password: string }) {
 
       {loading ? (
         <p className="text-[13px] text-ws-black/55">Loading candidates...</p>
-      ) : candidates.length === 0 ? (
+      ) : !configured ? null : candidates.length === 0 ? (
         <p className="border-[2px] border-ws-black/20 bg-ws-page px-4 py-3 text-[13px] text-ws-black/70">
           No candidates in this view. Once automations post to the candidate API, they will appear here before Notion is touched.
         </p>

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { CandidateStatus, IncomingArticleCandidate } from '@/lib/article-candidates'
 import { normalizeArticleCandidates } from '@/lib/article-candidates'
-import { listArticleCandidates, upsertArticleCandidates } from '@/lib/article-candidate-store'
+import {
+  isArticleCandidateStoreConfigured,
+  listArticleCandidates,
+  upsertArticleCandidates,
+} from '@/lib/article-candidate-store'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,11 +44,18 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    if (!isArticleCandidateStoreConfigured()) {
+      return NextResponse.json({
+        configured: false,
+        candidates: [],
+        setup: 'Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, then run docs/supabase/article_candidates.sql.',
+      })
+    }
     const candidates = await listArticleCandidates({
       statuses: statusesFromSearch(request),
       limit: Number(request.nextUrl.searchParams.get('limit') ?? 75),
     })
-    return NextResponse.json({ candidates })
+    return NextResponse.json({ configured: true, candidates })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -68,6 +79,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    if (!isArticleCandidateStoreConfigured()) {
+      return NextResponse.json(
+        { error: 'Article candidate inbox is not configured. Set Supabase env vars before ingestion.' },
+        { status: 503 },
+      )
+    }
     const normalized = normalizeArticleCandidates(body.candidates)
     const candidates = await upsertArticleCandidates(normalized)
     return NextResponse.json({

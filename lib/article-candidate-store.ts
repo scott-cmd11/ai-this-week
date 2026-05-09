@@ -34,6 +34,10 @@ export interface CandidateUpdate {
   rejectionReason?: string | null
 }
 
+export function isArticleCandidateStoreConfigured(): boolean {
+  return !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY
+}
+
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
