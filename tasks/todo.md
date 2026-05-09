@@ -1,3 +1,20 @@
+# Task: Article Candidate Inbox Migration
+
+- [x] Add a normalized candidate model and scoring helpers.
+- [x] Add a Supabase-backed storage adapter and schema SQL.
+- [x] Add authenticated candidate API routes for automation ingestion and admin review.
+- [x] Add an admin candidate inbox ahead of the existing Notion briefing import.
+- [x] Verify with targeted tests, TypeScript, lint, and build.
+
+## Review
+
+- Added `article_candidates` schema SQL with RLS enabled and service-role-only access.
+- Added `/api/article-candidates` for automation ingestion and admin listing, plus `/api/article-candidates/[id]` for status/category updates.
+- Added Candidate inbox to the first admin workflow section so source automation items can be reviewed before entering the Notion draft.
+- Existing Notion draft import remains in place; approved candidates import through the established `/api/import-briefing-articles` path.
+- Verification passed: targeted candidate Vitest, full Vitest suite, TypeScript, ESLint, and production build.
+- Remaining setup: run `docs/supabase/article_candidates.sql` in Supabase and add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and optionally `ARTICLE_CANDIDATE_INGEST_TOKEN` before wiring external automations into the new endpoint.
+
 # Goal: Whole Website UI, Performance, Polish, And SEO Audit
 
 - [x] Inventory public routes, metadata, and visual-system intent.
@@ -333,4 +350,18 @@
 - Kept admin activity out of public usage events.
 - Surfaced the existing admin overview panel in the main admin console and added direct Vercel Analytics guidance.
 - Verification: focused ESLint passed, `npx tsc --noEmit` passed, `npm run test` passed, and `npm run build` passed.
+
+# Task: Prepublish Duplicate Guardrails
+
+- [x] Trace why same-topic and prior-day repeats still reach prepublish review.
+- [x] Add a shared subject-dedupe helper with focused tests.
+- [x] Apply subject dedupe to scheduled daily assemble as well as manual imports.
+- [x] Surface possible repeats that are already in today's draft before publishing.
+- [x] Verify tests, lint, TypeScript, and build.
+
+## Review
+
+- Root cause: `/api/import-briefing-articles` had similar-title checks, but `/api/cron/daily-assemble` only deduped exact normalized URLs. Same-topic stories from another source, or repeats from prior days with a different URL, could be added to today's draft before the prepublish review opened.
+- Fix: added a shared subject-dedupe helper and applied it to both the manual briefing import and scheduled daily assemble path. The assemble path now checks recent issue titles and same-run titles, and uses the publisher title when available before comparing subjects. Today's draft review also warns about possible repeats already in the draft.
+- Verification: focused article/title dedupe tests passed, full `npm run test` passed, full `npm run lint` passed, `npx tsc --noEmit` passed, and `npm run build` passed.
 

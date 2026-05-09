@@ -13,6 +13,12 @@ interface DailyArticle {
   category: string | null
 }
 
+interface DraftDuplicateWarning {
+  index: number
+  title: string
+  message: string
+}
+
 export function TodaysDraft({
   password,
   showPublishAction = true,
@@ -24,6 +30,7 @@ export function TodaysDraft({
 }) {
   const [draft, setDraft] = useState<{ id: string; issueNumber: number; issueDate: string; title: string } | null>(null)
   const [articles, setArticles] = useState<DailyArticle[]>([])
+  const [duplicateWarnings, setDuplicateWarnings] = useState<DraftDuplicateWarning[]>([])
   const [draftLoading, setDraftLoading] = useState(true)
   const [draftError, setDraftError] = useState<string | null>(null)
 
@@ -111,6 +118,7 @@ export function TodaysDraft({
       const data = await res.json()
       setDraft(data.draft ?? null)
       setArticles(data.articles ?? [])
+      setDuplicateWarnings(Array.isArray(data.duplicateWarnings) ? data.duplicateWarnings : [])
       onDraftStatusChange?.({
         hasDraft: !!data.draft,
         articleCount: Array.isArray(data.articles) ? data.articles.length : 0,
@@ -188,6 +196,23 @@ export function TodaysDraft({
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+        {duplicateWarnings.length > 0 && (
+          <div className="border-[3px] border-ws-accent bg-ws-accent-light/40 px-4 py-3">
+            <p className="text-[12px] font-black uppercase tracking-[0.12em] text-ws-accent mb-2">
+              Review possible repeats before publishing
+            </p>
+            <ul className="list-disc pl-5 text-[13px] text-ws-black/75 flex flex-col gap-1">
+              {duplicateWarnings.map(warning => (
+                <li key={`${warning.index}-${warning.title}`}>
+                  #{warning.index}: <strong>{warning.title}</strong> - {warning.message}
+                </li>
+              ))}
+            </ul>
+            <p className="text-[12px] text-ws-black/60 mt-2">
+              Open the draft in Notion to remove anything you do not want in the issue.
+            </p>
           </div>
         )}
         {orderedCats.map(cat => {

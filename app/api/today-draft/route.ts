@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Client } from '@notionhq/client'
 import { parseDailyArticles } from '@/lib/draft-articles'
 import { issueDateFor } from '@/lib/issue-date'
+import { findSubjectDuplicate, subjectDuplicateMessage } from '@/lib/article-dedupe'
+import { buildKnownTitleList } from '@/lib/known-urls'
+
+interface DraftDuplicateWarning {
+  index: number
+  title: string
+  message: string
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,11 +71,23 @@ export async function GET(request: NextRequest) {
     } while (cursor)
 
     const articles = parseDailyArticles(allBlocks)
+    const knownTitles = (await buildKnownTitleList(notion, notionDatabaseId, 30))
+      .filter(entry => entry.pageId !== pageId)
+    const duplicateWarnings: DraftDuplicateWarning[] = []
+    const seenDraftTitles: Array<{ title: string }> = []
+    articles.forEach((article, index) => {
+      if (!article.title) return
+      const duplicate = findSubjectDuplicate(article.title, knownTitles, seenDraftTitles)
+      const message = subjectDuplicateMessage(duplicate)
+      if (message) duplicateWarnings.push({ index: index + 1, title: article.title, message })
+      seenDraftTitles.push({ title: article.title })
+    })
 
     return NextResponse.json({
       draft: { id: pageId, issueNumber, issueDate, title },
       articles,
       articleCount: articles.length,
+      duplicateWarnings,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

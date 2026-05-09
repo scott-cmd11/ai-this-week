@@ -7,10 +7,12 @@ import { categorize, CATEGORY_ORDER } from '@/lib/category-mapping'
 import { generateAnnotation } from '@/lib/ai-annotation'
 import { fetchArticleMeta, isPublishedDateFreshForIssue } from '@/lib/article-fetcher'
 import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/notion-capture'
-import { buildKnownUrlMap } from '@/lib/known-urls'
+import { buildKnownTitleList, buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
 import { fetchResearchPapersForDate } from '@/lib/research-papers'
 import { issueDateFor } from '@/lib/issue-date'
+import { chooseSourceTitle } from '@/lib/title-quality'
+import { findSubjectDuplicate } from '@/lib/article-dedupe'
 
 type SourceType = 'page' | 'database'
 
@@ -27,6 +29,7 @@ interface AssembleResult {
   parsed: number
   imported: number
   skippedDuplicate: number
+  skippedSimilarSubject: number
   skippedInvalid: number
   skippedStale: number
   error?: string
@@ -96,8 +99,12 @@ async function assemble(
   const maxArticles = Math.max(1, Math.min(opts.maxArticles ?? 50, 75))
   const notion = new Client({ auth: notionToken })
   const openai = new OpenAI({ apiKey: openaiApiKey })
-  const knownUrls = await buildKnownUrlMap(notion, notionDatabaseId, 30)
+  const [knownUrls, knownTitles] = await Promise.all([
+    buildKnownUrlMap(notion, notionDatabaseId, 30),
+    buildKnownTitleList(notion, notionDatabaseId, 30),
+  ])
   const seenThisRun = new Set<string>()
+  const importedTitlesThisRun: Array<{ title: string }> = []
   const categoryRank = new Map<string, number>()
   CATEGORY_ORDER.forEach((category, index) => categoryRank.set(category, index))
 
@@ -112,6 +119,7 @@ async function assemble(
       parsed: 0,
       imported: 0,
       skippedDuplicate: 0,
+      skippedSimilarSubject: 0,
       skippedInvalid: 0,
       skippedStale: 0,
     }
@@ -163,19 +171,26 @@ async function assemble(
         seenThisRun.add(normalized)
 
         const meta = await fetchArticleMeta(article.url)
+        const resolvedTitle = chooseSourceTitle(article.title?.trim() || article.url, meta.title).title
         if (!isPublishedDateFreshForIssue(meta.publishedDate, date)) {
           result.skippedStale++
           continue
         }
 
+        const subjectDuplicate = findSubjectDuplicate(resolvedTitle, knownTitles, importedTitlesThisRun)
+        if (subjectDuplicate.duplicate) {
+          result.skippedSimilarSubject++
+          continue
+        }
+
         if (!dryRun) {
           const annotation = await generateAnnotation(openai, article.url, {
-            knownTitle: article.title,
+            knownTitle: resolvedTitle,
             fallbackSummary: article.summary,
           })
 
           const input: CaptureArticleInput = {
-            title: article.title?.trim() || article.url,
+            title: resolvedTitle,
             annotation,
             url: article.url,
             publishedDate: meta.publishedDate,
@@ -188,6 +203,7 @@ async function assemble(
 
         result.imported++
         importedTotal++
+        importedTitlesThisRun.push({ title: resolvedTitle })
       }
     } catch (err) {
       result.error = err instanceof Error ? err.message : 'Unknown error'
@@ -202,6 +218,7 @@ async function assemble(
     parsed: 0,
     imported: 0,
     skippedDuplicate: 0,
+    skippedSimilarSubject: 0,
     skippedInvalid: 0,
     skippedStale: 0,
   }
@@ -234,6 +251,12 @@ async function assemble(
 
       seenThisRun.add(normalized)
 
+      const subjectDuplicate = findSubjectDuplicate(paper.title, knownTitles, importedTitlesThisRun)
+      if (subjectDuplicate.duplicate) {
+        researchResult.skippedSimilarSubject++
+        continue
+      }
+
       if (!dryRun) {
         const annotation = await generateAnnotation(openai, paper.url, {
           knownTitle: paper.title,
@@ -252,6 +275,7 @@ async function assemble(
 
       researchResult.imported++
       importedTotal++
+      importedTitlesThisRun.push({ title: paper.title })
     }
   } catch (err) {
     researchResult.error = err instanceof Error ? err.message : 'Unknown error'

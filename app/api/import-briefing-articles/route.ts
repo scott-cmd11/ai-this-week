@@ -9,7 +9,7 @@ import { buildKnownTitleList, buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
 import { chooseSourceTitle, type TitleQualityWarning } from '@/lib/title-quality'
 import { issueDateFor } from '@/lib/issue-date'
-import { findSimilarTitle } from '@/lib/title-dedupe'
+import { findSubjectDuplicate, subjectDuplicateMessage } from '@/lib/article-dedupe'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -159,24 +159,13 @@ export async function POST(request: NextRequest) {
       continue
     }
 
-    const similarKnownTitle = findSimilarTitle(resolvedTitle, knownTitles)
-    if (similarKnownTitle) {
+    const subjectDuplicate = findSubjectDuplicate(resolvedTitle, knownTitles, importedTitlesThisBatch)
+    if (subjectDuplicate.duplicate) {
       results.push({
         url: articleUrl,
         title: resolvedTitle,
         ok: false,
-        skippedReason: `Similar subject already exists in Issue #${similarKnownTitle.issueNumber} (${similarKnownTitle.issueDate}): ${similarKnownTitle.title}`,
-      })
-      continue
-    }
-
-    const similarBatchTitle = findSimilarTitle(resolvedTitle, importedTitlesThisBatch)
-    if (similarBatchTitle) {
-      results.push({
-        url: articleUrl,
-        title: resolvedTitle,
-        ok: false,
-        skippedReason: `Similar subject already selected in this import: ${similarBatchTitle.title}`,
+        skippedReason: subjectDuplicateMessage(subjectDuplicate) ?? 'Similar subject already exists.',
       })
       continue
     }

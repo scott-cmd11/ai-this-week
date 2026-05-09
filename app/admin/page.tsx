@@ -12,6 +12,7 @@ import { AddArticleManually } from './_add-article-manually'
 import { AddEvent } from './_add-event'
 import { ResearchImport } from './_research-import'
 import { BriefingImport } from './_briefing-import'
+import { CandidateInbox } from './_candidate-inbox'
 import { PublishedIssueEditor } from './_published-issue-editor'
 import { SiteStats } from './_site-stats'
 
@@ -277,6 +278,9 @@ export default function AdminPage() {
 
           {/* Sections — all mounted, only active one visible */}
           <div className={activeStep === 'briefings' ? '' : 'hidden'}>
+            <div className="mb-5">
+              <CandidateInbox password={password} />
+            </div>
             <BriefingImport password={password} />
           </div>
           <div className={activeStep === 'research' ? '' : 'hidden'}>
@@ -428,6 +432,9 @@ export default function AdminPage() {
 
         {/* ── Step 1: Briefings ─────────────────────────────────────────── */}
         <div ref={briefingsRef}>
+          <div className="mb-5">
+            <CandidateInbox password={password} />
+          </div>
           <BriefingImport password={password} />
           <StepDoneButton
             currentKey="briefings"

@@ -9,3 +9,4 @@
 - Published issue edits must be a first-class admin step with in-site controls. A repeated side panel is too easy to miss and makes live corrections feel separate from the real publishing process.
 - Destructive live issue actions need inline confirmation and must remove the complete Notion item block group, not only the visible title or summary block.
 - Avoid public homepage copy that explains the daily publishing schedule as a status line. It can read like something is missing; keep publication timing out of the main issue ledger unless there is a clearly designed status treatment.
+- Duplicate-prevention fixes must cover both manual admin imports and scheduled assemble jobs. If only the visible import panel has the guardrail, repeats can already be in the draft before review.
