@@ -100,8 +100,8 @@ export function CandidateInbox({ password }: { password: string }) {
     }
   }
 
-  async function importSelected() {
-    if (selectedCandidates.length === 0) return
+  async function importCandidates(candidatesToImport: ArticleCandidate[]) {
+    if (candidatesToImport.length === 0) return
     setImporting(true)
     setError(null)
     setMessage(null)
@@ -112,7 +112,7 @@ export function CandidateInbox({ password }: { password: string }) {
         body: JSON.stringify({
           adminPassword: password,
           rewriteWithAi: true,
-          articles: selectedCandidates.map(candidate => ({
+          articles: candidatesToImport.map(candidate => ({
             title: candidate.title,
             summary: candidate.summary || candidate.scoreReasons.join(' '),
             url: candidate.url,
@@ -131,7 +131,7 @@ export function CandidateInbox({ password }: { password: string }) {
           .filter((result: { ok: boolean }) => result.ok)
           .map((result: { url: string }) => result.url),
       )
-      const importedIds = selectedCandidates
+      const importedIds = candidatesToImport
         .filter(candidate => importedUrls.has(candidate.url))
         .map(candidate => candidate.id)
 
@@ -143,7 +143,7 @@ export function CandidateInbox({ password }: { password: string }) {
         }),
       ))
 
-      setMessage(`Imported ${payload.added} of ${payload.attempted} selected candidate${payload.attempted === 1 ? '' : 's'} into today's draft.`)
+      setMessage(`Added ${payload.added} of ${payload.attempted} candidate${payload.attempted === 1 ? '' : 's'} to today's draft.`)
       window.dispatchEvent(new CustomEvent('aitoday:refresh-draft'))
       await load()
     } catch {
@@ -151,6 +151,10 @@ export function CandidateInbox({ password }: { password: string }) {
     } finally {
       setImporting(false)
     }
+  }
+
+  async function importSelected() {
+    await importCandidates(selectedCandidates)
   }
 
   const statusCounts = candidates.reduce<Record<string, number>>((acc, candidate) => {
@@ -166,7 +170,7 @@ export function CandidateInbox({ password }: { password: string }) {
             Candidate inbox
           </p>
           <p className="text-[12px] text-ws-black/50 mt-0.5">
-            Normalized article queue from source automations. Review here before anything enters today&apos;s draft.
+            Primary review queue from the automations. Add the keepers to today&apos;s draft; reject the noise.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -196,9 +200,15 @@ export function CandidateInbox({ password }: { password: string }) {
 
       <div className="flex items-center gap-2 flex-wrap text-[12px] text-ws-black/60">
         <span>New: {statusCounts.new ?? 0}</span>
-        <span>Shortlisted: {statusCounts.shortlisted ?? 0}</span>
-        <span>Approved: {statusCounts.approved ?? 0}</span>
+        <span>Held: {statusCounts.shortlisted ?? 0}</span>
+        <span>Marked approved: {statusCounts.approved ?? 0}</span>
         <span>Selected: {selected.size}</span>
+      </div>
+
+      <div className="border-l-[4px] border-ws-accent bg-ws-page px-4 py-3">
+        <p className="text-[13px] font-bold text-ws-black">
+          Review path: open the source, choose the category, then click <span className="text-ws-accent">Add to draft</span>. Use checkboxes only when you want to add several at once.
+        </p>
       </div>
 
       {error && <p className="text-[14px] font-bold text-ws-accent">{error}</p>}
@@ -212,7 +222,7 @@ export function CandidateInbox({ password }: { password: string }) {
       {configured && selected.size > 0 && (
         <div className="border-[2px] border-ws-black bg-ws-page px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
           <p className="text-[13px] font-bold text-ws-black">
-            {selected.size} candidate{selected.size === 1 ? '' : 's'} selected for today&apos;s draft.
+            {selected.size} candidate{selected.size === 1 ? '' : 's'} selected.
           </p>
           <button
             type="button"
@@ -220,7 +230,7 @@ export function CandidateInbox({ password }: { password: string }) {
             disabled={importing}
             className="bg-ws-accent text-white rounded-sm px-4 py-2 text-[13px] font-semibold hover:bg-ws-accent-hover hover:-translate-y-px transition-all disabled:opacity-50"
           >
-            {importing ? 'Importing...' : 'Import selected'}
+            {importing ? 'Adding...' : 'Add selected to draft'}
           </button>
         </div>
       )}
@@ -291,19 +301,19 @@ export function CandidateInbox({ password }: { password: string }) {
                 </select>
                 <button
                   type="button"
+                  onClick={() => importCandidates([candidate])}
+                  disabled={importing || working === candidate.id || candidate.status === 'rejected' || candidate.status === 'imported'}
+                  className="bg-ws-accent text-white rounded-sm px-3 py-1 text-[12px] font-bold hover:bg-ws-accent-hover disabled:opacity-40"
+                >
+                  Add to draft
+                </button>
+                <button
+                  type="button"
                   onClick={() => patchCandidate(candidate.id, { status: 'shortlisted' })}
                   disabled={working === candidate.id || candidate.status === 'shortlisted'}
                   className="border border-ws-border px-3 py-1 text-[12px] font-bold hover:border-ws-accent disabled:opacity-40"
                 >
-                  Shortlist
-                </button>
-                <button
-                  type="button"
-                  onClick={() => patchCandidate(candidate.id, { status: 'approved' })}
-                  disabled={working === candidate.id || candidate.status === 'approved'}
-                  className="border border-ws-border px-3 py-1 text-[12px] font-bold hover:border-ws-accent disabled:opacity-40"
-                >
-                  Approve
+                  Hold
                 </button>
                 <button
                   type="button"

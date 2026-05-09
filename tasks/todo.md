@@ -20,3 +20,20 @@
 - Migration dry-run found 8 published issues from 2026-05-01 through 2026-05-08 and no current Notion draft.
 - `docs/supabase/issues.sql` was applied in Supabase and the migration script moved 8 published issues into `public.issues`.
 - Shipped to production at `https://aitoday.vercel.app`; live checks passed for archive, May 8 issue page, feed, sitemap, admin, published-issues API, candidate inbox, and today-draft API.
+
+# Task: Reduce Admin Review Friction
+
+- [x] Make the focused admin workflow load only the active step.
+- [x] Put Supabase Candidate Inbox forward as the primary review path.
+- [x] Move legacy Notion briefing import out of the main daily path.
+- [x] Make candidate actions read as review decisions, not competing workflows.
+- [x] Remove Notion-only draft regeneration from the Supabase draft review UI.
+- [x] Verify lint/build and record the result.
+
+## Review
+
+- Focused admin mode now mounts only the active step, which cuts the first review screen down to the candidate workflow instead of loading every admin panel at once.
+- Candidate Inbox is now the primary daily review path, with per-item "Add to draft" and bulk "Add selected to draft" actions.
+- Legacy Notion briefing import is tucked behind an explicit fallback panel in the all-sections view.
+- Draft review no longer exposes the old Notion-backed annotation regeneration action.
+- Verification passed: ESLint, targeted Vitest candidate/draft tests, production build, and a local browser check of `/admin`.

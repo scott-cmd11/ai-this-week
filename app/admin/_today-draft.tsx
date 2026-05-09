@@ -37,76 +37,6 @@ export function TodaysDraft({
   const [publishing, setPublishing] = useState(false)
   const [publishMessage, setPublishMessage] = useState<string | null>(null)
 
-  const [regenLoading, setRegenLoading] = useState<string | null>(null)
-  const [regenCandidate, setRegenCandidate] = useState<Map<string, string>>(new Map())
-  const [regenError, setRegenError] = useState<Map<string, string>>(new Map())
-
-  async function fetchRegenerateCandidate(article: DailyArticle) {
-    if (!article.url || !article.annotationBlockId) return
-    const blockId = article.annotationBlockId
-    setRegenLoading(blockId)
-    setRegenError(prev => { const next = new Map(prev); next.delete(blockId); return next })
-    try {
-      const res = await fetch('/api/regenerate-annotation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adminPassword: password,
-          url: article.url,
-          knownTitle: article.title,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setRegenError(prev => { const next = new Map(prev); next.set(blockId, data.error ?? `Error ${res.status}`); return next })
-        return
-      }
-      setRegenCandidate(prev => { const next = new Map(prev); next.set(blockId, data.annotation); return next })
-    } catch {
-      setRegenError(prev => { const next = new Map(prev); next.set(blockId, 'Network error.'); return next })
-    } finally {
-      setRegenLoading(null)
-    }
-  }
-
-  async function applyRegenerateCandidate(article: DailyArticle) {
-    if (!article.url || !article.annotationBlockId) return
-    const blockId = article.annotationBlockId
-    const annotation = regenCandidate.get(blockId)
-    if (!annotation) return
-    setRegenLoading(blockId)
-    try {
-      const res = await fetch('/api/regenerate-annotation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adminPassword: password,
-          url: article.url,
-          knownTitle: article.title,
-          blockId,
-          annotation,
-          apply: true,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setRegenError(prev => { const next = new Map(prev); next.set(blockId, data.error ?? `Error ${res.status}`); return next })
-        return
-      }
-      setRegenCandidate(prev => { const next = new Map(prev); next.delete(blockId); return next })
-      await loadDraft()
-    } catch {
-      setRegenError(prev => { const next = new Map(prev); next.set(blockId, 'Network error.'); return next })
-    } finally {
-      setRegenLoading(null)
-    }
-  }
-
-  function dismissCandidate(blockId: string) {
-    setRegenCandidate(prev => { const next = new Map(prev); next.delete(blockId); return next })
-    setRegenError(prev => { const next = new Map(prev); next.delete(blockId); return next })
-  }
-
   async function loadDraft() {
     setDraftLoading(true)
     setDraftError(null)
@@ -224,11 +154,6 @@ export function TodaysDraft({
               </p>
               <ul className="flex flex-col divide-y divide-ws-black/10">
                 {items.map(({ n, a }) => {
-                  const blockId = a.annotationBlockId
-                  const candidate = blockId ? regenCandidate.get(blockId) : undefined
-                  const err = blockId ? regenError.get(blockId) : undefined
-                  const loading = regenLoading === blockId
-                  const canRegen = !!a.url && !!blockId
                   let hostname: string | null = null
                   if (a.url) {
                     try { hostname = new URL(a.url).hostname.replace(/^www\./, '') } catch {}
@@ -255,63 +180,8 @@ export function TodaysDraft({
                             </a>
                           )}
                         </div>
-                        {canRegen && !candidate && (
-                          <button
-                            type="button"
-                            onClick={() => fetchRegenerateCandidate(a)}
-                            disabled={loading}
-                            title="Regenerate annotation in the AI Today voice"
-                            aria-label="Regenerate annotation"
-                            className="shrink-0 text-[16px] text-ws-black/40 hover:text-ws-accent disabled:opacity-50 px-1 leading-none"
-                          >
-                            {loading ? '…' : '↻'}
-                          </button>
-                        )}
                       </div>
 
-                      {blockId && candidate && (
-                        <div className="border-[2px] border-ws-accent bg-ws-accent-light/40 p-3 flex flex-col gap-3 ml-10">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px] leading-snug">
-                            <div>
-                              <p className="text-[10px] font-black uppercase tracking-[0.1em] text-ws-black/60 mb-1">Current</p>
-                              <p className="text-ws-black/80">{a.annotation ?? '(empty)'}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-black uppercase tracking-[0.1em] text-ws-accent mb-1">Regenerated</p>
-                              <p className="text-ws-black">{candidate}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={() => applyRegenerateCandidate(a)}
-                              disabled={loading}
-                              className="border-[2px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[12px] px-3 py-1.5 hover:bg-ws-accent-hover disabled:opacity-50"
-                            >
-                              {loading ? 'Applying…' : '✓ Use new'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => dismissCandidate(blockId)}
-                              disabled={loading}
-                              className="text-[12px] font-medium text-ws-black/60 hover:underline hover:text-ws-accent disabled:opacity-50"
-                            >
-                              ✗ Keep current
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => fetchRegenerateCandidate(a)}
-                              disabled={loading}
-                              className="text-[12px] font-medium text-ws-black/60 hover:underline hover:text-ws-accent disabled:opacity-50 ml-auto"
-                            >
-                              ↻ Try again
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      {err && (
-                        <p className="text-[12px] font-bold text-ws-accent ml-10" role="alert">{err}</p>
-                      )}
                     </li>
                   )
                 })}

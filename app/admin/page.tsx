@@ -277,23 +277,31 @@ export default function AdminPage() {
           </p>
 
           {/* Sections — all mounted, only active one visible */}
-          <div className={activeStep === 'briefings' ? '' : 'hidden'}>
+          {activeStep === 'briefings' && (
+          <div>
             <div className="mb-5">
               <CandidateInbox password={password} />
             </div>
-            <BriefingImport password={password} />
           </div>
-          <div className={activeStep === 'research' ? '' : 'hidden'}>
+          )}
+          {activeStep === 'research' && (
+          <div>
             <ResearchImport password={password} />
           </div>
-          <div className={activeStep === 'events' ? '' : 'hidden'}>
+          )}
+          {activeStep === 'events' && (
+          <div>
             <AddEvent password={password} />
           </div>
-          <div className={activeStep === 'draft' ? '' : 'hidden'}>
+          )}
+          {activeStep === 'draft' && (
+          <div>
             <TodaysDraft password={password} showPublishAction={false} />
             <AddArticleManually password={password} />
           </div>
-          <div className={activeStep === 'publish' ? '' : 'hidden'}>
+          )}
+          {activeStep === 'publish' && (
+          <div>
             <div className="mb-5 border-l-[4px] border-ws-accent bg-ws-white px-4 py-3">
               <p className="text-[13px] font-bold text-ws-black">
                 Daily order: publish today&apos;s issue here first, then use Edit Live Issue only for corrections or late additions.
@@ -302,7 +310,9 @@ export default function AdminPage() {
             <TodaysDraft password={password} onDraftStatusChange={setPublishDraftStatus} />
             <PublishDrafts password={password} />
           </div>
-          <div className={activeStep === 'live' ? '' : 'hidden'}>
+          )}
+          {activeStep === 'live' && (
+          <div>
             {workflowComplete && (
               <div className="mb-5 border-[3px] border-ws-black bg-ws-accent-light/40 px-5 py-4 shadow-[4px_4px_0_0_var(--color-ws-black)]">
                 <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Workflow complete</p>
@@ -311,6 +321,7 @@ export default function AdminPage() {
             )}
             <PublishedIssueEditor password={password} />
           </div>
+          )}
           {/* Wizard nav footer */}
           <div className="flex flex-col-reverse gap-3 mt-8 pt-5 border-t border-ws-border sm:flex-row sm:items-center sm:justify-between sm:mt-10 sm:pt-6">
             {/* Back */}
@@ -407,7 +418,7 @@ export default function AdminPage() {
               Daily desk
             </h1>
             <p className="max-w-2xl text-[16px] leading-[1.55] text-ws-muted">
-              Import briefings, review research and events, assemble the issue, publish it, then handle live edits from one clean workflow.
+              Review candidates from the automations, assemble the issue, publish it, then handle live edits from one clean workflow.
             </p>
           </div>
           <div className="grid w-full grid-cols-1 gap-2 mt-2 sm:w-auto sm:grid-cols-2 sm:mt-4">
@@ -435,7 +446,15 @@ export default function AdminPage() {
           <div className="mb-5">
             <CandidateInbox password={password} />
           </div>
-          <BriefingImport password={password} />
+          <details className="border-[2px] border-ws-black/20 bg-ws-page p-4">
+            <summary className="cursor-pointer text-[13px] font-black uppercase tracking-[0.1em] text-ws-black/65">
+              Legacy briefing import
+            </summary>
+            <p className="mt-2 mb-4 text-[13px] leading-relaxed text-ws-black/60">
+              Use this only if the candidate inbox is missing articles. The normal review path is the Supabase candidate queue above.
+            </p>
+            <BriefingImport password={password} />
+          </details>
           <StepDoneButton
             currentKey="briefings"
             nextKey="research"
