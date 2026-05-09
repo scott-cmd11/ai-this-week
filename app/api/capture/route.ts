@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Client } from '@notionhq/client'
 import OpenAI from 'openai'
 import { revalidatePath } from 'next/cache'
 import { fetchArticle, hostnameFallback } from '@/lib/article-fetcher'
-import { captureArticleToIssue, captureArticleToTodaysDraft } from '@/lib/notion-capture'
+import { captureArticleToIssue, captureArticleToTodaysDraft } from '@/lib/issue-store'
 import { generateAnnotation, polishAnnotation } from '@/lib/ai-annotation'
 import { buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
@@ -33,11 +32,9 @@ interface RequestBody {
 export async function POST(request: NextRequest) {
   const captureToken = process.env.CAPTURE_TOKEN
   const adminPassword = process.env.ADMIN_PASSWORD
-  const notionToken = process.env.NOTION_TOKEN
-  const notionDatabaseId = process.env.NOTION_DATABASE_ID
   const openaiApiKey = process.env.OPENAI_API_KEY
 
-  if (!captureToken || !notionToken || !notionDatabaseId || !openaiApiKey) {
+  if (!captureToken || !openaiApiKey) {
     return NextResponse.json({ error: 'Server configuration error: missing environment variables.' }, { status: 500 })
   }
 
@@ -66,7 +63,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Admin password is required to update an existing issue.' }, { status: 401 })
   }
 
-  const notion = new Client({ auth: notionToken })
   const openai = new OpenAI({ apiKey: openaiApiKey })
 
   try {
@@ -76,7 +72,7 @@ export async function POST(request: NextRequest) {
     // Skipped when the client has already warned the user and they chose
     // "add anyway" (force: true).
     if (!force) {
-      const knownMap = await buildKnownUrlMap(notion, notionDatabaseId, 30)
+      const knownMap = await buildKnownUrlMap(30)
       const existing = knownMap.get(normalizeUrl(url))
       if (existing) {
         return NextResponse.json({
@@ -117,8 +113,8 @@ export async function POST(request: NextRequest) {
       category: category?.trim() || null,
     }
     const result = targetIssueId
-      ? await captureArticleToIssue(notion, targetIssueId, article)
-      : await captureArticleToTodaysDraft(notion, notionDatabaseId, article)
+      ? await captureArticleToIssue(targetIssueId, article)
+      : await captureArticleToTodaysDraft(article)
 
     if (targetIssueId) revalidatePath('/', 'layout')
 

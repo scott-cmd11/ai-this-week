@@ -1,4 +1,4 @@
-import { getPublishedIssues } from '@/lib/notion'
+import { getPublishedIssues } from '@/lib/issue-store'
 import { SITE_URL } from '@/lib/site'
 
 function escapeXml(str: string): string {

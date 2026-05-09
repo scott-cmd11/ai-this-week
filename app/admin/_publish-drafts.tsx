@@ -76,7 +76,7 @@ export function PublishDrafts({ password }: { password: string }) {
   }
 
   async function handleArchive(pageId: string, title: string) {
-    if (!window.confirm(`Delete "${title}"? It will be moved to the Notion trash.`)) return
+    if (!window.confirm(`Delete "${title}"? This removes the draft from the issue store.`)) return
     setArchiving(pageId)
     setError(null)
     setMessage(null)
@@ -91,7 +91,7 @@ export function PublishDrafts({ password }: { password: string }) {
         setError(data.error ?? `Error ${res.status}`)
         return
       }
-      setMessage(`✓ Deleted "${title}". Restorable from Notion trash if needed.`)
+      setMessage(`✓ Deleted "${title}".`)
       setTimeout(() => setMessage(null), 5000)
       loadDrafts()
     } catch {
@@ -140,7 +140,7 @@ export function PublishDrafts({ password }: { password: string }) {
         `/api/issue-summaries?pageId=${encodeURIComponent(justPublished.id)}`,
         { headers: { 'x-admin-password': password } }
       )
-      if (!summariesRes.ok) throw new Error('Could not load issue content from Notion.')
+      if (!summariesRes.ok) throw new Error('Could not load issue content.')
       const { summaries, issueNumber, issueDate } = await summariesRes.json()
 
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? ''
@@ -225,33 +225,26 @@ export function PublishDrafts({ password }: { password: string }) {
       ) : drafts && drafts.length > 0 ? (
         <ul className="list-none p-0 m-0 flex flex-col gap-2">
           {drafts.map(draft => {
-            const notionUrl = `https://notion.so/${draft.id.replace(/-/g, '')}`
             return (
               <li
                 key={draft.id}
                 className="flex items-center justify-between gap-3 flex-wrap border-[2px] border-ws-black/30 px-3 py-2 hover:bg-ws-page"
               >
-                <a
-                  href={notionUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="min-w-0 flex-1 no-underline group"
-                  title="Open draft in Notion"
-                >
+                <div className="min-w-0 flex-1">
                   <p className="text-[14px] font-bold truncate group-hover:text-ws-accent group-hover:underline">
                     {draft.title} ↗
                   </p>
                   <p className="text-[12px] text-ws-black/70 uppercase tracking-wide">
                     Issue {draft.issueNumber} · {draft.issueDate}
                   </p>
-                </a>
+                </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
                     onClick={() => handleArchive(draft.id, draft.title)}
                     disabled={publishing !== null || archiving !== null}
                     className="border-[2px] border-ws-black bg-ws-white text-ws-black font-bold uppercase tracking-wide text-[12px] px-2 py-1.5 hover:bg-ws-page disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Move to Notion trash"
+                    title="Delete draft"
                   >
                     {archiving === draft.id ? 'Deleting…' : 'Delete'}
                   </button>
@@ -313,7 +306,7 @@ export function PublishDrafts({ password }: { password: string }) {
       )}
 
       <div className="mt-4 pt-3 border-t-[2px] border-ws-black/20 flex items-center justify-between flex-wrap gap-2">
-        <p className="text-[12px] text-ws-black/70">Fixed a typo on an already-published issue in Notion?</p>
+        <p className="text-[12px] text-ws-black/70">Fixed a typo on an already-published issue?</p>
         <button
           type="button"
           onClick={handleRefreshSite}

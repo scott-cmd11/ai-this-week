@@ -162,8 +162,6 @@ export function TodaysDraft({
     }
   }
 
-  const notionUrl = draft ? `https://notion.so/${draft.id.replace(/-/g, '')}` : null
-
   function renderGroupedArticles() {
     const titleWarnings = articles.flatMap((article, index) =>
       titleQualityWarnings(article.title).map(warning => ({
@@ -211,7 +209,7 @@ export function TodaysDraft({
               ))}
             </ul>
             <p className="text-[12px] text-ws-black/60 mt-2">
-              Open the draft in Notion to remove anything you do not want in the issue.
+              Remove anything you do not want from the live issue desk before publishing.
             </p>
           </div>
         )}
@@ -354,14 +352,6 @@ export function TodaysDraft({
           <strong className="text-ws-black">{articles.length} article{articles.length !== 1 ? 's' : ''}</strong>
           {' · '}Issue #{draft.issueNumber}
           {' · '}{draft.issueDate}
-          {notionUrl && (
-            <>
-              {' · '}
-              <a href={notionUrl} target="_blank" rel="noopener noreferrer" className="text-ws-accent underline hover:no-underline">
-                Open in Notion ↗
-              </a>
-            </>
-          )}
         </p>
       )}
       {!draftLoading && !draft && (

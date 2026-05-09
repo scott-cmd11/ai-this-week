@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { Client } from '@notionhq/client'
-import { getIssueTargetById } from '@/lib/notion-capture'
-import { listEditablePublishedIssueItems, richText } from '@/lib/published-issue-editor'
+import { getIssueTargetById, updatePublishedIssueItem } from '@/lib/issue-store'
 
 interface RequestBody {
   adminPassword?: string
@@ -14,9 +12,8 @@ interface RequestBody {
 
 export async function POST(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
-  const notionToken = process.env.NOTION_TOKEN
 
-  if (!adminPassword || !notionToken) {
+  if (!adminPassword) {
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 })
   }
 
@@ -40,8 +37,7 @@ export async function POST(request: NextRequest) {
   if (!itemId) return NextResponse.json({ error: 'itemId is required.' }, { status: 400 })
   if (!title) return NextResponse.json({ error: 'Title is required.' }, { status: 400 })
 
-  const notion = new Client({ auth: notionToken })
-  const issue = await getIssueTargetById(notion, issueId)
+  const issue = await getIssueTargetById(issueId)
   if (!issue) {
     return NextResponse.json({ error: 'Published issue not found.' }, { status: 404 })
   }
@@ -49,23 +45,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'This editor is only for published issues.' }, { status: 400 })
   }
 
-  const items = await listEditablePublishedIssueItems(notion, issue.issueId)
-  const item = items.find(candidate => candidate.id === itemId)
-  if (!item) {
-    return NextResponse.json({ error: 'Item not found in this issue.' }, { status: 404 })
-  }
-
-  await notion.blocks.update({
-    block_id: item.titleBlockId,
-    heading_3: { rich_text: richText(title) },
-  })
-
-  if (item.summaryBlockId) {
-    await notion.blocks.update({
-      block_id: item.summaryBlockId,
-      paragraph: { rich_text: richText(summary) },
-    })
-  }
+  const item = await updatePublishedIssueItem(issue.issueId, itemId, { title, summary })
 
   revalidatePath(`/issues/${issue.issueDate}`)
   revalidatePath('/issues')
@@ -74,11 +54,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     success: true,
     issue,
-    item: {
-      ...item,
-      title,
-      summary: item.summaryBlockId ? summary : item.summary,
-    },
+    item,
     path: `/issues/${issue.issueDate}`,
   })
 }

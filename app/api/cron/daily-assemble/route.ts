@@ -6,7 +6,7 @@ import { parseBriefingBlocks } from '@/lib/briefing-parser'
 import { categorize, CATEGORY_ORDER } from '@/lib/category-mapping'
 import { generateAnnotation } from '@/lib/ai-annotation'
 import { fetchArticleMeta, isPublishedDateFreshForIssue } from '@/lib/article-fetcher'
-import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/notion-capture'
+import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/issue-store'
 import { buildKnownTitleList, buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
 import { fetchResearchPapersForDate } from '@/lib/research-papers'
@@ -100,8 +100,8 @@ async function assemble(
   const notion = new Client({ auth: notionToken })
   const openai = new OpenAI({ apiKey: openaiApiKey })
   const [knownUrls, knownTitles] = await Promise.all([
-    buildKnownUrlMap(notion, notionDatabaseId, 30),
-    buildKnownTitleList(notion, notionDatabaseId, 30),
+    buildKnownUrlMap(30),
+    buildKnownTitleList(30),
   ])
   const seenThisRun = new Set<string>()
   const importedTitlesThisRun: Array<{ title: string }> = []
@@ -198,7 +198,7 @@ async function assemble(
             category: article.category,
           }
 
-          await captureArticleToTodaysDraft(notion, notionDatabaseId, input)
+          await captureArticleToTodaysDraft(input)
         }
 
         result.imported++
@@ -263,7 +263,7 @@ async function assemble(
           fallbackSummary: paper.summary ?? paper.keyFindings,
         })
 
-        await captureArticleToTodaysDraft(notion, notionDatabaseId, {
+        await captureArticleToTodaysDraft({
           title: paper.title,
           annotation,
           url: paper.url,

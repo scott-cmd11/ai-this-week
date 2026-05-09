@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Client } from '@notionhq/client'
 import { revalidatePath } from 'next/cache'
+import { archiveIssue } from '@/lib/issue-store'
 
-// Archives a Notion page (moves it to the trash). Used by the admin
-// "Drafts ready to publish" list to delete unwanted drafts — typically
-// duplicates produced before the smart-append / Friday-cadence fixes.
-//
-// Notion doesn't hard-delete pages via the API. Archiving sends the
-// page to the trash where it can be restored or permanently purged
-// from the Notion UI.
 export async function POST(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
-  const notionToken = process.env.NOTION_TOKEN
 
-  if (!adminPassword || !notionToken) {
+  if (!adminPassword) {
     return NextResponse.json(
       { error: 'Server configuration error: missing environment variables.' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 
@@ -35,17 +27,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const notion = new Client({ auth: notionToken })
-
-    await notion.pages.update({
-      page_id: body.pageId,
-      archived: true,
-    })
-
-    // If the page happened to be published, its disappearance needs to
-    // propagate to the public site immediately.
+    await archiveIssue(body.pageId)
     revalidatePath('/', 'layout')
-
     return NextResponse.json({ ok: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

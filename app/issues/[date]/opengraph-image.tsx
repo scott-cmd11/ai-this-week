@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { getIssueByDate, getPublishedIssues } from '@/lib/notion'
+import { getIssueByDate, getPublishedIssues } from '@/lib/issue-store'
 
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export async function generateStaticParams() {
-  if (!process.env.NOTION_TOKEN) return []
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return []
   const issues = await getPublishedIssues()
   return issues.map(issue => ({ date: issue.slug }))
 }

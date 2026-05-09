@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { Client } from '@notionhq/client'
 import OpenAI from 'openai'
 import { fetchArticle, hostnameFallback, isPublishedDateFreshForIssue } from '@/lib/article-fetcher'
 import { generateAnnotation, polishAnnotation } from '@/lib/ai-annotation'
@@ -11,7 +10,7 @@ import {
   appendEventToIssue,
   getIssueTargetByDate,
   getIssueTargetById,
-} from '@/lib/notion-capture'
+} from '@/lib/issue-store'
 
 interface BaseRequestBody {
   adminPassword?: string
@@ -45,11 +44,9 @@ type RequestBody = ArticleBody | EventBody
 
 export async function POST(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
-  const notionToken = process.env.NOTION_TOKEN
-  const notionDatabaseId = process.env.NOTION_DATABASE_ID
   const openaiApiKey = process.env.OPENAI_API_KEY
 
-  if (!adminPassword || !notionToken || !notionDatabaseId) {
+  if (!adminPassword) {
     return NextResponse.json(
       { error: 'Server configuration error: missing environment variables.' },
       { status: 500 },
@@ -67,11 +64,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
   }
 
-  const notion = new Client({ auth: notionToken })
   const issue = body.issueId
-    ? await getIssueTargetById(notion, body.issueId)
+    ? await getIssueTargetById(body.issueId)
     : body.issueDate
-      ? await getIssueTargetByDate(notion, notionDatabaseId, body.issueDate, true)
+      ? await getIssueTargetByDate(body.issueDate, true)
       : null
 
   if (!issue) {
@@ -88,11 +84,11 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       )
     }
-    return appendArticle(request, body, notion, notionDatabaseId, openaiApiKey, issue)
+    return appendArticle(request, body, openaiApiKey, issue)
   }
 
   if (body.type === 'event') {
-    return appendEvent(body, notion, notionDatabaseId, issue)
+    return appendEvent(body, issue)
   }
 
   return NextResponse.json({ error: 'type must be article or event.' }, { status: 400 })
@@ -101,8 +97,6 @@ export async function POST(request: NextRequest) {
 async function appendArticle(
   request: NextRequest,
   body: ArticleBody,
-  notion: Client,
-  notionDatabaseId: string,
   openaiApiKey: string | undefined,
   issue: Awaited<ReturnType<typeof getIssueTargetById>>,
 ) {
@@ -113,7 +107,7 @@ async function appendArticle(
     return NextResponse.json({ error: 'Valid article URL is required.' }, { status: 400 })
   }
 
-  const duplicate = await findDuplicate(notion, notionDatabaseId, url)
+  const duplicate = await findDuplicate(url)
   if (duplicate && !body.force) {
     return NextResponse.json({
       error: 'duplicate',
@@ -158,7 +152,7 @@ async function appendArticle(
     })
   }
 
-  const result = await appendArticleToIssue(notion, issue, {
+  const result = await appendArticleToIssue(issue, {
     title,
     annotation,
     url,
@@ -183,8 +177,6 @@ async function appendArticle(
 
 async function appendEvent(
   body: EventBody,
-  notion: Client,
-  notionDatabaseId: string,
   issue: Awaited<ReturnType<typeof getIssueTargetById>>,
 ) {
   if (!issue) return NextResponse.json({ error: 'Issue not found.' }, { status: 404 })
@@ -196,7 +188,7 @@ async function appendEvent(
     return NextResponse.json({ error: 'Valid event URL is required.' }, { status: 400 })
   }
 
-  const duplicate = await findDuplicate(notion, notionDatabaseId, url)
+  const duplicate = await findDuplicate(url)
   if (duplicate && !body.force) {
     return NextResponse.json({
       error: 'duplicate',
@@ -221,7 +213,7 @@ async function appendEvent(
     })
   }
 
-  const result = await appendEventToIssue(notion, issue, {
+  const result = await appendEventToIssue(issue, {
     title,
     when: body.when?.trim() ?? '',
     where: body.where?.trim() ?? '',
@@ -239,9 +231,9 @@ async function appendEvent(
   })
 }
 
-async function findDuplicate(notion: Client, notionDatabaseId: string, url: string) {
+async function findDuplicate(url: string) {
   const normalized = normalizeUrl(url)
   if (!normalized) return null
-  const knownMap = await buildKnownUrlMap(notion, notionDatabaseId, 90)
+  const knownMap = await buildKnownUrlMap(90)
   return knownMap.get(normalized) ?? null
 }

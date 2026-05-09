@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Client } from '@notionhq/client'
 import { revalidatePath } from 'next/cache'
+import { publishIssue } from '@/lib/issue-store'
 
-// Sets Published=true on a specific Notion page AND invalidates the public
-// cache so the issue appears immediately on the site. One-click publish.
 export async function POST(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
-  const notionToken = process.env.NOTION_TOKEN
 
-  if (!adminPassword || !notionToken) {
+  if (!adminPassword) {
     return NextResponse.json(
       { error: 'Server configuration error: missing environment variables.' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 
@@ -30,19 +27,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const notion = new Client({ auth: notionToken })
-
-    await notion.pages.update({
-      page_id: body.pageId,
-      properties: {
-        Published: { checkbox: true },
-      },
-    })
-
-    // Invalidate the entire public tree so the new issue shows up immediately.
+    const issue = await publishIssue(body.pageId)
     revalidatePath('/', 'layout')
-
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, issue })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: message }, { status: 500 })

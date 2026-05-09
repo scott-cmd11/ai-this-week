@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Client } from '@notionhq/client'
 import OpenAI from 'openai'
-import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/notion-capture'
+import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/issue-store'
 import { generateAnnotation } from '@/lib/ai-annotation'
 import { fetchArticleMeta, isPublishedDateFreshForIssue } from '@/lib/article-fetcher'
 import { CATEGORY_ORDER } from '@/lib/category-mapping'
@@ -41,11 +40,9 @@ interface ArticleResult {
 
 export async function POST(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
-  const notionToken = process.env.NOTION_TOKEN
-  const notionDatabaseId = process.env.NOTION_DATABASE_ID
   const openaiApiKey = process.env.OPENAI_API_KEY
 
-  if (!adminPassword || !notionToken || !notionDatabaseId) {
+  if (!adminPassword) {
     return NextResponse.json(
       { error: 'Server configuration error: missing environment variables.' },
       { status: 500 },
@@ -75,12 +72,11 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const notion = new Client({ auth: notionToken })
   const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null
   const issueDate = issueDateFor()
   const [knownUrls, knownTitles] = await Promise.all([
-    buildKnownUrlMap(notion, notionDatabaseId, 30),
-    buildKnownTitleList(notion, notionDatabaseId, 30),
+    buildKnownUrlMap(30),
+    buildKnownTitleList(30),
   ])
   const seenThisImport = new Set<string>()
   const importedTitlesThisBatch: Array<{ title: string }> = []
@@ -197,7 +193,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const result = await captureArticleToTodaysDraft(notion, notionDatabaseId, input)
+      const result = await captureArticleToTodaysDraft(input)
       lastArticleCount = result.articleCount
       lastIssueId = result.issueId
       lastIssueNumber = result.issueNumber

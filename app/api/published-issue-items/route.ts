@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Client } from '@notionhq/client'
-import { getIssueTargetById } from '@/lib/notion-capture'
-import { listEditablePublishedIssueItems } from '@/lib/published-issue-editor'
+import { getIssueTargetById, listEditablePublishedIssueItems } from '@/lib/issue-store'
 
 export async function GET(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
-  const notionToken = process.env.NOTION_TOKEN
 
-  if (!adminPassword || !notionToken) {
+  if (!adminPassword) {
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 })
   }
 
@@ -21,8 +18,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'issueId is required.' }, { status: 400 })
   }
 
-  const notion = new Client({ auth: notionToken })
-  const issue = await getIssueTargetById(notion, issueId)
+  const issue = await getIssueTargetById(issueId)
   if (!issue) {
     return NextResponse.json({ error: 'Published issue not found.' }, { status: 404 })
   }
@@ -30,6 +26,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'This editor is only for published issues.' }, { status: 400 })
   }
 
-  const items = await listEditablePublishedIssueItems(notion, issue.issueId)
+  const items = await listEditablePublishedIssueItems(issue.issueId)
   return NextResponse.json({ issue, items })
 }

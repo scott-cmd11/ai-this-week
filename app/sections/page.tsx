@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { SECTIONS } from '@/lib/notion'
+import { SECTIONS } from '@/lib/issue-store'
 
 export const metadata: Metadata = {
   title: 'Browse by Section',

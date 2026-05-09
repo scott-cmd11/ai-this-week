@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Client } from '@notionhq/client'
 import { buildKnownTitleList, buildKnownUrlMap } from '@/lib/known-urls'
 
 // ─── Route handler ──────────────────────────────────────────────────────────────
@@ -13,10 +12,8 @@ import { buildKnownTitleList, buildKnownUrlMap } from '@/lib/known-urls'
  */
 export async function GET(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
-  const notionToken = process.env.NOTION_TOKEN
-  const notionDatabaseId = process.env.NOTION_DATABASE_ID
 
-  if (!adminPassword || !notionToken || !notionDatabaseId) {
+  if (!adminPassword) {
     return NextResponse.json(
       { error: 'Server configuration error: missing environment variables.' },
       { status: 500 },
@@ -31,12 +28,10 @@ export async function GET(request: NextRequest) {
   const daysParam = request.nextUrl.searchParams.get('days')
   const days = Math.min(Math.max(parseInt(daysParam ?? '30', 10) || 30, 1), 365)
 
-  const notion = new Client({ auth: notionToken })
-
   try {
     const [map, titles] = await Promise.all([
-      buildKnownUrlMap(notion, notionDatabaseId, days),
-      buildKnownTitleList(notion, notionDatabaseId, days),
+      buildKnownUrlMap(days),
+      buildKnownTitleList(days),
     ])
 
     return NextResponse.json({

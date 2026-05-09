@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { getPublishedIssues, SECTIONS } from '@/lib/notion'
+import { getPublishedIssues, SECTIONS } from '@/lib/issue-store'
 import { SITE_URL } from '@/lib/site'
 
 export const revalidate = 300

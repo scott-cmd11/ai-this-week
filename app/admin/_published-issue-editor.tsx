@@ -24,7 +24,6 @@ export function PublishedIssueEditor({ password }: { password: string }) {
   const [error, setError] = useState<string | null>(null)
 
   const selectedIssue = issues.find(issue => issue.id === issueId) ?? null
-  const notionUrl = selectedIssue ? `https://notion.so/${selectedIssue.id.replace(/-/g, '')}` : null
   const publicPath = selectedIssue ? `/issues/${selectedIssue.issueDate}` : null
 
   useEffect(() => {
@@ -116,7 +115,7 @@ export function PublishedIssueEditor({ password }: { password: string }) {
           <ul className="mt-2 flex flex-col gap-1.5 text-[12px] leading-snug text-ws-black/65">
             <li>Use draft review for today&apos;s unpublished issue.</li>
             <li>Use this desk for corrections after publication.</li>
-            <li>Open Notion only for advanced block cleanup.</li>
+            <li>Use the remove action here for cleanup.</li>
           </ul>
         </div>
       </div>
@@ -159,16 +158,6 @@ export function PublishedIssueEditor({ password }: { password: string }) {
               className="border border-ws-black/30 bg-ws-page px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-black hover:text-ws-white"
             >
               View public issue
-            </a>
-          )}
-          {notionUrl && (
-            <a
-              href={notionUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border border-ws-black/30 bg-ws-page px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-black hover:text-ws-white"
-            >
-              Open Notion
             </a>
           )}
         </div>
@@ -404,7 +393,7 @@ function EditableItemRow({
         {confirmRemove && (
           <div className="border border-red-300 bg-red-50 px-3 py-3 flex flex-col gap-3">
             <p className="text-[13px] font-bold leading-snug text-red-800">
-              Remove this item from the published issue? This archives the story blocks in Notion and refreshes the public page.
+              Remove this item from the published issue? This deletes the story blocks from the issue store and refreshes the public page.
             </p>
             <div className="flex flex-wrap gap-3">
               <button

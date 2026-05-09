@@ -166,7 +166,7 @@ export function CandidateInbox({ password }: { password: string }) {
             Candidate inbox
           </p>
           <p className="text-[12px] text-ws-black/50 mt-0.5">
-            Normalized article queue from source automations. Review here before anything enters the Notion draft.
+            Normalized article queue from source automations. Review here before anything enters today&apos;s draft.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -229,7 +229,7 @@ export function CandidateInbox({ password }: { password: string }) {
         <p className="text-[13px] text-ws-black/55">Loading candidates...</p>
       ) : !configured ? null : candidates.length === 0 ? (
         <p className="border-[2px] border-ws-black/20 bg-ws-page px-4 py-3 text-[13px] text-ws-black/70">
-          No candidates in this view. Once automations post to the candidate API, they will appear here before Notion is touched.
+          No candidates in this view. Once automations post to the candidate API, they will appear here before they enter the issue draft.
         </p>
       ) : (
         <ul className="flex flex-col divide-y divide-ws-black/10">

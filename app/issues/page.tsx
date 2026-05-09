@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { getPublishedIssues } from '@/lib/notion'
+import { getPublishedIssues } from '@/lib/issue-store'
 import { IssueSearch } from '@/components/IssueSearch'
 
 export const revalidate = 300

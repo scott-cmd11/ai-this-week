@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { SECTIONS, getArticlesBySection } from '@/lib/notion'
-import type { SectionSlug } from '@/lib/notion'
+import { SECTIONS, getArticlesBySection } from '@/lib/issue-store'
+import type { SectionSlug } from '@/lib/issue-store'
 
 export const revalidate = 3600
 

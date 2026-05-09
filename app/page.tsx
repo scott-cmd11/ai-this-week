@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { getPublishedIssues } from '@/lib/notion'
+import { getPublishedIssues } from '@/lib/issue-store'
 import { issueDisplayTitle, nonBreakingDate } from '@/lib/title'
 import { SignalLedger } from '@/components/SignalLedger'
 

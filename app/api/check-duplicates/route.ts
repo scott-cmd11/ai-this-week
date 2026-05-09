@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPublishedIssues, getIssueBlocks } from '@/lib/notion'
+import { getPublishedIssues, getIssueBlocks } from '@/lib/issue-store'
 import type { NotionBlock } from '@/lib/types'
 
 const ISSUES_TO_CHECK = 12

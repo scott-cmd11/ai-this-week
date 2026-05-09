@@ -7,7 +7,7 @@ import {
   getPublishedIssues,
   getAdjacentIssues,
   getRelatedIssues,
-} from '@/lib/notion'
+} from '@/lib/issue-store'
 import { NotionRenderer } from '@/lib/notion-renderer'
 import { issueDisplayTitle, nonBreakingDate } from '@/lib/title'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
@@ -29,7 +29,7 @@ interface Props {
 }
 
 export async function generateStaticParams() {
-  if (!process.env.NOTION_TOKEN) return []
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return []
   const issues = await getPublishedIssues()
   return issues.map(issue => ({ date: issue.slug }))
 }

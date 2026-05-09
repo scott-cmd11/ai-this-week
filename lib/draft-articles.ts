@@ -25,11 +25,11 @@ export function parseDailyArticles(blocks: any[]): DailyArticle[] {
         articles.push(current)
         current = null
       }
-      const text = richTextPlainText(b.heading_2?.rich_text).trim()
+      const text = (b.content ?? richTextPlainText(b.heading_2?.rich_text)).trim()
       currentCategory = text || null
     } else if (type === 'heading_3') {
       if (current) articles.push(current)
-      const text = richTextPlainText(b.heading_3?.rich_text)
+      const text = b.content ?? richTextPlainText(b.heading_3?.rich_text)
       current = {
         title: text,
         annotation: null,
@@ -39,15 +39,15 @@ export function parseDailyArticles(blocks: any[]): DailyArticle[] {
         category: currentCategory,
       }
     } else if (type === 'paragraph' && current) {
-      const text = richTextPlainText(b.paragraph?.rich_text)
+      const text = b.content ?? richTextPlainText(b.paragraph?.rich_text)
       if (text && !text.startsWith('Published:')) {
         current.annotation = text
         current.annotationBlockId = b.id ?? null
       }
     } else if (type === 'bookmark' && current) {
-      current.url = b.bookmark?.url ?? null
+      current.url = b.href ?? b.bookmark?.url ?? null
     } else if (type === 'image' && current) {
-      current.imageUrl = b.image?.external?.url ?? b.image?.file?.url ?? null
+      current.imageUrl = b.href ?? b.image?.external?.url ?? b.image?.file?.url ?? null
     } else if (type === 'divider') {
       if (current) {
         articles.push(current)

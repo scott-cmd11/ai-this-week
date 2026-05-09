@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { Client } from '@notionhq/client'
-import { getIssueTargetById } from '@/lib/notion-capture'
-import { listEditablePublishedIssueItems } from '@/lib/published-issue-editor'
+import { getIssueTargetById, removePublishedIssueItem } from '@/lib/issue-store'
 
 interface RequestBody {
   adminPassword?: string
@@ -12,9 +10,8 @@ interface RequestBody {
 
 export async function POST(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
-  const notionToken = process.env.NOTION_TOKEN
 
-  if (!adminPassword || !notionToken) {
+  if (!adminPassword) {
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 })
   }
 
@@ -35,8 +32,7 @@ export async function POST(request: NextRequest) {
   if (!issueId) return NextResponse.json({ error: 'issueId is required.' }, { status: 400 })
   if (!itemId) return NextResponse.json({ error: 'itemId is required.' }, { status: 400 })
 
-  const notion = new Client({ auth: notionToken })
-  const issue = await getIssueTargetById(notion, issueId)
+  const issue = await getIssueTargetById(issueId)
   if (!issue) {
     return NextResponse.json({ error: 'Published issue not found.' }, { status: 404 })
   }
@@ -44,18 +40,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'This editor is only for published issues.' }, { status: 400 })
   }
 
-  const items = await listEditablePublishedIssueItems(notion, issue.issueId)
-  const item = items.find(candidate => candidate.id === itemId)
-  if (!item) {
-    return NextResponse.json({ error: 'Item not found in this issue.' }, { status: 404 })
-  }
-  if (item.blockIds.length === 0) {
-    return NextResponse.json({ error: 'This item has no removable blocks.' }, { status: 400 })
-  }
-
-  for (const blockId of [...new Set(item.blockIds)]) {
-    await notion.blocks.delete({ block_id: blockId })
-  }
+  const item = await removePublishedIssueItem(issue.issueId, itemId)
 
   revalidatePath(`/issues/${issue.issueDate}`)
   revalidatePath('/issues')

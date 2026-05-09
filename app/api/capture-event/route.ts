@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Client } from '@notionhq/client'
 import { revalidatePath } from 'next/cache'
-import { captureEventToIssue, captureEventToTodaysDraft } from '@/lib/notion-capture'
+import { captureEventToIssue, captureEventToTodaysDraft } from '@/lib/issue-store'
 import { buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
 
@@ -23,10 +22,8 @@ interface RequestBody {
 
 export async function POST(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
-  const notionToken = process.env.NOTION_TOKEN
-  const notionDatabaseId = process.env.NOTION_DATABASE_ID
 
-  if (!adminPassword || !notionToken || !notionDatabaseId) {
+  if (!adminPassword) {
     return NextResponse.json(
       { error: 'Server configuration error: missing environment variables.' },
       { status: 500 },
@@ -51,12 +48,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Valid registration URL is required.' }, { status: 400 })
   }
 
-  const notion = new Client({ auth: notionToken })
-
   try {
     // Duplicate check — same backstop as /api/capture
     if (!body.force) {
-      const knownMap = await buildKnownUrlMap(notion, notionDatabaseId, 30)
+      const knownMap = await buildKnownUrlMap(30)
       const existing = knownMap.get(normalizeUrl(url))
       if (existing) {
         return NextResponse.json({
@@ -76,8 +71,8 @@ export async function POST(request: NextRequest) {
     }
     const targetIssueId = body.targetIssueId?.trim()
     const result = targetIssueId
-      ? await captureEventToIssue(notion, targetIssueId, event)
-      : await captureEventToTodaysDraft(notion, notionDatabaseId, event)
+      ? await captureEventToIssue(targetIssueId, event)
+      : await captureEventToTodaysDraft(event)
 
     if (targetIssueId) revalidatePath('/', 'layout')
     return NextResponse.json({ success: true, ...result })
