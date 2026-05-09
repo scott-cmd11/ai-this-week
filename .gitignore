@@ -48,6 +48,7 @@ next-env.d.ts
 .superpowers/
 briefing-output.html
 briefing-debug.log
+/tmp/
 .env*.local
 *-verify.png
 dev-*.log

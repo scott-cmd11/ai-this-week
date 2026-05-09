@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "import:candidates": "node scripts/import-candidates-from-automation-output.mjs",
     "new-issue": "node --env-file=.env.local scripts/new-issue.js"
   },
   "dependencies": {
