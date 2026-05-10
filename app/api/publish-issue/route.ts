@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { adminChecksFingerprint } from '@/lib/admin-readiness'
-import { buildIssueReadiness } from '@/lib/admin-issue-readiness'
+import { buildIssueReadiness, getAdminRunSummaries } from '@/lib/admin-issue-readiness'
 import { getIssueBlocks, getIssueById, publishIssue } from '@/lib/issue-store'
 
 export async function POST(request: NextRequest) {
@@ -38,10 +38,13 @@ export async function POST(request: NextRequest) {
     }
 
     const blocks = await getIssueBlocks(body.pageId)
+    const { candidates, automation } = await getAdminRunSummaries()
     const { readiness } = await buildIssueReadiness({
       issueDate: draft.issueDate,
       draft,
       blocks,
+      candidates,
+      automation,
     })
 
     if (readiness.blockers.length > 0) {

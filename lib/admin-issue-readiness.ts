@@ -1,6 +1,7 @@
 import type { AdminAutomationSummary, AdminCandidateSummary } from './admin-readiness'
 import { buildAdminReadiness } from './admin-readiness'
 import { isPublishedDateFreshForIssue } from './article-fetcher'
+import { isArticleCandidateStoreConfigured, summarizeArticleCandidates } from './article-candidate-store'
 import { parseDailyArticles } from './draft-articles'
 import { findIssueMemoryWarnings } from './issue-memory'
 import { buildKnownTitleList, buildKnownUrlMap } from './known-urls'
@@ -20,6 +21,33 @@ const EMPTY_AUTOMATION: AdminAutomationSummary = {
   lastRunAt: null,
   sourceCount: 0,
   failureCount: 0,
+}
+
+export async function getAdminRunSummaries(): Promise<{
+  candidates: AdminCandidateSummary
+  automation: AdminAutomationSummary
+  candidateError: string | null
+}> {
+  const candidateStoreConfigured = isArticleCandidateStoreConfigured()
+  let candidates = EMPTY_CANDIDATES
+  let candidateError: string | null = candidateStoreConfigured ? null : 'Article candidate inbox is not configured.'
+  if (candidateStoreConfigured) {
+    try {
+      candidates = await summarizeArticleCandidates()
+    } catch (err) {
+      candidateError = err instanceof Error ? err.message : 'Candidate summary failed.'
+    }
+  }
+
+  return {
+    candidates,
+    candidateError,
+    automation: {
+      lastRunAt: null,
+      sourceCount: 0,
+      failureCount: candidateError ? 1 : 0,
+    },
+  }
 }
 
 function blockText(block: NotionBlock): string {

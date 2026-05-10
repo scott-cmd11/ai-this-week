@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { buildIssueReadiness } from '@/lib/admin-issue-readiness'
+import { buildIssueReadiness, getAdminRunSummaries } from '@/lib/admin-issue-readiness'
 import { issueDateFor } from '@/lib/issue-date'
-import { isArticleCandidateStoreConfigured, summarizeArticleCandidates } from '@/lib/article-candidate-store'
 import { getIssueByDate, getIssueBlocks } from '@/lib/issue-store'
 
 export const dynamic = 'force-dynamic'
-
-const EMPTY_CANDIDATES = { totalActive: 0, topPicks: 0, held: 0, rejected: 0, imported: 0 }
 
 function authorize(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
@@ -24,22 +21,7 @@ export async function GET(request: NextRequest) {
   const draft = await getIssueByDate(today, false)
   const blocks = draft ? await getIssueBlocks(draft.id) : []
 
-  const candidateStoreConfigured = isArticleCandidateStoreConfigured()
-  let candidates = EMPTY_CANDIDATES
-  let candidateError: string | null = candidateStoreConfigured ? null : 'Article candidate inbox is not configured.'
-  if (candidateStoreConfigured) {
-    try {
-      candidates = await summarizeArticleCandidates()
-    } catch (err) {
-      candidateError = err instanceof Error ? err.message : 'Candidate summary failed.'
-    }
-  }
-
-  const automation = {
-    lastRunAt: null,
-    sourceCount: 0,
-    failureCount: candidateError ? 1 : 0,
-  }
+  const { candidates, automation, candidateError } = await getAdminRunSummaries()
 
   const { draftSummary, readiness } = await buildIssueReadiness({
     issueDate: today,
