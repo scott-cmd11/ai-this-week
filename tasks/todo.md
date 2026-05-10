@@ -84,3 +84,38 @@
 - Added `_daily-run-shell.tsx` with guided/full modes, daily step navigation, status reloads, and placeholder areas for later tasks.
 - Simplified `app/admin/page.tsx` so auth/session storage remains in place and the authed branch renders `DailyRunShell`.
 - Verification passed: `npm run lint`, `npm run test -- tests/lib/admin-readiness.test.ts`, `npx tsc --noEmit`, and a read-only local `/admin` plus `/api/admin/today-status` smoke check on port 3034.
+
+# Task: Organize Secondary Admin Areas
+
+- [x] Create the secondary admin tabs client component.
+- [x] Wire full desk mode to the real secondary tabs instead of the placeholder.
+- [x] Verify lint, targeted readiness test, TypeScript, and a read-only admin smoke check if practical.
+- [x] Self-review owned-file changes and commit locally.
+
+## Review
+
+- Added `_secondary-admin-tabs.tsx` with Issue Desk, Future Queue, Health, and Settings tabs.
+- Full desk mode now renders the secondary tabs instead of the placeholder.
+- Verification passed: `npm run lint`, `npm run test -- tests/lib/admin-readiness.test.ts`, `npx tsc --noEmit`, and `git diff --check`.
+- Browser smoke was attempted against local `/admin` on port 3034, but local/transient Playwright tooling was unavailable.
+
+# Task: Guided Daily Run Admin Rebuild
+
+- [x] Add readiness model and today-status API.
+- [x] Replace admin default with Today's Run Status and guided daily run shell.
+- [x] Add Keep/Reject/Hold candidate triage.
+- [x] Add draft split editor MVP.
+- [x] Add blocker/warning publish readiness gate.
+- [x] Organize secondary admin areas.
+- [x] Verify lint, targeted tests, production build, local admin route, and read-only admin APIs.
+
+## Review
+
+- Admin now opens on Today's Run Status after sign-in and leads the editor through Status, Intake, Choose, Edit, Check, and Publish.
+- Candidate review uses Keep, Reject, and Hold, with safeguards against false imported status when an import is skipped.
+- Draft editing has a structured editor with a reader preview and manual article/event add controls.
+- Publish is guarded by blockers, warning acknowledgement tied to the current checks, and refresh-state protection to avoid stale publish decisions.
+- Secondary tools are grouped under Issue Desk, Future Queue, Health, and Settings.
+- Verification passed: `npm run lint`, `npm run test -- tests/lib/admin-readiness.test.ts tests/lib/issue-memory.test.ts tests/lib/title-dedupe.test.ts tests/lib/draft-articles.test.ts`, and `npm run build`.
+- Read-only local checks passed for `/admin`, `/api/admin/today-status`, and `/api/today-draft` on port 3034. No publish or live data mutation was performed.
+- Full visual browser automation was not available in this environment; this should be repeated before production deployment if a browser tool is available.
