@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DailyRunStep } from '@/lib/admin-readiness'
 import { CandidateTriage } from './_candidate-triage'
 import { DraftSplitEditor } from './_draft-split-editor'
@@ -30,6 +30,7 @@ export function DailyRunShell({
   const [status, setStatus] = useState<TodayStatusPayload | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [statusLoading, setStatusLoading] = useState(true)
+  const statusRequestRef = useRef(0)
 
   const activeIndex = useMemo(
     () => STEPS.findIndex(step => step.key === activeStep),
@@ -37,6 +38,10 @@ export function DailyRunShell({
   )
 
   const loadStatus = useCallback(async (signal?: AbortSignal) => {
+    const requestId = statusRequestRef.current + 1
+    statusRequestRef.current = requestId
+    const isActiveRequest = () => statusRequestRef.current === requestId && !signal?.aborted
+
     setStatusLoading(true)
     setStatusError(null)
     try {
@@ -45,20 +50,30 @@ export function DailyRunShell({
         signal,
       })
       if (res.status === 401) {
-        setStatusError('Your admin session has expired. Sign out and sign back in.')
+        if (isActiveRequest()) {
+          setStatusError('Your admin session has expired. Sign out and sign back in.')
+        }
         return
       }
       if (!res.ok) {
-        setStatusError('Today status could not be loaded.')
+        if (isActiveRequest()) {
+          setStatusError('Today status could not be loaded.')
+        }
         return
       }
       const payload = (await res.json()) as TodayStatusPayload
-      setStatus(payload)
+      if (isActiveRequest()) {
+        setStatus(payload)
+      }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
-      setStatusError('Today status could not be loaded.')
+      if (isActiveRequest()) {
+        setStatusError('Today status could not be loaded.')
+      }
     } finally {
-      setStatusLoading(false)
+      if (isActiveRequest()) {
+        setStatusLoading(false)
+      }
     }
   }, [password])
 
