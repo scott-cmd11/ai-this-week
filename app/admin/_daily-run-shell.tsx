@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DailyRunStep } from '@/lib/admin-readiness'
 import { CandidateTriage } from './_candidate-triage'
 import { DraftSplitEditor } from './_draft-split-editor'
+import { PublishChecks } from './_publish-checks'
 import { TodayRunStatus, type TodayStatusPayload } from './_today-run-status'
 
 type AdminMode = 'guided' | 'full'
@@ -220,6 +221,14 @@ function renderActiveStep(
 
   if (activeStep === 'edit') {
     return <DraftSplitEditor password={password} />
+  }
+
+  if (activeStep === 'check') {
+    return <PublishChecks password={password} status={status} onPublished={onChanged} />
+  }
+
+  if (activeStep === 'publish') {
+    return <PublishChecks password={password} status={status} onPublished={onChanged} forcePublishView />
   }
 
   return (
