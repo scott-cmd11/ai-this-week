@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DailyRunStep } from '@/lib/admin-readiness'
+import { CandidateTriage } from './_candidate-triage'
 import { TodayRunStatus, type TodayStatusPayload } from './_today-run-status'
 
 type AdminMode = 'guided' | 'full'
@@ -157,7 +158,7 @@ export function DailyRunShell({
           </section>
         )}
 
-        {status && renderActiveStep(activeStep, status, handlePrimaryAction)}
+        {status && renderActiveStep(activeStep, status, password, handlePrimaryAction, () => void loadStatus())}
 
         <div className="flex flex-col-reverse gap-3 border-t border-ws-border pt-4 sm:flex-row sm:items-center sm:justify-between">
           <button
@@ -192,7 +193,9 @@ export function DailyRunShell({
 function renderActiveStep(
   activeStep: DailyRunStep,
   status: TodayStatusPayload,
+  password: string,
   onPrimaryAction: () => void,
+  onChanged: () => void,
 ) {
   if (activeStep === 'status') {
     return <TodayRunStatus status={status} onPrimaryAction={onPrimaryAction} />
@@ -211,12 +214,7 @@ function renderActiveStep(
   }
 
   if (activeStep === 'choose') {
-    return (
-      <PlaceholderSection
-        title="Candidate triage"
-        note="Keep, Reject, and Hold controls arrive in the next task."
-      />
-    )
+    return <CandidateTriage password={password} onChanged={onChanged} />
   }
 
   if (activeStep === 'edit') {
