@@ -16,6 +16,14 @@ export interface TodayStatusPayload {
     articleCount: number
     sections: string[]
     missingSummaryCount: number
+    missingTitleCount: number
+    exactDuplicateUrlCount: number
+    similarTopicCount: number
+    staleSourceCount: number
+    weakTitleCount: number
+    missingImageCount: number
+    brokenRequiredUrlCount: number
+    publishReadinessFailed: boolean
   }
   readiness: AdminReadiness
 }
