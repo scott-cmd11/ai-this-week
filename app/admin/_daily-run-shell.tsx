@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DailyRunStep } from '@/lib/admin-readiness'
 import { CandidateTriage } from './_candidate-triage'
+import { DraftSplitEditor } from './_draft-split-editor'
 import { TodayRunStatus, type TodayStatusPayload } from './_today-run-status'
 
 type AdminMode = 'guided' | 'full'
@@ -218,12 +219,7 @@ function renderActiveStep(
   }
 
   if (activeStep === 'edit') {
-    return (
-      <PlaceholderSection
-        title="Draft editor"
-        note="Split editor arrives in the draft editor task."
-      />
-    )
+    return <DraftSplitEditor password={password} />
   }
 
   return (
