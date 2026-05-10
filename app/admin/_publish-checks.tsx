@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import type { AdminCheckItem } from '@/lib/admin-readiness'
+import { adminChecksFingerprint, type AdminCheckItem } from '@/lib/admin-readiness'
 import type { TodayStatusPayload } from './_today-run-status'
 
 type PublishIssueResponse = {
@@ -36,14 +36,7 @@ export function PublishChecks({
   const hasBlockers = blockers.length > 0
   const hasWarnings = warnings.length > 0
   const requiresWarningAcknowledgement = hasWarnings && !hasBlockers
-  const checksFingerprint = useMemo(
-    () =>
-      [...blockers, ...warnings]
-        .map(item => `${item.severity}:${item.code}:${item.count}:${item.label}`)
-        .sort()
-        .join('|'),
-    [blockers, warnings],
-  )
+  const checksFingerprint = useMemo(() => adminChecksFingerprint([...blockers, ...warnings]), [blockers, warnings])
   const warningsAcknowledged = acknowledgedFingerprint === checksFingerprint
 
   useEffect(() => {
@@ -93,7 +86,7 @@ export function PublishChecks({
       const res = await fetch('/api/publish-issue', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ password, pageId: draft.issueId }),
+        body: JSON.stringify({ password, pageId: draft.issueId, checksFingerprint }),
       })
       const payload = (await res.json()) as PublishIssueResponse
 

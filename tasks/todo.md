@@ -119,3 +119,5 @@
 - Verification passed: `npm run lint`, `npm run test -- tests/lib/admin-readiness.test.ts tests/lib/issue-memory.test.ts tests/lib/title-dedupe.test.ts tests/lib/draft-articles.test.ts`, and `npm run build`.
 - Read-only local checks passed for `/admin`, `/api/admin/today-status`, and `/api/today-draft` on port 3034. No publish or live data mutation was performed.
 - Full visual browser automation was not available in this environment; this should be repeated before production deployment if a browser tool is available.
+- Follow-up review tightened the publish path so `/api/publish-issue` recalculates readiness server-side, blocks unresolved blockers, and requires a current warning acknowledgement fingerprint before publishing.
+- The status API now uses the same readiness calculation as publishing, so duplicate URLs, stale sources, weak titles, broken URLs, missing summaries, and missing images cannot drift between the admin view and the final publish action.

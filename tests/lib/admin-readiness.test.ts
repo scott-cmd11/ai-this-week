@@ -53,6 +53,20 @@ describe('buildAdminReadiness', () => {
     expect(result.nextBestAction).toBe("Review 47 candidates from today's automations.")
   })
 
+  it('starts manual editing when no draft exists and no candidates are waiting', () => {
+    const result = buildAdminReadiness({
+      issueDate: '2026-05-09',
+      automation: { lastRunAt: '2026-05-09T12:00:00.000Z', sourceCount: 4, failureCount: 0 },
+      candidates: candidates({ totalActive: 0 }),
+      draft: draft({ exists: false, articleCount: 0, issueId: null }),
+    })
+
+    expect(result.draftState).toBe('not_started')
+    expect(result.primaryAction.label).toBe("Start today's issue")
+    expect(result.primaryAction.step).toBe('edit')
+    expect(result.nextBestAction).toBe("No draft exists yet. Add an article or learning event to start today's issue.")
+  })
+
   it('blocks publishing when the draft has required data problems', () => {
     const result = buildAdminReadiness({
       issueDate: '2026-05-09',

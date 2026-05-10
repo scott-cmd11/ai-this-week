@@ -76,6 +76,13 @@ export interface AdminReadiness {
   }
 }
 
+export function adminChecksFingerprint(items: AdminCheckItem[]): string {
+  return items
+    .map(item => `${item.severity}:${item.code}:${item.count}:${item.label}`)
+    .sort()
+    .join('|')
+}
+
 function item(
   code: AdminCheckItem['code'],
   label: string,
@@ -136,8 +143,8 @@ export function buildAdminReadiness(input: AdminReadinessInput): AdminReadiness 
       warnings,
       nextBestAction: candidates.totalActive > 0
         ? `Review ${candidates.totalActive} candidates from today's automations.`
-        : 'No draft exists yet. Check automation status before starting.',
-      primaryAction: { label: "Start today's issue", step: candidates.totalActive > 0 ? 'choose' : 'intake' },
+        : 'No draft exists yet. Add an article or learning event to start today\'s issue.',
+      primaryAction: { label: "Start today's issue", step: candidates.totalActive > 0 ? 'choose' : 'edit' },
     }
   }
 

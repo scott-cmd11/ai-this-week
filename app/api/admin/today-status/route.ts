@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { parseDailyArticles } from '@/lib/draft-articles'
-import { buildAdminReadiness } from '@/lib/admin-readiness'
+import { buildIssueReadiness } from '@/lib/admin-issue-readiness'
 import { issueDateFor } from '@/lib/issue-date'
 import { isArticleCandidateStoreConfigured, summarizeArticleCandidates } from '@/lib/article-candidate-store'
-import { buildKnownTitleList } from '@/lib/known-urls'
-import { findIssueMemoryWarnings } from '@/lib/issue-memory'
 import { getIssueByDate, getIssueBlocks } from '@/lib/issue-store'
-import { titleQualityWarnings } from '@/lib/title-quality'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,19 +23,6 @@ export async function GET(request: NextRequest) {
   const today = request.nextUrl.searchParams.get('date') ?? issueDateFor()
   const draft = await getIssueByDate(today, false)
   const blocks = draft ? await getIssueBlocks(draft.id) : []
-  const articles = parseDailyArticles(blocks)
-  const knownTitles = draft
-    ? (await buildKnownTitleList(90)).filter(entry => entry.pageId !== draft.id)
-    : await buildKnownTitleList(90)
-
-  const missingTitleCount = articles.filter(article => !article.title?.trim()).length
-  const missingSummaryCount = articles.filter(article => !article.annotation?.trim()).length
-  const missingImageCount = articles.filter(article => !article.imageUrl?.trim()).length
-  const weakTitleCount = articles.flatMap(article => titleQualityWarnings(article.title)).length
-  const similarTopicCount = articles.filter(article =>
-    article.title && findIssueMemoryWarnings(article.title, knownTitles).length > 0,
-  ).length
-  const sections = [...new Set(articles.map(article => article.category).filter((value): value is string => Boolean(value)))]
 
   const candidateStoreConfigured = isArticleCandidateStoreConfigured()
   let candidates = EMPTY_CANDIDATES
@@ -58,30 +41,12 @@ export async function GET(request: NextRequest) {
     failureCount: candidateError ? 1 : 0,
   }
 
-  const draftSummary = {
-    exists: !!draft,
-    published: !!draft?.published,
-    issueId: draft?.id ?? null,
-    issueNumber: draft?.issueNumber ?? null,
-    issueDate: draft?.issueDate ?? today,
-    articleCount: articles.length,
-    sections,
-    missingSummaryCount,
-    missingTitleCount,
-    exactDuplicateUrlCount: 0,
-    similarTopicCount,
-    staleSourceCount: 0,
-    weakTitleCount,
-    missingImageCount,
-    brokenRequiredUrlCount: 0,
-    publishReadinessFailed: false,
-  }
-
-  const readiness = buildAdminReadiness({
+  const { draftSummary, readiness } = await buildIssueReadiness({
     issueDate: today,
-    automation,
+    draft,
+    blocks,
     candidates,
-    draft: draftSummary,
+    automation,
   })
 
   return NextResponse.json({

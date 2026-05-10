@@ -21,6 +21,7 @@ const FILTERS: Array<{ key: Filter; label: string; status: string }> = [
   { key: 'rejected', label: 'Rejected', status: 'rejected' },
   { key: 'imported', label: 'Imported', status: 'imported' },
 ]
+const TOP_PICK_SCORE = 75
 
 function sourceLabel(candidate: ArticleCandidate): string {
   if (candidate.source) return candidate.source
@@ -33,7 +34,7 @@ function sourceLabel(candidate: ArticleCandidate): string {
 
 function candidateBelongsInFilter(candidate: ArticleCandidate, filter: Filter): boolean {
   if (filter === 'top') {
-    return (candidate.status === 'new' || candidate.status === 'approved') && candidate.score >= 70
+    return (candidate.status === 'new' || candidate.status === 'approved') && candidate.score >= TOP_PICK_SCORE
   }
   if (filter === 'needs_review') return candidate.status === 'new' || candidate.status === 'approved'
   if (filter === 'held') return candidate.status === 'shortlisted'
@@ -68,7 +69,7 @@ export function CandidateTriage({
 
   const visibleCandidates = useMemo(() => {
     const list = filter === 'top'
-      ? candidates.filter(candidate => candidate.score >= 70)
+      ? candidates.filter(candidate => candidate.score >= TOP_PICK_SCORE)
       : candidates
     return [...list].sort((a, b) => b.score - a.score)
   }, [candidates, filter])
@@ -231,7 +232,7 @@ export function CandidateTriage({
                 <span className="border-[2px] border-ws-black px-2 py-0.5 text-[11px] font-black tabular-nums">
                   {candidate.score}
                 </span>
-                {candidate.score >= 75 && (
+                {candidate.score >= TOP_PICK_SCORE && (
                   <span className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-accent">
                     Recommended
                   </span>

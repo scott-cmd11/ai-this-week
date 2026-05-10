@@ -207,6 +207,12 @@ async function getIssueRowById(issueId: string): Promise<IssueRow | null> {
   return rows[0] ?? null
 }
 
+export async function getIssueById(issueId: string): Promise<Issue | null> {
+  if (!isIssueStoreConfigured()) return null
+  const row = await getIssueRowById(issueId)
+  return row ? mapIssue(row) : null
+}
+
 export async function getPublishedIssues(): Promise<Issue[]> {
   if (!isIssueStoreConfigured()) return []
   const params = new URLSearchParams({
