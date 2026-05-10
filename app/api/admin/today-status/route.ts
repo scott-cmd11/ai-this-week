@@ -10,6 +10,8 @@ import { titleQualityWarnings } from '@/lib/title-quality'
 
 export const dynamic = 'force-dynamic'
 
+const EMPTY_CANDIDATES = { totalActive: 0, topPicks: 0, held: 0, rejected: 0, imported: 0 }
+
 function authorize(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
   if (!adminPassword) return { ok: false as const, status: 500, error: 'Server configuration error.' }
@@ -39,14 +41,21 @@ export async function GET(request: NextRequest) {
   ).length
   const sections = [...new Set(articles.map(article => article.category).filter((value): value is string => Boolean(value)))]
 
-  const candidates = isArticleCandidateStoreConfigured()
-    ? await summarizeArticleCandidates()
-    : { totalActive: 0, topPicks: 0, held: 0, rejected: 0, imported: 0 }
+  const candidateStoreConfigured = isArticleCandidateStoreConfigured()
+  let candidates = EMPTY_CANDIDATES
+  let candidateError: string | null = candidateStoreConfigured ? null : 'Article candidate inbox is not configured.'
+  if (candidateStoreConfigured) {
+    try {
+      candidates = await summarizeArticleCandidates()
+    } catch (err) {
+      candidateError = err instanceof Error ? err.message : 'Candidate summary failed.'
+    }
+  }
 
   const automation = {
     lastRunAt: null,
     sourceCount: 0,
-    failureCount: isArticleCandidateStoreConfigured() ? 0 : 1,
+    failureCount: candidateError ? 1 : 0,
   }
 
   const draftSummary = {
@@ -79,6 +88,7 @@ export async function GET(request: NextRequest) {
     issueDate: today,
     automation,
     candidates,
+    candidateError,
     draft: draftSummary,
     readiness,
   })

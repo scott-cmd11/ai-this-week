@@ -105,6 +105,37 @@ async function supabaseRequest<T>(path: string, init: RequestInit = {}): Promise
   return res.json() as Promise<T>
 }
 
+async function supabaseCount(path: string): Promise<number> {
+  const { url, key } = getSupabaseConfig()
+  const res = await fetch(`${url}/rest/v1/${path}`, {
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      Prefer: 'count=exact',
+      Range: '0-0',
+    },
+    cache: 'no-store',
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`Supabase count failed (${res.status}): ${body || res.statusText}`)
+  }
+
+  const contentRange = res.headers.get('content-range')
+  const total = contentRange?.match(/\/(\d+)$/)?.[1]
+  if (!total) {
+    throw new Error('Supabase count response did not include a total.')
+  }
+  return Number(total)
+}
+
+function candidateCountPath(statuses: CandidateStatus[], minScore?: number): string {
+  const params = new URLSearchParams({ select: 'id' })
+  params.set('status', `in.(${statuses.join(',')})`)
+  if (minScore !== undefined) params.set('score', `gte.${minScore}`)
+  return `article_candidates?${params.toString()}`
+}
+
 export async function listArticleCandidates(options: CandidateListOptions = {}): Promise<ArticleCandidate[]> {
   const statuses = options.statuses?.length ? options.statuses : ['new', 'shortlisted', 'approved']
   const limit = Math.max(1, Math.min(options.limit ?? 75, 150))
@@ -125,19 +156,20 @@ export async function summarizeArticleCandidates(): Promise<{
   rejected: number
   imported: number
 }> {
-  const [active, held, rejected, imported] = await Promise.all([
-    listArticleCandidates({ statuses: ['new', 'approved'], limit: 150 }),
-    listArticleCandidates({ statuses: ['shortlisted'], limit: 150 }),
-    listArticleCandidates({ statuses: ['rejected'], limit: 150 }),
-    listArticleCandidates({ statuses: ['imported'], limit: 150 }),
+  const [totalActive, topPicks, held, rejected, imported] = await Promise.all([
+    supabaseCount(candidateCountPath(['new', 'approved'])),
+    supabaseCount(candidateCountPath(['new', 'approved'], 75)),
+    supabaseCount(candidateCountPath(['shortlisted'])),
+    supabaseCount(candidateCountPath(['rejected'])),
+    supabaseCount(candidateCountPath(['imported'])),
   ])
 
   return {
-    totalActive: active.length,
-    topPicks: active.filter(candidate => candidate.score >= 75).length,
-    held: held.length,
-    rejected: rejected.length,
-    imported: imported.length,
+    totalActive,
+    topPicks,
+    held,
+    rejected,
+    imported,
   }
 }
 
