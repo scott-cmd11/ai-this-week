@@ -25,7 +25,7 @@ export function PublishChecks({
   forcePublishView?: boolean
   statusRefreshing?: boolean
 }) {
-  const [warningsAcknowledged, setWarningsAcknowledged] = useState(false)
+  const [acknowledgedFingerprint, setAcknowledgedFingerprint] = useState<string | null>(null)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -44,9 +44,9 @@ export function PublishChecks({
         .join('|'),
     [blockers, warnings],
   )
+  const warningsAcknowledged = acknowledgedFingerprint === checksFingerprint
 
   useEffect(() => {
-    setWarningsAcknowledged(false)
     setError(null)
     setMessage(null)
   }, [checksFingerprint, draft.issueId, draft.published])
@@ -173,7 +173,7 @@ export function PublishChecks({
           <input
             type="checkbox"
             checked={warningsAcknowledged}
-            onChange={event => setWarningsAcknowledged(event.target.checked)}
+            onChange={event => setAcknowledgedFingerprint(event.target.checked ? checksFingerprint : null)}
             className="mt-1 h-5 w-5 accent-[var(--color-ws-accent)]"
           />
           <span>I have reviewed the warnings and still want this issue to be eligible for publishing.</span>
