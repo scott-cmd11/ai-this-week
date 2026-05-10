@@ -6,6 +6,14 @@ import { CATEGORY_META, CATEGORY_ORDER, type Category } from '@/lib/category-map
 
 type Filter = 'top' | 'needs_review' | 'held' | 'rejected' | 'imported'
 
+interface ImportResult {
+  url: string
+  title: string
+  ok: boolean
+  error?: string
+  skippedReason?: string
+}
+
 const FILTERS: Array<{ key: Filter; label: string; status: string }> = [
   { key: 'top', label: 'Top picks', status: 'new,approved' },
   { key: 'needs_review', label: 'Needs review', status: 'new,approved' },
@@ -21,6 +29,25 @@ function sourceLabel(candidate: ArticleCandidate): string {
   } catch {
     return 'Unknown source'
   }
+}
+
+function candidateBelongsInFilter(candidate: ArticleCandidate, filter: Filter): boolean {
+  if (filter === 'top') {
+    return (candidate.status === 'new' || candidate.status === 'approved') && candidate.score >= 70
+  }
+  if (filter === 'needs_review') return candidate.status === 'new' || candidate.status === 'approved'
+  if (filter === 'held') return candidate.status === 'shortlisted'
+  if (filter === 'rejected') return candidate.status === 'rejected'
+  return candidate.status === 'imported'
+}
+
+function findCandidateImportResult(candidate: ArticleCandidate, results: ImportResult[]): ImportResult | null {
+  return results.find(result => result.url === candidate.url) ?? results[0] ?? null
+}
+
+function failedImportMessage(result: ImportResult | null): string {
+  if (!result) return 'The import did not return a result for this candidate.'
+  return result.skippedReason ?? result.error ?? 'The import skipped this candidate.'
 }
 
 export function CandidateTriage({
@@ -46,10 +73,10 @@ export function CandidateTriage({
     return [...list].sort((a, b) => b.score - a.score)
   }, [candidates, filter])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options: { preserveMessage?: boolean } = {}) => {
     setLoading(true)
     setError(null)
-    setMessage(null)
+    if (!options.preserveMessage) setMessage(null)
     try {
       const res = await fetch(`/api/article-candidates?status=${encodeURIComponent(activeFilter.status)}&limit=100`, {
         headers: { 'x-admin-password': password },
@@ -89,7 +116,13 @@ export function CandidateTriage({
         setError(payload.error ?? `Could not update candidate (${res.status}).`)
         return null
       }
-      setCandidates(prev => prev.map(candidate => candidate.id === id ? payload.candidate : candidate))
+      setCandidates(prev => {
+        const updated = payload.candidate as ArticleCandidate
+        if (update.status && !candidateBelongsInFilter(updated, filter)) {
+          return prev.filter(candidate => candidate.id !== id)
+        }
+        return prev.map(candidate => candidate.id === id ? updated : candidate)
+      })
       onChanged()
       return payload.candidate
     } catch {
@@ -125,11 +158,17 @@ export function CandidateTriage({
         return
       }
 
+      const result = findCandidateImportResult(candidate, payload.results ?? [])
+      if (!result?.ok) {
+        setError(failedImportMessage(result))
+        return
+      }
+
       const updated = await patchCandidate(candidate.id, { status: 'imported' })
       if (!updated) return
-      setMessage(`Kept "${candidate.title}" and added it to today's draft.`)
       window.dispatchEvent(new CustomEvent('aitoday:refresh-draft'))
-      await load()
+      await load({ preserveMessage: true })
+      setMessage(`Kept "${candidate.title}" and added it to today's draft.`)
     } catch {
       setError('Could not keep candidate.')
     } finally {
