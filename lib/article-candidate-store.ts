@@ -118,6 +118,29 @@ export async function listArticleCandidates(options: CandidateListOptions = {}):
   return rows.map(toCandidate)
 }
 
+export async function summarizeArticleCandidates(): Promise<{
+  totalActive: number
+  topPicks: number
+  held: number
+  rejected: number
+  imported: number
+}> {
+  const [active, held, rejected, imported] = await Promise.all([
+    listArticleCandidates({ statuses: ['new', 'approved'], limit: 150 }),
+    listArticleCandidates({ statuses: ['shortlisted'], limit: 150 }),
+    listArticleCandidates({ statuses: ['rejected'], limit: 150 }),
+    listArticleCandidates({ statuses: ['imported'], limit: 150 }),
+  ])
+
+  return {
+    totalActive: active.length,
+    topPicks: active.filter(candidate => candidate.score >= 75).length,
+    held: held.length,
+    rejected: rejected.length,
+    imported: imported.length,
+  }
+}
+
 export async function upsertArticleCandidates(candidates: NormalizedArticleCandidate[]): Promise<ArticleCandidate[]> {
   if (candidates.length === 0) return []
   const rows = candidates.map(toRow)
