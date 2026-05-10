@@ -5,6 +5,7 @@ import type { DailyRunStep } from '@/lib/admin-readiness'
 import { CandidateTriage } from './_candidate-triage'
 import { DraftSplitEditor } from './_draft-split-editor'
 import { PublishChecks } from './_publish-checks'
+import { SecondaryAdminTabs } from './_secondary-admin-tabs'
 import { TodayRunStatus, type TodayStatusPayload } from './_today-run-status'
 
 type AdminMode = 'guided' | 'full'
@@ -196,12 +197,7 @@ export function DailyRunShell({
           </button>
         </div>
 
-        {mode === 'full' && (
-          <PlaceholderSection
-            title="Secondary areas"
-            note="Issue Desk, Future Queue, Health, and Settings are organized in a later task."
-          />
-        )}
+        {mode === 'full' && <SecondaryAdminTabs password={password} />}
       </main>
     </div>
   )
