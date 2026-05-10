@@ -68,3 +68,19 @@
 - `/api/append-to-issue` now checks the last 90 days of issue titles before appending articles or events.
 - Add-to-issue admin surfaces now show "Issue memory warning" with matched title, issue reference, shared signals, and an explicit add-anyway override.
 - Verification passed: issue-memory/title tests, ESLint, and production build.
+
+# Task: Replace Admin Page With Daily Run Shell
+
+- [x] Create the status summary component backed by `/api/admin/today-status`.
+- [x] Create the guided/full daily run shell with temporary placeholder sections.
+- [x] Simplify the authenticated admin page branch to render the new shell.
+- [x] Verify lint and the targeted admin-readiness tests.
+- [x] Smoke `/admin` locally without mutating data.
+- [x] Self-review owned-file changes and commit locally.
+
+## Review
+
+- Added `_today-run-status.tsx` for the Task 2 status payload, including optional candidate inbox errors.
+- Added `_daily-run-shell.tsx` with guided/full modes, daily step navigation, status reloads, and placeholder areas for later tasks.
+- Simplified `app/admin/page.tsx` so auth/session storage remains in place and the authed branch renders `DailyRunShell`.
+- Verification passed: `npm run lint`, `npm run test -- tests/lib/admin-readiness.test.ts`, `npx tsc --noEmit`, and a read-only local `/admin` plus `/api/admin/today-status` smoke check on port 3034.
