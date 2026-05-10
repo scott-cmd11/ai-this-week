@@ -17,11 +17,13 @@ export function PublishChecks({
   status,
   onPublished,
   forcePublishView = false,
+  statusRefreshing = false,
 }: {
   password: string
   status: TodayStatusPayload
   onPublished: () => void
   forcePublishView?: boolean
+  statusRefreshing?: boolean
 }) {
   const [warningsAcknowledged, setWarningsAcknowledged] = useState(false)
   const [publishing, setPublishing] = useState(false)
@@ -34,14 +36,23 @@ export function PublishChecks({
   const hasBlockers = blockers.length > 0
   const hasWarnings = warnings.length > 0
   const requiresWarningAcknowledgement = hasWarnings && !hasBlockers
+  const checksFingerprint = useMemo(
+    () =>
+      [...blockers, ...warnings]
+        .map(item => `${item.severity}:${item.code}:${item.count}:${item.label}`)
+        .sort()
+        .join('|'),
+    [blockers, warnings],
+  )
 
   useEffect(() => {
     setWarningsAcknowledged(false)
     setError(null)
     setMessage(null)
-  }, [draft.issueId, draft.published, blockers.length, warnings.length])
+  }, [checksFingerprint, draft.issueId, draft.published])
 
   const disabledReason = useMemo(() => {
+    if (statusRefreshing) return 'Refreshing publish checks...'
     if (publishing) return 'Publishing issue...'
     if (!draft.exists) return 'No draft is available to publish.'
     if (draft.published) return 'This issue is already published.'
@@ -57,6 +68,7 @@ export function PublishChecks({
     hasBlockers,
     publishing,
     requiresWarningAcknowledgement,
+    statusRefreshing,
     warningsAcknowledged,
   ])
 
@@ -66,6 +78,7 @@ export function PublishChecks({
       !draft.published &&
       !hasBlockers &&
       (!hasWarnings || warningsAcknowledged) &&
+      !statusRefreshing &&
       !publishing,
   )
 

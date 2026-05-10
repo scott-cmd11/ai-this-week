@@ -160,7 +160,7 @@ export function DailyRunShell({
           </section>
         )}
 
-        {status && renderActiveStep(activeStep, status, password, handlePrimaryAction, () => void loadStatus())}
+        {status && renderActiveStep(activeStep, status, password, statusLoading, handlePrimaryAction, () => void loadStatus())}
 
         <div className="flex flex-col-reverse gap-3 border-t border-ws-border pt-4 sm:flex-row sm:items-center sm:justify-between">
           <button
@@ -196,6 +196,7 @@ function renderActiveStep(
   activeStep: DailyRunStep,
   status: TodayStatusPayload,
   password: string,
+  statusRefreshing: boolean,
   onPrimaryAction: () => void,
   onChanged: () => void,
 ) {
@@ -224,11 +225,19 @@ function renderActiveStep(
   }
 
   if (activeStep === 'check') {
-    return <PublishChecks password={password} status={status} onPublished={onChanged} />
+    return <PublishChecks password={password} status={status} onPublished={onChanged} statusRefreshing={statusRefreshing} />
   }
 
   if (activeStep === 'publish') {
-    return <PublishChecks password={password} status={status} onPublished={onChanged} forcePublishView />
+    return (
+      <PublishChecks
+        password={password}
+        status={status}
+        onPublished={onChanged}
+        forcePublishView
+        statusRefreshing={statusRefreshing}
+      />
+    )
   }
 
   return (
