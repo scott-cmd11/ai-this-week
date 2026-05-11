@@ -173,7 +173,7 @@ function deriveKeyDevelopments(articles: IssueDigestArticle[]): string[] {
     const sectionKey = article.section.toLowerCase()
     if (sectionKey && usedSections.has(sectionKey) && selected.length < 2) continue
 
-    const development = firstSentence(article.summary) || article.title
+    const development = chooseDevelopmentText(article)
     if (!development) continue
 
     selected.push(ensureSentence(shorten(development, 155)))
@@ -246,7 +246,7 @@ function chooseImplication(topicIds: string[]) {
 function articleScore(article: IssueDigestArticle) {
   const text = `${article.section} ${article.title} ${article.summary}`
   const topicHits = TOPIC_SIGNALS.reduce((score, signal) => score + (signal.pattern.test(text) ? 1 : 0), 0)
-  return topicHits + (article.summary ? 1 : 0)
+  return topicHits + (article.summary ? 1 : 0) - (isWeakDevelopmentText(article.summary) ? 3 : 0)
 }
 
 function cleanText(text: string) {
@@ -264,6 +264,32 @@ function isMetadataLine(text: string) {
 function firstSentence(text: string) {
   const match = cleanText(text).match(/^(.+?[.!?])(\s|$)/)
   return match?.[1]?.trim() || cleanText(text)
+}
+
+function chooseDevelopmentText(article: IssueDigestArticle) {
+  const summary = firstSentence(article.summary)
+  if (summary && !isWeakDevelopmentText(summary)) return summary
+  if (article.title && !isWeakDevelopmentText(article.title)) return article.title
+  return ''
+}
+
+function isWeakDevelopmentText(text: string) {
+  const lower = cleanText(text).toLowerCase()
+  if (!lower) return true
+  if (lower.split(/\s+/).length <= 3 && !hasActionVerb(lower)) return true
+  return (
+    lower.startsWith('welcome to ') ||
+    lower.includes('newsletter about') ||
+    lower.includes('subscribe to') ||
+    lower === 'read more' ||
+    lower === 'blog' ||
+    lower === 'archive' ||
+    /^https?:\/\//.test(lower)
+  )
+}
+
+function hasActionVerb(text: string) {
+  return /\b(adds?|announces?|approves?|blocks?|builds?|compares?|expands?|finds?|launches?|measures?|plans?|publishes?|releases?|reports?|reviews?|shows?|tests?|uses?|warns?)\b/i.test(text)
 }
 
 function shorten(text: string, maxLength: number) {

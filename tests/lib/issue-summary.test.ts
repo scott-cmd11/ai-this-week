@@ -28,6 +28,8 @@ describe('deriveIssueSummary', () => {
       block('heading_3', 'AI governance programme expands public-sector testing'),
       block('paragraph', 'Public agencies get a clearer way to test AI systems before they are used in live services.'),
       block('heading_2', 'Research'),
+      block('heading_3', 'Import AI'),
+      block('paragraph', 'Welcome to Import AI, a newsletter about AI research.'),
       block('heading_3', 'New model evaluation study measures reliability risks'),
       block('paragraph', 'Researchers compare model reliability across tasks that affect safety and adoption.'),
       block('heading_2', 'Upcoming'),
@@ -35,7 +37,7 @@ describe('deriveIssueSummary', () => {
       block('paragraph', 'When: June 1'),
     ], { issueNumber: 11 })
 
-    expect(digest.storyCount).toBe(2)
+    expect(digest.storyCount).toBe(3)
     expect(digest.keyDevelopments).toEqual([
       'Public agencies get a clearer way to test AI systems before they are used in live services.',
       'Researchers compare model reliability across tasks that affect safety and adoption.',
