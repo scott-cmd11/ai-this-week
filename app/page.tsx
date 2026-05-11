@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { getPublishedIssues } from '@/lib/issue-store'
+import { getIssueBlocks, getPublishedIssues } from '@/lib/issue-store'
+import { deriveIssueSummary } from '@/lib/issue-summary'
 import { issueDisplayTitle, nonBreakingDate } from '@/lib/title'
 import { SignalLedger } from '@/components/SignalLedger'
 
@@ -22,6 +23,8 @@ export default async function HomePage() {
   const issues = await getPublishedIssues()
   const [latest, ...allPast] = issues
   const past = allPast.slice(0, 6)
+  const latestBlocks = latest ? await getIssueBlocks(latest.id) : []
+  const latestSummary = latest ? (latest.summary || deriveIssueSummary(latestBlocks, latest)) : ''
 
   return (
     <>
@@ -71,9 +74,9 @@ export default async function HomePage() {
               </h2>
             </Link>
 
-            {latest.summary && (
+            {latestSummary && (
               <p className="mt-5 max-w-3xl text-[18px] leading-[1.6] text-ws-muted">
-                {latest.summary}
+                {latestSummary}
               </p>
             )}
 

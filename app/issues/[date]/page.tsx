@@ -20,6 +20,7 @@ import { SignalLedger } from '@/components/SignalLedger'
 import { estimateReadingTime } from '@/lib/reading-time'
 import { blocksToMarkdown } from '@/lib/to-markdown'
 import { publicIssueBlocks } from '@/lib/issue-block-filter'
+import { deriveIssueSummary } from '@/lib/issue-summary'
 import { SITE_URL } from '@/lib/site'
 
 export const revalidate = 300
@@ -39,11 +40,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const issue = await getIssueByDate(date)
   if (!issue) return {}
   const title = `${issueDisplayTitle(issue.title)} | AI Today`
+  const blocks = publicIssueBlocks(await getIssueBlocks(issue.id))
+  const description = issue.summary || deriveIssueSummary(blocks, issue)
   return {
     title: {
       absolute: title,
     },
-    description: issue.summary,
+    description,
     alternates: {
       canonical: `/issues/${issue.slug}`,
     },
@@ -51,14 +54,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: 'article',
       url: `/issues/${issue.slug}`,
       title,
-      description: issue.summary,
+      description,
       publishedTime: new Date(issue.issueDate + 'T12:00:00Z').toISOString(),
       images: [`/issues/${issue.slug}/opengraph-image`],
     },
     twitter: {
       card: 'summary_large_image',
       title,
-      description: issue.summary,
+      description,
       images: [`/issues/${issue.slug}/opengraph-image`],
     },
   }
@@ -78,6 +81,7 @@ export default async function IssuePage({ params }: Props) {
   const markdown = blocksToMarkdown(issue.title, blocks)
   const issueStats = getIssueStats(blocks)
   const visibleIssueTitle = issueDisplayTitle(issue.title)
+  const issueSummary = issue.summary || deriveIssueSummary(blocks, issue)
 
   const tocEntries = blocks
     .filter(b => b.type === 'heading_2' && b.headingId && b.content)
@@ -119,9 +123,9 @@ export default async function IssuePage({ params }: Props) {
 
             <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
               <div>
-                {issue.summary && (
+                {issueSummary && (
                   <p className="max-w-4xl text-[20px] leading-[1.55] text-ws-muted sm:text-[24px]">
-                    {issue.summary}
+                    {issueSummary}
                   </p>
                 )}
                 {issue.aiAssisted && (

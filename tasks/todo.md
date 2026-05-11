@@ -122,3 +122,18 @@
 - Follow-up review tightened the publish path so `/api/publish-issue` recalculates readiness server-side, blocks unresolved blockers, and requires a current warning acknowledgement fingerprint before publishing.
 - The status API now uses the same readiness calculation as publishing, so duplicate URLs, stale sources, weak titles, broken URLs, missing summaries, and missing images cannot drift between the admin view and the final publish action.
 - Final review found one parity gap: publish also needed the same candidate and automation warning snapshot as the admin status screen. That snapshot is now shared by both routes.
+
+# Task: Add Issue Summary Fallback
+
+- [x] Add a reusable summary fallback based on issue sections and article titles.
+- [x] Use the fallback on the homepage latest issue card.
+- [x] Use the fallback on issue detail pages and metadata.
+- [x] Add focused tests for the summary fallback.
+- [x] Verify lint, tests, and production build.
+
+## Review
+
+- Added `deriveIssueSummary` so a published issue still gets summary copy when the stored summary field is blank.
+- Homepage and issue pages now prefer the saved editorial summary, then fall back to the derived summary.
+- Verification passed: focused summary test, full Vitest suite, ESLint, and production build.
+- Local pre-render still cannot show live issues because the local Supabase env values are blank; live verification must happen against the deployed Vercel environment.
