@@ -245,7 +245,7 @@ export function AddToIssue({ password }: { password: string }) {
   }
 
   return (
-    <section id="add-to-issue" className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-5">
+    <section id="add-to-issue" className="admin-panel flex flex-col gap-5 bg-ws-white p-4 sm:p-5">
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] md:items-start">
         <div>
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Add to issue</p>
@@ -257,7 +257,7 @@ export function AddToIssue({ password }: { password: string }) {
           </p>
         </div>
 
-        <div className="border border-ws-black/15 bg-ws-page p-3">
+        <div className="rounded-[0.65rem] border border-ws-border bg-ws-page/70 p-3">
           <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-black/50">Use this when</p>
           <ul className="mt-2 flex flex-col gap-1.5 text-[12px] leading-snug text-ws-black/65">
             <li>You find one more source for an already drafted issue.</li>
@@ -270,17 +270,17 @@ export function AddToIssue({ password }: { password: string }) {
       {success && <p className="border border-ws-black/15 bg-ws-page px-3 py-2 text-[13px] font-bold">{success}</p>}
       {error && <p className="border border-red-300 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-700">{error}</p>}
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
         <div>
           <span className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">Destination</span>
-          <div className="grid grid-cols-2 border border-ws-black/30">
+          <div className="admin-segmented grid grid-cols-2">
             {(['existing', 'date'] as DestinationMode[]).map(option => (
               <button
                 key={option}
                 type="button"
                 onClick={() => { setDestinationMode(option); setError(null); setSuccess(null) }}
-                className={`px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] ${
-                  destinationMode === option ? 'bg-ws-black text-ws-white' : 'bg-ws-page text-ws-black hover:bg-ws-white'
+                className={`rounded-[0.5rem] px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] transition-colors ${
+                  destinationMode === option ? 'bg-ws-black text-ws-white' : 'bg-transparent text-ws-black/65 hover:bg-ws-white hover:text-ws-black'
                 }`}
               >
                 {option === 'existing' ? 'Existing issue' : 'Issue date'}
@@ -291,14 +291,14 @@ export function AddToIssue({ password }: { password: string }) {
 
         <div>
           <span className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">Item type</span>
-          <div className="grid grid-cols-2 border border-ws-black/30">
+          <div className="admin-segmented grid grid-cols-2">
             {(['article', 'event'] as ItemType[]).map(option => (
               <button
                 key={option}
                 type="button"
                 onClick={() => { setType(option); resetItemFields() }}
-                className={`px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] ${
-                  type === option ? 'bg-ws-black text-ws-white' : 'bg-ws-page text-ws-black hover:bg-ws-white'
+                className={`rounded-[0.5rem] px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] transition-colors ${
+                  type === option ? 'bg-ws-black text-ws-white' : 'bg-transparent text-ws-black/65 hover:bg-ws-white hover:text-ws-black'
                 }`}
               >
                 {option === 'article' ? 'Article' : 'Event'}
@@ -427,7 +427,7 @@ export function AddToIssue({ password }: { password: string }) {
             type="button"
             onClick={extractEvent}
             disabled={extracting || submitting || !url.trim().startsWith('http')}
-            className="self-start border border-ws-black/30 bg-ws-page px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-black hover:text-ws-white disabled:opacity-40 disabled:cursor-not-allowed"
+            className="admin-button-secondary self-start px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {extracting ? 'Extracting...' : 'Extract details'}
           </button>
@@ -461,7 +461,7 @@ export function AddToIssue({ password }: { password: string }) {
               type="button"
               onClick={() => submit(true)}
               disabled={submitting}
-              className="border border-ws-black bg-ws-accent text-ws-white px-3 py-1.5 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
+              className="admin-button-primary px-3 py-1.5 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
             >
               Add anyway
             </button>
@@ -504,7 +504,7 @@ export function AddToIssue({ password }: { password: string }) {
               type="button"
               onClick={() => submit(true)}
               disabled={submitting}
-              className="border border-ws-black bg-ws-accent text-ws-white px-3 py-1.5 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
+              className="admin-button-primary px-3 py-1.5 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
             >
               Add anyway
             </button>
@@ -524,7 +524,7 @@ export function AddToIssue({ password }: { password: string }) {
           type="button"
           onClick={() => submit(false, true)}
           disabled={submitting}
-          className="self-start border border-ws-black bg-ws-page px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-black hover:text-ws-white disabled:opacity-50"
+          className="admin-button-secondary self-start px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
         >
           Add with older-date override
         </button>
@@ -534,7 +534,7 @@ export function AddToIssue({ password }: { password: string }) {
         type="button"
         onClick={() => submit(false)}
         disabled={submitting || loadingIssues || !canSubmit || !url.trim() || !!duplicate || memoryWarnings.length > 0 || staleBlocked}
-        className="self-start bg-ws-black text-ws-white px-5 py-3 text-[13px] font-black uppercase tracking-[0.08em] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed"
+        className="admin-button-primary self-start px-5 py-3 text-[13px] font-black uppercase tracking-[0.08em] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {submitting ? 'Adding...' : `Add ${type} to issue`}
       </button>

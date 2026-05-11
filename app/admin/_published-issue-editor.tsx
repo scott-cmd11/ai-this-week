@@ -98,7 +98,7 @@ export function PublishedIssueEditor({ password }: { password: string }) {
   }, [items])
 
   return (
-    <section className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)] flex flex-col gap-6">
+    <section className="admin-panel flex flex-col gap-5 bg-ws-white p-4 sm:p-5">
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] md:items-start">
         <div>
           <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Edit a published issue</p>
@@ -110,7 +110,7 @@ export function PublishedIssueEditor({ password }: { password: string }) {
           </p>
         </div>
 
-        <div className="border border-ws-black/15 bg-ws-page p-3">
+        <div className="rounded-[0.65rem] border border-ws-border bg-ws-page/70 p-3">
           <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-black/50">Live edit rules</p>
           <ul className="mt-2 flex flex-col gap-1.5 text-[12px] leading-snug text-ws-black/65">
             <li>Use draft review for today&apos;s unpublished issue.</li>
@@ -146,7 +146,7 @@ export function PublishedIssueEditor({ password }: { password: string }) {
             type="button"
             onClick={() => refreshItems()}
             disabled={loadingItems || !issueId}
-            className="border border-ws-black/30 bg-ws-page px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-black hover:text-ws-white disabled:opacity-40 disabled:cursor-not-allowed"
+            className="admin-button-secondary px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loadingItems ? 'Refreshing...' : 'Refresh'}
           </button>
@@ -155,7 +155,7 @@ export function PublishedIssueEditor({ password }: { password: string }) {
               href={publicPath}
               target="_blank"
               rel="noopener noreferrer"
-              className="border border-ws-black/30 bg-ws-page px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-black hover:text-ws-white"
+              className="admin-button-secondary px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em]"
             >
               View public issue
             </a>
@@ -166,7 +166,7 @@ export function PublishedIssueEditor({ password }: { password: string }) {
       {error && <p className="border border-red-300 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-700">{error}</p>}
 
       <div className="flex flex-col gap-4">
-        <div className="flex items-baseline justify-between gap-3 border-b-[2px] border-ws-black pb-2">
+        <div className="flex items-baseline justify-between gap-3 border-b border-ws-border pb-2">
           <div>
             <p className="text-[12px] font-black uppercase tracking-[0.12em] text-ws-black/70">Existing live items</p>
             <p className="mt-1 text-[12px] text-ws-black/50">
@@ -187,8 +187,8 @@ export function PublishedIssueEditor({ password }: { password: string }) {
         )}
 
         {!loadingItems && groupedItems.map(([section, sectionItems]) => (
-          <section key={section} className="border border-ws-black/15">
-            <div className="flex items-baseline justify-between gap-3 bg-ws-page px-3 py-2 border-b border-ws-black/15">
+          <section key={section} className="overflow-hidden rounded-[0.65rem] border border-ws-border">
+            <div className="flex items-baseline justify-between gap-3 border-b border-ws-border bg-ws-page/70 px-3 py-2">
               <p className="text-[12px] font-black uppercase tracking-[0.1em]">{section}</p>
               <p className="text-[11px] text-ws-black/45">{sectionItems.length} item{sectionItems.length === 1 ? '' : 's'}</p>
             </div>
@@ -208,7 +208,7 @@ export function PublishedIssueEditor({ password }: { password: string }) {
         ))}
       </div>
 
-      <div className="border-t-[2px] border-ws-black pt-5">
+      <div className="border-t border-ws-border pt-5">
         <AppendToPublishedIssue
           password={password}
           defaultOpen
@@ -364,7 +364,7 @@ function EditableItemRow({
             type="button"
             onClick={save}
             disabled={saving || removing || !changed || !title.trim()}
-            className="bg-ws-black text-ws-white px-4 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed"
+            className="admin-button-primary px-4 py-2 text-[12px] font-black uppercase tracking-[0.08em] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {saving ? 'Saving...' : 'Save edit'}
           </button>

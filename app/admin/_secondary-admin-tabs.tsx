@@ -20,12 +20,12 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
   const [legacyImportOpen, setLegacyImportOpen] = useState(false)
 
   return (
-    <section className="border-[3px] border-ws-black bg-ws-white shadow-[4px_4px_0_0_var(--color-ws-black)]">
-      <header className="border-b-[3px] border-ws-black p-5">
+    <section className="admin-panel overflow-hidden bg-ws-white">
+      <header className="border-b border-ws-border p-4 sm:p-5">
         <p className="text-[12px] font-black uppercase tracking-[0.16em] text-ws-black/55">Secondary areas</p>
         <div className="mt-2 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="font-[family-name:var(--font-display)] text-[40px] font-black leading-none tracking-tight">
+            <h2 className="font-[family-name:var(--font-display)] text-[34px] font-black leading-none tracking-tight sm:text-[40px]">
               Full desk
             </h2>
             <p className="mt-2 max-w-3xl text-[15px] leading-[1.55] text-ws-black/65">
@@ -36,15 +36,15 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
         </div>
       </header>
 
-      <div className="overflow-x-auto border-b-[2px] border-ws-black bg-ws-page" aria-label="Secondary admin areas">
-        <div className="flex min-w-max">
+      <div className="overflow-x-auto border-b border-ws-border bg-ws-page/70 p-1.5" aria-label="Secondary admin areas">
+        <div className="flex min-w-max gap-1">
           {TABS.map(tab => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`border-r-[2px] border-ws-black px-4 py-3 text-left text-[12px] font-black uppercase tracking-[0.08em] ${
-                activeTab === tab.key ? 'bg-ws-accent text-white' : 'bg-ws-white text-ws-black hover:bg-ws-accent-light/40'
+              className={`rounded-[0.55rem] px-4 py-2.5 text-left text-[12px] font-black uppercase tracking-[0.08em] transition-colors ${
+                activeTab === tab.key ? 'bg-ws-accent text-white' : 'bg-transparent text-ws-black/65 hover:bg-ws-white hover:text-ws-black'
               }`}
             >
               {tab.label}
@@ -53,7 +53,7 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-5 p-5">
+      <div className="flex flex-col gap-4 p-4 sm:p-5">
         {activeTab === 'issue-desk' && (
           <>
             <AddToIssue password={password} />
@@ -81,7 +81,7 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
           <>
             <CaptureSettings />
 
-            <div className="border-[3px] border-dashed border-ws-black bg-ws-page">
+            <div className="rounded-[0.75rem] border border-dashed border-ws-border bg-ws-page">
               <button
                 type="button"
                 onClick={() => setLegacyImportOpen(open => !open)}
@@ -98,7 +98,7 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
               </button>
 
               {legacyImportOpen && (
-                <div className="border-t-[2px] border-ws-black p-5">
+                <div className="border-t border-ws-border p-5">
                   <BriefingImport password={password} />
                 </div>
               )}
@@ -120,7 +120,7 @@ function SecondaryNote({
   body: string
 }) {
   return (
-    <div className="border-[3px] border-dashed border-ws-black bg-ws-page p-5">
+    <div className="rounded-[0.75rem] border border-dashed border-ws-border bg-ws-page p-5">
       <p className="text-[12px] font-black uppercase tracking-[0.14em] text-ws-black/55">{eyebrow}</p>
       <h3 className="mt-2 font-[family-name:var(--font-display)] text-[34px] font-black leading-none tracking-tight">
         {title}
