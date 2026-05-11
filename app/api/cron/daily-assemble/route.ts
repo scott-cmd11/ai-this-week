@@ -13,6 +13,7 @@ import { fetchResearchPapersForDate } from '@/lib/research-papers'
 import { issueDateFor } from '@/lib/issue-date'
 import { chooseSourceTitle } from '@/lib/title-quality'
 import { findSubjectDuplicate } from '@/lib/article-dedupe'
+import { fetchAiVoicesArticles } from '@/lib/ai-voices-direct'
 
 type SourceType = 'page' | 'database'
 
@@ -33,6 +34,15 @@ interface AssembleResult {
   skippedInvalid: number
   skippedStale: number
   error?: string
+}
+
+interface AssemblyArticle {
+  title: string
+  summary: string
+  url: string
+  category: string
+  publishedDate?: string | null
+  maxAgeDays?: number
 }
 
 export async function GET(request: NextRequest) {
@@ -137,7 +147,7 @@ async function assemble(
       result.briefingTitle = briefingPage.title
       const blocks = await fetchAllBlocks(notion, briefingPage.id)
       const briefing = parseBriefingBlocks(blocks)
-      const articles = briefing.sections.flatMap(section => {
+      let articles: AssemblyArticle[] = briefing.sections.flatMap(section => {
         const category = categorize(source.label, section.name)
         return section.articles.map(article => ({
           title: article.title,
@@ -150,6 +160,21 @@ async function assemble(
         const br = categoryRank.get(b.category) ?? Number.MAX_SAFE_INTEGER
         return ar - br
       })
+
+      if (shouldUseAiVoicesFallback(source.label, briefingPage.title) && articles.length < 8) {
+        const directArticles = await fetchAiVoicesArticles(date, 12)
+        articles = mergeAssemblyArticles([...articles, ...directArticles.map(article => ({
+          title: article.title,
+          summary: article.summary,
+          url: article.url,
+          category: article.category,
+          publishedDate: article.publishedDate,
+          maxAgeDays: article.maxAgeDays,
+        }))])
+        if (directArticles.length > 0) {
+          result.briefingTitle = `${result.briefingTitle} + direct AI voices feed fallback`
+        }
+      }
 
       result.parsed = articles.length
       parsedTotal += articles.length
@@ -172,7 +197,8 @@ async function assemble(
 
         const meta = await fetchArticleMeta(article.url)
         const resolvedTitle = chooseSourceTitle(article.title?.trim() || article.url, meta.title).title
-        if (!isPublishedDateFreshForIssue(meta.publishedDate, date)) {
+        const publishedDate = meta.publishedDate ?? article.publishedDate ?? null
+        if (!isPublishedDateFreshForIssue(publishedDate, date, article.maxAgeDays)) {
           result.skippedStale++
           continue
         }
@@ -193,7 +219,7 @@ async function assemble(
             title: resolvedTitle,
             annotation,
             url: article.url,
-            publishedDate: meta.publishedDate,
+            publishedDate,
             imageUrl: meta.imageUrl,
             category: article.category,
           }
@@ -313,6 +339,23 @@ function parseSourcesEnv(raw: string | undefined): SourceConfig[] {
   } catch {
     return []
   }
+}
+
+function shouldUseAiVoicesFallback(sourceLabel: string, briefingTitle: string | null): boolean {
+  const text = `${sourceLabel} ${briefingTitle ?? ''}`.toLowerCase()
+  return text.includes('daily news') || text.includes('ai voices') || text.includes('research digest')
+}
+
+function mergeAssemblyArticles(articles: AssemblyArticle[]): AssemblyArticle[] {
+  const seen = new Set<string>()
+  const merged: AssemblyArticle[] = []
+  for (const article of articles) {
+    const normalized = normalizeUrl(article.url)
+    if (!normalized || seen.has(normalized)) continue
+    seen.add(normalized)
+    merged.push(article)
+  }
+  return merged
 }
 
 async function findPageBriefingForDate(
