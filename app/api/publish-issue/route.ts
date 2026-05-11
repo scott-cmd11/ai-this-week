@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { adminChecksFingerprint } from '@/lib/admin-readiness'
 import { buildIssueReadiness, getAdminRunSummaries } from '@/lib/admin-issue-readiness'
 import { getIssueBlocks, getIssueById, publishIssue } from '@/lib/issue-store'
+import { buildIssuePublishSummary } from '@/lib/issue-publish-summary'
 
 export async function POST(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
@@ -73,7 +74,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const issue = await publishIssue(body.pageId)
+    const summary = await buildIssuePublishSummary(draft, blocks)
+    const issue = await publishIssue(body.pageId, { summary })
     revalidatePath('/', 'layout')
     return NextResponse.json({ ok: true, issue })
   } catch (err) {

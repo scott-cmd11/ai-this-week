@@ -137,3 +137,20 @@
 - Homepage and issue pages now prefer the saved editorial summary, then fall back to the derived summary.
 - Verification passed: focused summary test, full Vitest suite, ESLint, and production build.
 - Local pre-render still cannot show live issues because the local Supabase env values are blank; live verification must happen against the deployed Vercel environment.
+
+# Task: Homepage Editorial Polish
+
+- [x] Convert the latest issue area into an editorial feature block.
+- [x] Add derived key developments beneath the issue hook.
+- [x] Collapse previous issues behind a native archive drawer.
+- [x] Generate/save stronger issue hooks during manual and scheduled publish.
+- [x] Carry derived summaries into issue metadata, RSS, and JSON-LD fallbacks.
+- [x] Verify focused summary tests, full test suite, lint, and production build.
+
+## Review
+
+- Latest issue now presents the date, an editorial hook, key developments, and a compact issue file instead of a flat ledger.
+- Previous issues are collapsed by default with the full archive link still visible.
+- Issue summary fallback now looks at titles plus article summaries to identify the main theme.
+- Manual publish and scheduled publish now save an AI-generated issue hook when the issue has no saved summary, with the deterministic fallback as backup.
+- Verification passed: `npm test -- tests/lib/issue-summary.test.ts`, `npm test`, `npm run lint`, and `npm run build`.

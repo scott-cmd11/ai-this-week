@@ -3,13 +3,14 @@ import type { Issue } from '@/lib/types'
 interface Props {
   issue: Issue
   baseUrl: string
+  description?: string
 }
 
 /**
  * Emits a NewsArticle JSON-LD block for SEO. Enables Google rich-results
  * (date, image, publisher) on search result pages.
  */
-export function ArticleJsonLd({ issue, baseUrl }: Props) {
+export function ArticleJsonLd({ issue, baseUrl, description }: Props) {
   const url = `${baseUrl}/issues/${issue.slug}`
   const imageUrl = `${url}/opengraph-image`
   const isoDate = new Date(issue.issueDate + 'T12:00:00Z').toISOString()
@@ -18,7 +19,7 @@ export function ArticleJsonLd({ issue, baseUrl }: Props) {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: issue.title,
-    description: issue.summary || undefined,
+    description: description || issue.summary || undefined,
     datePublished: isoDate,
     dateModified: isoDate,
     url,

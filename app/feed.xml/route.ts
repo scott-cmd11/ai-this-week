@@ -1,4 +1,5 @@
-import { getPublishedIssues } from '@/lib/issue-store'
+import { getIssueBlocks, getPublishedIssues } from '@/lib/issue-store'
+import { deriveIssueSummary } from '@/lib/issue-summary'
 import { SITE_URL } from '@/lib/site'
 
 function escapeXml(str: string): string {
@@ -18,11 +19,11 @@ function isoToRfc2822(isoDate: string): string {
 export async function GET() {
   const issues = await getPublishedIssues()
 
-  const items = issues
-    .map(issue => {
+  const itemEntries = await Promise.all(issues.map(async issue => {
       const link = `${SITE_URL}/issues/${issue.slug}`
       const pubDate = isoToRfc2822(issue.issueDate)
-      const description = issue.summary ? escapeXml(issue.summary) : ''
+      const descriptionText = issue.summary || deriveIssueSummary(await getIssueBlocks(issue.id), issue)
+      const description = descriptionText ? escapeXml(descriptionText) : ''
       return `
     <item>
       <title>${escapeXml(issue.title)}</title>
@@ -31,8 +32,8 @@ export async function GET() {
       <pubDate>${pubDate}</pubDate>
       ${description ? `<description>${description}</description>` : ''}
     </item>`
-    })
-    .join('')
+  }))
+  const items = itemEntries.join('')
 
   const lastBuildDate = issues.length > 0 ? isoToRfc2822(issues[0].issueDate) : new Date().toUTCString()
 

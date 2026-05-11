@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { issueDateFor } from '@/lib/issue-date'
 import { getIssueBlocks, getIssueByDate, publishIssue } from '@/lib/issue-store'
+import { buildIssuePublishSummary } from '@/lib/issue-publish-summary'
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
@@ -26,7 +27,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ skipped: true, reason: 'empty' })
     }
 
-    await publishIssue(draft.id)
+    const summary = await buildIssuePublishSummary(draft, blocks)
+    await publishIssue(draft.id, { summary })
     revalidatePath('/', 'layout')
 
     return NextResponse.json({

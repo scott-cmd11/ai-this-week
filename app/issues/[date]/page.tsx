@@ -92,7 +92,7 @@ export default async function IssuePage({ params }: Props) {
 
   return (
     <>
-      <ArticleJsonLd issue={issue} baseUrl={SITE_URL} />
+      <ArticleJsonLd issue={issue} baseUrl={SITE_URL} description={issueSummary} />
 
       <div className="xl:flex xl:gap-12 xl:items-start">
         <article aria-label={visibleIssueTitle} className="min-w-0 flex-1">

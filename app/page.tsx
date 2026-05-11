@@ -2,9 +2,8 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getIssueBlocks, getPublishedIssues } from '@/lib/issue-store'
-import { deriveIssueSummary } from '@/lib/issue-summary'
+import { deriveIssueDigest } from '@/lib/issue-summary'
 import { issueDisplayTitle, nonBreakingDate } from '@/lib/title'
-import { SignalLedger } from '@/components/SignalLedger'
 
 export const revalidate = 300
 
@@ -24,7 +23,9 @@ export default async function HomePage() {
   const [latest, ...allPast] = issues
   const past = allPast.slice(0, 6)
   const latestBlocks = latest ? await getIssueBlocks(latest.id) : []
-  const latestSummary = latest ? (latest.summary || deriveIssueSummary(latestBlocks, latest)) : ''
+  const latestDigest = latest ? deriveIssueDigest(latestBlocks, latest) : null
+  const latestSummary = latest ? (latest.summary || latestDigest?.summary || '') : ''
+  const latestDevelopments = latestDigest?.keyDevelopments ?? []
 
   return (
     <>
@@ -59,42 +60,82 @@ export default async function HomePage() {
       </section>
 
       {latest && (
-        <section aria-label="Latest issue" className="mb-12">
-          <article className="border-b border-ws-border pb-8">
-            <SignalLedger
-              items={[
-                { label: 'Latest published', value: `Issue ${latest.issueNumber}` },
-                { label: 'Editorial standard', value: 'Source-linked, AI-assisted, Canada-first.' },
-              ]}
-            />
+        <section aria-label="Latest issue" className="mb-14 border-y border-ws-black py-7">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+            <article>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                <p className="type-meta text-ws-accent">Latest published</p>
+                <p className="type-meta text-ws-muted">Issue {latest.issueNumber}</p>
+              </div>
 
-            <Link href={`/issues/${latest.slug}`} className="group no-underline">
-              <h2 className="mt-4 max-w-4xl font-[family-name:var(--font-display)] text-[clamp(2.75rem,7vw,5.75rem)] font-semibold leading-[0.94] text-ws-black group-hover:text-ws-accent">
-                {nonBreakingDate(issueDisplayTitle(latest.title))}
-              </h2>
-            </Link>
-
-            {latestSummary && (
-              <p className="mt-5 max-w-3xl text-[18px] leading-[1.6] text-ws-muted">
-                {latestSummary}
-              </p>
-            )}
-
-            <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
-              <Link
-                href={`/issues/${latest.slug}`}
-                className="type-button inline-flex border-b border-ws-accent pb-1 text-ws-accent no-underline hover:text-ws-accent-hover"
-              >
-                Open the issue
+              <Link href={`/issues/${latest.slug}`} className="group no-underline">
+                <h2 className="mt-4 max-w-4xl font-[family-name:var(--font-display)] text-[clamp(2.9rem,7.4vw,6.15rem)] font-semibold leading-[0.92] text-ws-black group-hover:text-ws-accent">
+                  {nonBreakingDate(issueDisplayTitle(latest.title))}
+                </h2>
               </Link>
-            </div>
-          </article>
+
+              {latestSummary && (
+                <p className="mt-5 max-w-4xl text-[clamp(1.18rem,2.2vw,1.72rem)] leading-[1.35] text-ws-black">
+                  {latestSummary}
+                </p>
+              )}
+
+              {latestDevelopments.length > 0 && (
+                <div className="mt-7 border-t border-ws-border pt-5">
+                  <p className="type-meta text-ws-accent">Key developments</p>
+                  <ol className="mt-4 grid list-none gap-4 p-0 sm:grid-cols-3">
+                    {latestDevelopments.map((development, index) => (
+                      <li key={`${index}-${development}`} className="border-t border-ws-border pt-3">
+                        <span className="type-meta text-ws-accent">{String(index + 1).padStart(2, '0')}</span>
+                        <p className="mt-2 text-[15px] leading-[1.55] text-ws-muted">
+                          {development}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
+                <Link
+                  href={`/issues/${latest.slug}`}
+                  className="type-button inline-flex border-b border-ws-accent pb-1 text-ws-accent no-underline hover:text-ws-accent-hover"
+                >
+                  Open the issue
+                </Link>
+              </div>
+            </article>
+
+            <aside aria-label="Latest issue file" className="border-t border-ws-border pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+              <p className="type-meta text-ws-accent">Issue file</p>
+              <dl className="mt-4 grid gap-0 divide-y divide-ws-border border-y border-ws-border">
+                <div className="py-3">
+                  <dt className="type-meta text-ws-muted">Stories</dt>
+                  <dd className="mt-1 font-[family-name:var(--font-display)] text-[2rem] font-semibold leading-none text-ws-black">
+                    {latestDigest?.storyCount ?? 0}
+                  </dd>
+                </div>
+                <div className="py-3">
+                  <dt className="type-meta text-ws-muted">Sections</dt>
+                  <dd className="mt-1 text-[15px] font-semibold leading-snug text-ws-black">
+                    {latestDigest?.sections.slice(0, 3).join(' / ') || 'Briefing'}
+                  </dd>
+                </div>
+                <div className="py-3">
+                  <dt className="type-meta text-ws-muted">Standard</dt>
+                  <dd className="mt-1 text-[15px] font-semibold leading-snug text-ws-black">
+                    Source-linked, AI-assisted, editor-reviewed.
+                  </dd>
+                </div>
+              </dl>
+            </aside>
+          </div>
         </section>
       )}
 
       {past.length > 0 && (
         <section aria-label="Past issues" className="border-t border-ws-black pt-6">
-          <div className="mb-5 flex items-end justify-between gap-4">
+          <div className="flex items-end justify-between gap-4">
             <div>
               <p className="type-meta text-ws-accent">Archive</p>
               <h2 className="mt-2 font-[family-name:var(--font-display)] text-[2.25rem] font-semibold leading-none text-ws-black">
@@ -106,21 +147,34 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <ul className="m-0 grid list-none divide-y divide-ws-border border-y border-ws-border p-0">
-            {past.map(issue => (
-              <li key={issue.id}>
-                <Link
-                  href={`/issues/${issue.slug}`}
-                  className="grid gap-2 py-4 no-underline transition-colors hover:bg-ws-white/60 sm:grid-cols-[90px_1fr] sm:items-baseline"
-                >
-                  <span className="type-meta text-ws-accent">#{issue.issueNumber}</span>
-                  <span className="font-[family-name:var(--font-display)] text-[1.35rem] font-semibold leading-tight text-ws-black">
-                    {nonBreakingDate(issueDisplayTitle(issue.title))}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <details className="group mt-5 border-y border-ws-border">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-ws-black hover:text-ws-accent [&::-webkit-details-marker]:hidden">
+              <span>
+                <span className="type-button block">Show previous issues</span>
+                <span className="mt-1 block text-[13px] leading-snug text-ws-muted">
+                  {past.length} recent editions are tucked away to keep the front page focused.
+                </span>
+              </span>
+              <span className="type-meta text-ws-accent group-open:hidden">Open</span>
+              <span className="type-meta hidden text-ws-accent group-open:inline">Close</span>
+            </summary>
+
+            <ul className="m-0 grid list-none divide-y divide-ws-border border-t border-ws-border p-0">
+              {past.map(issue => (
+                <li key={issue.id}>
+                  <Link
+                    href={`/issues/${issue.slug}`}
+                    className="grid gap-2 py-4 no-underline transition-colors hover:bg-ws-white/60 sm:grid-cols-[90px_1fr] sm:items-baseline"
+                  >
+                    <span className="type-meta text-ws-accent">#{issue.issueNumber}</span>
+                    <span className="font-[family-name:var(--font-display)] text-[1.35rem] font-semibold leading-tight text-ws-black">
+                      {nonBreakingDate(issueDisplayTitle(issue.title))}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
         </section>
       )}
 

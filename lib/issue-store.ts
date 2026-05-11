@@ -533,12 +533,22 @@ export async function captureEventToIssue(issueId: string, event: CaptureEventIn
   return appendEventToIssue(issue, event)
 }
 
-export async function publishIssue(issueId: string): Promise<Issue> {
+export async function publishIssue(issueId: string, options: { summary?: string } = {}): Promise<Issue> {
   const now = new Date().toISOString()
+  const body: {
+    published: boolean
+    published_at: string
+    updated_at: string
+    summary?: string
+  } = { published: true, published_at: now, updated_at: now }
+
+  const summary = options.summary?.trim()
+  if (summary) body.summary = summary
+
   const rows = await supabaseRequest<IssueRow[]>(`issues?id=eq.${encodeURIComponent(issueId)}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=representation' },
-    body: JSON.stringify({ published: true, published_at: now, updated_at: now }),
+    body: JSON.stringify(body),
   })
   if (!rows[0]) throw new Error('Issue not found.')
   return mapIssue(rows[0])
