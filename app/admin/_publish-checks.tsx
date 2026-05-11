@@ -106,14 +106,14 @@ export function PublishChecks({
   }
 
   return (
-    <section className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
+    <section className="admin-panel bg-ws-white p-5 sm:p-6">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
         <div>
-          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Publish readiness</p>
-          <h2 className="mt-2 font-[family-name:var(--font-display)] text-[40px] font-black leading-none tracking-tight">
+          <p className="admin-eyebrow">Publish readiness</p>
+          <h2 className="admin-page-title mt-2">
             Publish readiness
           </h2>
-          <p className="mt-3 max-w-3xl text-[15px] leading-[1.55] text-ws-black/65">
+          <p className="admin-copy mt-3 max-w-3xl">
             Blockers must be fixed before publishing. Warnings do not stop the run, but they need a human acknowledgement
             so the issue is not shipped by accident.
           </p>
@@ -124,7 +124,7 @@ export function PublishChecks({
           )}
         </div>
 
-        <div className="border-[2px] border-ws-black bg-ws-page px-4 py-3">
+        <div className="min-w-[116px] rounded-[0.6rem] border border-ws-border bg-ws-page px-4 py-3">
           <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-black/55">Draft</p>
           <p className="mt-2 text-[22px] font-black leading-none">
             {draft.exists ? `${draft.articleCount} articles` : 'No draft'}
@@ -136,12 +136,12 @@ export function PublishChecks({
       </div>
 
       {message && (
-        <p className="mt-4 border-[2px] border-green-700 bg-green-50 px-3 py-2 text-[13px] font-bold text-green-800">
+        <p className="mt-4 border border-green-700 bg-green-50 px-3 py-2 text-[13px] font-bold text-green-800">
           {message}
         </p>
       )}
       {error && (
-        <p className="mt-4 border-[2px] border-red-700 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-800">
+        <p className="mt-4 border border-red-700 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-800">
           {error}
         </p>
       )}
@@ -162,7 +162,7 @@ export function PublishChecks({
       </div>
 
       {requiresWarningAcknowledgement && (
-        <label className="mt-5 flex gap-3 border-[2px] border-ws-black bg-ws-page p-4 text-[14px] font-bold leading-[1.45]">
+        <label className="mt-5 flex gap-3 rounded-[0.6rem] border border-ws-border bg-ws-page p-4 text-[14px] font-bold leading-[1.45]">
           <input
             type="checkbox"
             checked={warningsAcknowledged}
@@ -178,7 +178,7 @@ export function PublishChecks({
           type="button"
           onClick={() => void handlePublish()}
           disabled={!canPublish}
-          className="bg-ws-accent px-5 py-3 text-[14px] font-black uppercase tracking-[0.08em] text-white hover:bg-ws-accent-hover disabled:cursor-not-allowed disabled:bg-ws-black/25"
+          className="admin-button-primary px-5 py-3 text-[13px] font-black uppercase tracking-[0.08em] disabled:cursor-not-allowed disabled:bg-ws-black/25"
         >
           {publishing ? 'Publishing...' : draft.published ? 'Already published' : 'Publish issue'}
         </button>
@@ -202,17 +202,17 @@ function CheckList({
   const toneClass = tone === 'blocker' ? 'border-red-700 bg-red-50' : 'border-amber-700 bg-amber-50'
 
   return (
-    <div className="border-[2px] border-ws-black bg-ws-page p-4">
+    <div className="rounded-[0.6rem] border border-ws-border bg-ws-page p-4">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-[14px] font-black uppercase tracking-[0.12em]">{title}</h3>
-        <span className="border border-ws-black bg-ws-white px-2 py-1 text-[11px] font-black">{items.length}</span>
+        <span className="border border-ws-border bg-ws-white px-2 py-1 text-[11px] font-black">{items.length}</span>
       </div>
       {items.length === 0 ? (
         <p className="mt-4 text-[14px] font-bold text-ws-black/55">{emptyText}</p>
       ) : (
         <ul className="mt-4 flex flex-col gap-2">
           {items.map(item => (
-            <li key={item.code} className={`border-[2px] px-3 py-2 ${toneClass}`}>
+            <li key={item.code} className={`rounded-[0.45rem] border px-3 py-2 ${toneClass}`}>
               <div className="flex items-start justify-between gap-3">
                 <span className="text-[14px] font-black">{item.label}</span>
                 <span className="text-[12px] font-black">{item.count}</span>

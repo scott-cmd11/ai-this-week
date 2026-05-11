@@ -154,3 +154,19 @@
 - Issue summary fallback now looks at titles plus article summaries to identify the main theme.
 - Manual publish and scheduled publish now save an AI-generated issue hook when the issue has no saved summary, with the deterministic fallback as backup.
 - Verification passed: `npm test -- tests/lib/issue-summary.test.ts`, `npm test`, `npm run lint`, and `npm run build`.
+
+# Task: Admin Proportion Polish
+
+- [x] Normalize the admin shell width, spacing, panel radius, and shadows.
+- [x] Make the Daily Run header, step rail, and navigation controls feel proportionate.
+- [x] Apply consistent heading, copy, panel, and button treatment across Status, Choose, Edit, Check, and Publish.
+- [x] Verify desktop guided steps with browser screenshots.
+- [x] Verify mobile admin has no page-wide horizontal overflow and keeps step labels readable.
+- [x] Verify lint, admin readiness tests, and production build.
+
+## Review
+
+- Admin now uses a shared `admin-shell`, `admin-page-title`, `admin-eyebrow`, and `admin-copy` system.
+- The six-step rail uses equal columns on desktop and a clean horizontal scroll on mobile.
+- The main panels now use consistent padding, softer borders, and calmer shadows.
+- Browser smoke checks passed for Status, Choose, Edit, Check, and Publish at desktop width, plus mobile Status.

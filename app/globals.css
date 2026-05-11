@@ -236,7 +236,9 @@ a {
 }
 
 .admin-workspace {
-  --admin-card-shadow: 0 18px 40px rgba(20, 17, 15, 0.07);
+  --admin-shell-width: 1120px;
+  --admin-card-shadow: 0 12px 34px rgba(20, 17, 15, 0.055);
+  --admin-panel-radius: 0.72rem;
   max-width: 100%;
   overflow-wrap: anywhere;
 }
@@ -252,23 +254,66 @@ a {
 }
 
 .admin-workspace button {
-  border-radius: 0.5rem;
-  min-height: 2.75rem;
+  border-radius: 0.55rem;
+  min-height: 2.5rem;
 }
 
 .admin-panel {
   border: 1px solid var(--color-ws-border);
-  border-radius: 0.85rem;
-  background: rgba(255, 255, 255, 0.88);
+  border-radius: var(--admin-panel-radius);
+  background: rgba(255, 255, 255, 0.9);
   box-shadow: var(--admin-card-shadow);
+}
+
+.admin-shell {
+  width: min(100%, var(--admin-shell-width));
+  margin-inline: auto;
+}
+
+.admin-eyebrow {
+  color: rgba(34, 31, 28, 0.64);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.admin-display-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.55rem, 5vw, 4.4rem);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 0.9;
+  color: var(--color-ws-black);
+}
+
+.admin-page-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 0.96;
+  color: var(--color-ws-black);
+}
+
+.admin-copy {
+  color: rgba(34, 31, 28, 0.66);
+  font-size: 0.94rem;
+  line-height: 1.55;
 }
 
 .admin-segmented {
   gap: 0.25rem;
   border: 1px solid var(--color-ws-border);
-  border-radius: 0.7rem;
+  border-radius: 0.65rem;
   background: var(--color-ws-page);
   padding: 0.25rem;
+}
+
+.admin-step-track {
+  width: 100%;
+  min-width: 42rem !important;
 }
 
 .admin-button-primary {

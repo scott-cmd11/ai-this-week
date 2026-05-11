@@ -43,14 +43,14 @@ export function TodayRunStatus({
   const displayDate = formatter.format(new Date(`${status.issueDate}T12:00:00`))
 
   return (
-    <section className="admin-panel bg-ws-white p-4 sm:p-5">
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+    <section className="admin-panel bg-ws-white p-5 sm:p-6">
+      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
         <div>
-          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Today&apos;s run status</p>
-          <h1 className="mt-1.5 font-[family-name:var(--font-display)] text-[36px] font-black leading-[0.98] tracking-tight sm:text-[44px]">
+          <p className="admin-eyebrow">Today&apos;s run status</p>
+          <h1 className="admin-page-title mt-2">
             {displayDate}
           </h1>
-          <p className="mt-2 max-w-2xl text-[15px] leading-[1.5] text-ws-black/65">
+          <p className="admin-copy mt-3 max-w-2xl">
             {status.readiness.nextBestAction}
           </p>
           {status.candidateError && (
@@ -69,7 +69,7 @@ export function TodayRunStatus({
         </button>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatusCard
           label="Automations"
           value={status.automation.lastRunAt ? 'Ran' : 'Needs check'}
@@ -108,9 +108,9 @@ function StatusCard({
   accent?: boolean
 }) {
   return (
-    <div className={`rounded-[0.65rem] border px-4 py-3 ${accent ? 'border-ws-accent/35 bg-ws-accent-light/35' : 'border-ws-border bg-ws-page/70'}`}>
+    <div className={`min-h-[88px] rounded-[0.6rem] border px-4 py-3.5 ${accent ? 'border-ws-accent/35 bg-ws-accent-light/35' : 'border-ws-border bg-ws-page/70'}`}>
       <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-black/55">{label}</p>
-      <p className="mt-2 text-[22px] font-black leading-none">{value}</p>
+      <p className="mt-2 text-[21px] font-black leading-none">{value}</p>
       <p className="mt-2 text-[12px] leading-snug text-ws-black/60">{detail}</p>
     </div>
   )
