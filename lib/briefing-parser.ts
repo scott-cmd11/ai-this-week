@@ -42,6 +42,16 @@ interface RichTextLite {
   link: string | null
 }
 
+const NON_ARTICLE_HEADINGS = new Set([
+  'overview',
+  'flagged items',
+  'feed health',
+  'feed status',
+  'source health',
+  'source status',
+  'diagnostics',
+])
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeRichText(richText: any[]): RichTextLite[] {
   return richText.map(seg => ({
@@ -96,6 +106,9 @@ function parseBullet(richText: any[]): ParsedArticle | null {
     i++
   }
 
+  const cleanedTitle = title.trim().replace(/[.\s]+$/, '')
+  if (!cleanedTitle || looksLikeBareUrl(cleanedTitle)) return null
+
   // After the title, summary text can sit in TWO places depending on format:
   //   • Canada AI Daily: summary BEFORE the first source link, citations after
   //   • Agriculture/Daily News: title-link first, citations next, summary AFTER
@@ -121,10 +134,21 @@ function parseBullet(richText: any[]): ParsedArticle | null {
   const summary = before.length >= 30 ? before : (after.length >= 30 ? after : (before || after))
 
   return {
-    title: title.trim().replace(/[.\s]+$/, '') || '(untitled)',
+    title: cleanedTitle,
     summary,
     urls,
     rawText: segments.map(s => s.text).join(''),
+  }
+}
+
+function looksLikeBareUrl(value: string): boolean {
+  const trimmed = value.trim()
+  if (/^https?:\/\//i.test(trimmed)) return true
+  try {
+    const parsed = new URL(trimmed)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
   }
 }
 
@@ -169,7 +193,7 @@ export function parseBriefingBlocks(blocks: any[]): ParsedBriefing {
         .trim()
       currentHeading = headingText
       // Overview and Flagged Items are handled specially — not pushed as sections
-      if (headingText === 'Overview' || headingText === 'Flagged Items') {
+      if (NON_ARTICLE_HEADINGS.has(headingText.toLowerCase())) {
         currentSection = null
       } else if (headingText) {
         currentSection = { name: headingText, articles: [] }
@@ -191,7 +215,7 @@ export function parseBriefingBlocks(blocks: any[]): ParsedBriefing {
       continue
     }
 
-    if (currentHeading === 'Overview') continue
+    if (NON_ARTICLE_HEADINGS.has(currentHeading.toLowerCase())) continue
 
     if (currentSection) {
       const article = parseBullet(richText)
