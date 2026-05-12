@@ -87,6 +87,73 @@ const WEAK_SOURCE_PATTERNS = [
   'crypto',
 ]
 
+const CANADA_SIGNALS = [
+  'canada',
+  'canadian',
+  'ottawa',
+  'winnipeg',
+  'manitoba',
+  'toronto',
+  'vancouver',
+  'calgary',
+  'montreal',
+  'british columbia',
+  'alberta',
+  'saskatchewan',
+  'ontario',
+  'quebec',
+  'cbc',
+  'global news',
+  'globe and mail',
+  'ipolitics',
+  'canada.ca',
+  'gc.ca',
+  'sencanada',
+]
+
+const POLICY_SIGNALS = [
+  'policy',
+  'regulation',
+  'regulator',
+  'privacy',
+  'governance',
+  'ethic',
+  'copyright',
+  'intellectual property',
+  'online safety',
+]
+
+const GOVERNMENT_SIGNALS = [
+  'government',
+  'public sector',
+  'federal',
+  'municipal',
+  'provincial',
+  'sovereign',
+  'minister',
+]
+
+const RESEARCH_SIGNALS = [
+  'research',
+  'paper',
+  'benchmark',
+  'arxiv',
+  'study',
+  'measuring',
+]
+
+const SECTOR_SIGNALS = [
+  'agriculture',
+  'grain',
+  'crop',
+  'wheat',
+  'health',
+  'medical',
+  'education',
+  'legal',
+  'mining',
+]
+
 function coerceStatus(value: CandidateStatus | null | undefined): CandidateStatus {
   return value && VALID_STATUSES.has(value) ? value : 'new'
 }
@@ -97,6 +164,34 @@ function coerceSourceType(value: CandidateSourceType | null | undefined): Candid
 
 export function coerceCategory(value: string | null | undefined): Category {
   if (value && CATEGORY_ORDER.includes(value as Category)) return value as Category
+  return 'Industry & Models'
+}
+
+function candidateText(
+  input: Pick<IncomingArticleCandidate, 'title' | 'summary' | 'source' | 'sourceType' | 'category'>,
+): string {
+  return `${input.title ?? ''} ${input.summary ?? ''} ${input.source ?? ''} ${input.sourceType ?? ''} ${input.category ?? ''}`.toLowerCase()
+}
+
+function hasAnySignal(text: string, signals: string[]): boolean {
+  return signals.some(signal => text.includes(signal))
+}
+
+export function isCanadaRelevant(
+  input: Pick<IncomingArticleCandidate, 'title' | 'summary' | 'source' | 'sourceType' | 'category'>,
+): boolean {
+  return hasAnySignal(candidateText(input), CANADA_SIGNALS)
+}
+
+export function inferCandidateCategory(
+  input: Pick<IncomingArticleCandidate, 'title' | 'summary' | 'source' | 'sourceType' | 'category'>,
+): Category {
+  const text = candidateText(input)
+  if (isCanadaRelevant(input)) return 'Canada'
+  if (hasAnySignal(text, SECTOR_SIGNALS)) return 'Sectors & Applications'
+  if (hasAnySignal(text, POLICY_SIGNALS)) return 'Policy & Regulation'
+  if (hasAnySignal(text, GOVERNMENT_SIGNALS)) return 'Government & Public Sector'
+  if (hasAnySignal(text, RESEARCH_SIGNALS) || coerceSourceType(input.sourceType) === 'research') return 'Research'
   return 'Industry & Models'
 }
 
@@ -111,7 +206,7 @@ export function scoreArticleCandidate(
   input: Pick<IncomingArticleCandidate, 'title' | 'summary' | 'source' | 'sourceType' | 'publishedAt' | 'category'>,
   now = new Date(),
 ): { score: number; reasons: string[] } {
-  const text = `${input.title} ${input.summary ?? ''} ${input.source ?? ''}`.toLowerCase()
+  const text = candidateText(input)
   const sourceType = coerceSourceType(input.sourceType)
   const age = daysOld(input.publishedAt ?? null, now)
   let score = 40
@@ -125,8 +220,8 @@ export function scoreArticleCandidate(
     reasons.push('Older than 7 days')
   }
 
-  if (text.includes('canada') || text.includes('canadian') || text.includes('winnipeg') || text.includes('manitoba')) {
-    score += 10
+  if (isCanadaRelevant(input)) {
+    score += 24
     reasons.push('Canadian relevance')
   }
 
@@ -166,6 +261,32 @@ export function scoreArticleCandidate(
   }
 }
 
+function normalizeProvidedScore(score: number): number {
+  const clamped = Math.max(0, Math.min(100, Math.round(score)))
+  return clamped <= 20 ? clamped * 5 : clamped
+}
+
+function scoreFromInput(input: IncomingArticleCandidate): { score: number; reasons: string[] } {
+  const computed = scoreArticleCandidate(input)
+  if (input.score === null || input.score === undefined) return computed
+
+  const provided = normalizeProvidedScore(input.score)
+  if (provided >= computed.score) {
+    return {
+      score: provided,
+      reasons: input.scoreReasons ?? ['Provided by source automation'],
+    }
+  }
+
+  return {
+    score: computed.score,
+    reasons: [
+      ...computed.reasons,
+      ...(input.scoreReasons ?? []).map(reason => `Source note: ${reason}`),
+    ],
+  }
+}
+
 export function normalizeArticleCandidate(input: IncomingArticleCandidate): NormalizedArticleCandidate {
   const title = input.title?.trim()
   const rawUrl = input.url?.trim()
@@ -182,9 +303,13 @@ export function normalizeArticleCandidate(input: IncomingArticleCandidate): Norm
   const canonicalUrl = normalizeUrl(rawUrl)
 
   const sourceType = coerceSourceType(input.sourceType)
-  const scored = input.score === null || input.score === undefined
-    ? scoreArticleCandidate(input)
-    : { score: Math.max(0, Math.min(100, Math.round(input.score))), reasons: input.scoreReasons ?? ['Provided by source automation'] }
+  const inferredCategory = inferCandidateCategory(input)
+  const category = inferredCategory === 'Canada'
+    ? inferredCategory
+    : input.category && CATEGORY_ORDER.includes(input.category as Category)
+      ? input.category as Category
+      : inferredCategory
+  const scored = scoreFromInput(input)
 
   return {
     title,
@@ -194,7 +319,7 @@ export function normalizeArticleCandidate(input: IncomingArticleCandidate): Norm
     source: input.source?.trim() || 'Unknown source',
     sourceType,
     publishedAt: input.publishedAt?.trim() || null,
-    category: coerceCategory(input.category),
+    category,
     status: coerceStatus(input.status),
     score: scored.score,
     scoreReasons: scored.reasons.filter(Boolean),
@@ -211,4 +336,23 @@ export function normalizeArticleCandidates(inputs: IncomingArticleCandidate[]): 
     normalized.push(candidate)
   }
   return normalized
+}
+
+function categoryRank(candidate: Pick<ArticleCandidate, 'category'>): number {
+  const index = CATEGORY_ORDER.indexOf(candidate.category as Category)
+  return index === -1 ? CATEGORY_ORDER.length : index
+}
+
+function canadaPriority(candidate: Pick<ArticleCandidate, 'title' | 'summary' | 'source' | 'sourceType' | 'category'>): number {
+  if (candidate.category === 'Canada') return 0
+  if (isCanadaRelevant(candidate)) return 1
+  return 2
+}
+
+export function compareArticleCandidates(a: ArticleCandidate, b: ArticleCandidate): number {
+  return canadaPriority(a) - canadaPriority(b)
+    || categoryRank(a) - categoryRank(b)
+    || b.score - a.score
+    || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    || a.title.localeCompare(b.title)
 }

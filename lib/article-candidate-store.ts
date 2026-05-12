@@ -1,6 +1,11 @@
 import 'server-only'
 
-import type { ArticleCandidate, CandidateStatus, NormalizedArticleCandidate } from './article-candidates'
+import {
+  compareArticleCandidates,
+  type ArticleCandidate,
+  type CandidateStatus,
+  type NormalizedArticleCandidate,
+} from './article-candidates'
 
 interface CandidateRow {
   id: string
@@ -146,7 +151,7 @@ export async function listArticleCandidates(options: CandidateListOptions = {}):
   })
   params.set('status', `in.(${statuses.join(',')})`)
   const rows = await supabaseRequest<CandidateRow[]>(`article_candidates?${params.toString()}`)
-  return rows.map(toCandidate)
+  return rows.map(toCandidate).sort(compareArticleCandidates)
 }
 
 export async function summarizeArticleCandidates(): Promise<{

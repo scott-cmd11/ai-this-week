@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { ArticleCandidate, CandidateStatus } from '@/lib/article-candidates'
+import { compareArticleCandidates, type ArticleCandidate, type CandidateStatus } from '@/lib/article-candidates'
 import { CATEGORY_META, CATEGORY_ORDER, type Category } from '@/lib/category-mapping'
 
 type Filter = 'top' | 'needs_review' | 'held' | 'rejected' | 'imported'
@@ -71,7 +71,7 @@ export function CandidateTriage({
     const list = filter === 'top'
       ? candidates.filter(candidate => candidate.score >= TOP_PICK_SCORE)
       : candidates
-    return [...list].sort((a, b) => b.score - a.score)
+    return [...list].sort(compareArticleCandidates)
   }, [candidates, filter])
 
   const load = useCallback(async (options: { preserveMessage?: boolean } = {}) => {

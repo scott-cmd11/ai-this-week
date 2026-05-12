@@ -267,3 +267,29 @@
 - Code changes made locally: date-targeted daily assemble now writes to the requested issue date instead of implicit "today"; title extraction decodes numeric apostrophe entities; admin workflow copy now says evening and documents the 6 PM / 9 PM Winnipeg schedule.
 - Created the active Codex automation `AI Today evening RSS candidate import` to repeat the Google Alerts RSS candidate import each evening before the publish window.
 - Validation passed: focused article-fetcher test, full Vitest suite, ESLint, production build, and live API/page smoke checks.
+
+# Task: Canada-First Article Intake Volume
+
+- [x] Map all intake paths from source feeds to candidate review, draft assembly, and publish.
+- [x] Measure recent raw feed, candidate, imported, draft, and published counts.
+- [x] Identify why the review queue can look thin even when candidates exist.
+- [x] Improve scoring and ordering so Canadian articles surface first.
+- [x] Improve category inference for Canadian public-sector, policy, research, and sector stories.
+- [x] Keep noise, duplicates, stale links, and weak URL-title items filtered.
+- [x] Add focused tests for scoring, Canada-first ordering, and category inference.
+- [x] Validate with tests, build, safe dry-runs, and read-only production checks.
+- [x] Document counts, changed files, commands, and remaining risks.
+
+## Review
+
+- Mapped the real paths: Google Alerts RSS files import into the Candidate inbox through `scripts/import-candidates-from-automation-output.mjs` and `/api/article-candidates`; briefing pages and AI Voices fallback feed draft assembly through `/api/import-briefing-articles` and `/api/cron/daily-assemble`; research papers and manual/admin adds are separate paths; publish reads the draft/published issue storage.
+- Recent Google Alerts evidence shows the source volume is not the main bottleneck: the current RSS grab had 13 feeds, 260 raw entries, 50 first-pass candidates, and 26 curated importable candidates. The May 9 repair grab had 13 feeds, 255 raw entries, and 35 included candidates. Agriculture had 6 feeds, 24 raw entries, and 12 included candidates.
+- Production read-only status for May 11 showed 23 active candidates, 44 rejected, 6 imported, and a published issue with 7 articles after the earlier backfill. The safe May 11 assemble dry-run parsed 13 items but imported only 1 because most draft candidates were already duplicates and one agriculture digest was a failed Google Alerts digest.
+- Root cause: the candidate inbox had enough raw material, but imported automation scores were on a small scale like 14/12/11 while the app treated them as 0-100 scores. That made "top picks" look empty, pushed Canadian items down, and left the admin feeling sparse even when the inbox had usable stories.
+- Updated candidate normalization so low-scale automation scores are normalized, strong app-computed scores can override weak upstream scores, and Canadian relevance gets a stronger ranking signal.
+- Added Canada-first category inference and sorting. Canadian items now stay in `Canada` even when a source labels them as generic policy, and admin candidate views sort Canada-relevant stories before higher-scored global items.
+- Added a Research category mapping rule so research/paper/benchmark source sections no longer fall into generic Industry & Models.
+- Updated the candidate inbox and candidate triage UI sorting to use the same Canada-first comparator as the store layer.
+- Noise filtering remains intact: existing dedupe, stale-source, weak-title, weak-source, duplicate-topic, and canonical URL handling were not loosened.
+- Validation passed: `npm run test -- tests/lib/article-candidates.test.ts tests/lib/category-mapping.test.ts`, `npm test`, `npm run lint`, and `npm run build`.
+- Remaining risk: production will not use the improved scoring/order/category logic until this branch is deployed. No push, deploy, live publish, destructive data edit, or secret change was performed for this task.

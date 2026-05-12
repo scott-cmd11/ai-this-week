@@ -72,6 +72,18 @@ export function categorize(sourceLabel: string, sectionName: string): Category {
   // for editorial framing. Use the per-article override when it isn't.
   if (s.includes('canad')) return 'Canada'
 
+  // Research sources and benchmark/paper sections should not be hidden in
+  // the broader Industry & Models bucket.
+  if (
+    s.includes('research') ||
+    s.includes('paper') ||
+    s.includes('arxiv') ||
+    s.includes('benchmark') ||
+    src.includes('research')
+  ) {
+    return 'Research'
+  }
+
   // Sectoral / applied AI — agriculture, environment, jobs, health, etc.
   if (
     s.includes('agricultur') ||

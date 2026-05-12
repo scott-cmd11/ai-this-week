@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { CATEGORY_ORDER, CATEGORY_META, type Category } from '@/lib/category-mapping'
-import type { ArticleCandidate, CandidateStatus } from '@/lib/article-candidates'
+import { compareArticleCandidates, type ArticleCandidate, type CandidateStatus } from '@/lib/article-candidates'
 
 type CandidateFilter = 'active' | CandidateStatus
 
@@ -49,7 +49,7 @@ export function CandidateInbox({ password }: { password: string }) {
         return
       }
       setConfigured(payload.configured !== false)
-      setCandidates(payload.candidates ?? [])
+      setCandidates([...(payload.candidates ?? [])].sort(compareArticleCandidates))
       setSelected(new Set())
     } catch {
       setError('Network error.')
@@ -92,7 +92,7 @@ export function CandidateInbox({ password }: { password: string }) {
         setError(payload.error ?? `Error ${res.status}`)
         return
       }
-      setCandidates(prev => prev.map(candidate => candidate.id === id ? payload.candidate : candidate))
+      setCandidates(prev => prev.map(candidate => candidate.id === id ? payload.candidate : candidate).sort(compareArticleCandidates))
     } catch {
       setError('Network error.')
     } finally {
