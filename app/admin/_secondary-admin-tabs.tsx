@@ -21,14 +21,14 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
 
   return (
     <section className="admin-panel overflow-hidden bg-ws-white">
-      <header className="border-b border-ws-border p-4 sm:p-5">
-        <p className="text-[12px] font-black uppercase tracking-[0.16em] text-ws-black/55">Secondary areas</p>
-        <div className="mt-2 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+      <header className="border-b border-ws-border p-5 sm:p-6">
+        <p className="admin-eyebrow">Secondary areas</p>
+        <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="font-[family-name:var(--font-display)] text-[34px] font-black leading-none tracking-tight sm:text-[40px]">
+            <h2 className="admin-page-title">
               Full desk
             </h2>
-            <p className="mt-2 max-w-3xl text-[15px] leading-[1.55] text-ws-black/65">
+            <p className="admin-copy mt-3 max-w-3xl">
               Work outside today&apos;s guided publishing run: append to issues, review follow-up queues, check health notes,
               and adjust capture settings without disturbing the daily path.
             </p>
@@ -36,14 +36,14 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
         </div>
       </header>
 
-      <div className="overflow-x-auto border-b border-ws-border bg-ws-page/70 p-1.5" aria-label="Secondary admin areas">
-        <div className="flex min-w-max gap-1">
+      <div className="overflow-x-auto border-b border-ws-border bg-ws-page/70 p-2" aria-label="Secondary admin areas">
+        <div className="grid grid-cols-4 gap-1" style={{ minWidth: '32rem' }}>
           {TABS.map(tab => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`rounded-[0.55rem] px-4 py-2.5 text-left text-[12px] font-black uppercase tracking-[0.08em] transition-colors ${
+              className={`whitespace-nowrap px-3 py-2.5 text-center text-[12px] font-black uppercase tracking-[0.08em] transition-colors ${
                 activeTab === tab.key ? 'bg-ws-accent text-white' : 'bg-transparent text-ws-black/65 hover:bg-ws-white hover:text-ws-black'
               }`}
             >
@@ -53,7 +53,7 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 p-4 sm:p-5">
+      <div className="flex flex-col gap-5 p-5 sm:p-6">
         {activeTab === 'issue-desk' && (
           <>
             <AddToIssue password={password} />
@@ -81,7 +81,7 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
           <>
             <CaptureSettings />
 
-            <div className="rounded-[0.75rem] border border-dashed border-ws-border bg-ws-page">
+            <div className="admin-subpanel">
               <button
                 type="button"
                 onClick={() => setLegacyImportOpen(open => !open)}
@@ -89,7 +89,7 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
                 className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-ws-white"
               >
                 <div>
-                  <p className="text-[12px] font-black uppercase tracking-[0.14em] text-ws-black/55">Legacy import</p>
+                  <p className="admin-eyebrow">Legacy import</p>
                   <p className="mt-1 text-[15px] font-bold text-ws-black">Briefing import fallback</p>
                 </div>
                 <span className="shrink-0 text-[12px] font-black uppercase tracking-[0.08em] text-ws-black/60">
@@ -120,12 +120,12 @@ function SecondaryNote({
   body: string
 }) {
   return (
-    <div className="rounded-[0.75rem] border border-dashed border-ws-border bg-ws-page p-5">
-      <p className="text-[12px] font-black uppercase tracking-[0.14em] text-ws-black/55">{eyebrow}</p>
-      <h3 className="mt-2 font-[family-name:var(--font-display)] text-[34px] font-black leading-none tracking-tight">
+    <div className="admin-subpanel p-5">
+      <p className="admin-eyebrow">{eyebrow}</p>
+      <h3 className="admin-page-title mt-2">
         {title}
       </h3>
-      <p className="mt-3 max-w-3xl text-[15px] leading-[1.55] text-ws-black/65">{body}</p>
+      <p className="admin-copy mt-3 max-w-3xl">{body}</p>
     </div>
   )
 }

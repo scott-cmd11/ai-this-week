@@ -98,20 +98,20 @@ export function PublishedIssueEditor({ password }: { password: string }) {
   }, [items])
 
   return (
-    <section className="admin-panel flex flex-col gap-5 bg-ws-white p-4 sm:p-5">
+    <section className="admin-subpanel flex flex-col gap-5 bg-ws-white p-4 sm:p-5">
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] md:items-start">
         <div>
-          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Edit a published issue</p>
-          <h3 className="mt-2 font-[family-name:var(--font-display)] text-[34px] font-black leading-[0.95] tracking-tight">
+          <p className="admin-eyebrow">Edit a published issue</p>
+          <h3 className="admin-page-title mt-2">
             Live issue desk
           </h3>
-          <p className="mt-3 max-w-2xl text-[14px] leading-[1.55] text-ws-black/65">
+          <p className="admin-copy mt-3 max-w-2xl">
             Use this after an issue is public. Edit existing story titles or summaries here, or add a late article or event without going back through the daily draft workflow.
           </p>
         </div>
 
-        <div className="rounded-[0.65rem] border border-ws-border bg-ws-page/70 p-3">
-          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-black/50">Live edit rules</p>
+        <div className="admin-subpanel bg-ws-page/70 p-3.5">
+          <p className="admin-field-label mb-2">Live edit rules</p>
           <ul className="mt-2 flex flex-col gap-1.5 text-[12px] leading-snug text-ws-black/65">
             <li>Use draft review for today&apos;s unpublished issue.</li>
             <li>Use this desk for corrections after publication.</li>
@@ -122,7 +122,7 @@ export function PublishedIssueEditor({ password }: { password: string }) {
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <div>
-          <label htmlFor="live-issue-target" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
+          <label htmlFor="live-issue-target" className="admin-field-label">
             Published issue
           </label>
           <select
@@ -130,7 +130,7 @@ export function PublishedIssueEditor({ password }: { password: string }) {
             value={issueId}
             onChange={event => setIssueId(event.target.value)}
             disabled={loadingIssues}
-            className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+            className="admin-input px-3 py-2.5 font-semibold"
           >
             {issues.length === 0 && <option value="">{loadingIssues ? 'Loading issues...' : 'No published issues found'}</option>}
             {issues.map(issue => (
@@ -163,17 +163,17 @@ export function PublishedIssueEditor({ password }: { password: string }) {
         </div>
       </div>
 
-      {error && <p className="border border-red-300 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-700">{error}</p>}
+      {error && <p className="admin-notice admin-danger-notice px-3 py-2">{error}</p>}
 
       <div className="flex flex-col gap-4">
-        <div className="flex items-baseline justify-between gap-3 border-b border-ws-border pb-2">
-          <div>
-            <p className="text-[12px] font-black uppercase tracking-[0.12em] text-ws-black/70">Existing live items</p>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-ws-border pb-2">
+          <div className="min-w-0">
+            <p className="admin-eyebrow">Existing live items</p>
             <p className="mt-1 text-[12px] text-ws-black/50">
               Edit a title or summary, then save. Public pages refresh after each save.
             </p>
           </div>
-          <span className="text-[12px] font-black uppercase tracking-[0.1em] text-ws-black/45">
+          <span className="whitespace-nowrap text-[12px] font-black uppercase tracking-[0.08em] text-ws-black/45">
             {items.length} items
           </span>
         </div>
@@ -181,13 +181,13 @@ export function PublishedIssueEditor({ password }: { password: string }) {
         {loadingItems && <p className="text-[14px] text-ws-black/60">Loading live issue items...</p>}
 
         {!loadingItems && groupedItems.length === 0 && (
-          <p className="border border-ws-black/15 bg-ws-page px-3 py-3 text-[13px] text-ws-black/65">
+          <p className="admin-notice px-3 py-3">
             Choose a published issue to see editable items.
           </p>
         )}
 
         {!loadingItems && groupedItems.map(([section, sectionItems]) => (
-          <section key={section} className="overflow-hidden rounded-[0.65rem] border border-ws-border">
+          <section key={section} className="admin-subpanel overflow-hidden bg-ws-white">
             <div className="flex items-baseline justify-between gap-3 border-b border-ws-border bg-ws-page/70 px-3 py-2">
               <p className="text-[12px] font-black uppercase tracking-[0.1em]">{section}</p>
               <p className="text-[11px] text-ws-black/45">{sectionItems.length} item{sectionItems.length === 1 ? '' : 's'}</p>
@@ -319,11 +319,11 @@ function EditableItemRow({
   }
 
   return (
-    <details className="group bg-ws-white open:bg-ws-page/40">
-      <summary className="cursor-pointer list-none px-3 py-3 hover:bg-ws-page">
-        <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+    <details className="group bg-ws-white open:bg-ws-page/35">
+      <summary className="cursor-pointer list-none px-4 py-3 hover:bg-ws-page">
+        <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
           <div className="min-w-0">
-            <p className="text-[14px] font-bold leading-snug">{item.title}</p>
+            <p className="text-[14px] font-bold leading-snug text-ws-black">{item.title}</p>
             <p className="mt-1 text-[12px] text-ws-black/45">
               {sourceLabel}{item.publishedDate ? ` / Published ${item.publishedDate}` : ''}
             </p>
@@ -334,20 +334,20 @@ function EditableItemRow({
         </div>
       </summary>
 
-      <div className="px-3 pb-4 pt-1 flex flex-col gap-3">
+      <div className="px-4 pb-4 pt-1 flex flex-col gap-3">
         <label className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-black uppercase tracking-[0.1em]">Title</span>
+          <span className="admin-field-label">Title</span>
           <textarea
             value={title}
             onChange={event => setTitle(event.target.value)}
             rows={2}
             disabled={saving || removing}
-            className="w-full border border-ws-black/30 bg-ws-white px-3 py-2.5 text-[14px] font-semibold leading-[1.35] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+            className="admin-input px-3 py-2.5 font-semibold leading-[1.35]"
           />
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-black uppercase tracking-[0.1em]">
+          <span className="admin-field-label">
             Summary{item.summaryBlockId ? '' : ' (not editable)'}
           </span>
           <textarea
@@ -355,7 +355,7 @@ function EditableItemRow({
             onChange={event => setSummary(event.target.value)}
             rows={4}
             disabled={saving || removing || !item.summaryBlockId}
-            className="w-full border border-ws-black/30 bg-ws-white px-3 py-2.5 text-[14px] leading-[1.45] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+            className="admin-input px-3 py-2.5 leading-[1.45]"
           />
         </label>
 
@@ -384,14 +384,14 @@ function EditableItemRow({
             type="button"
             onClick={() => setConfirmRemove(true)}
             disabled={saving || removing}
-            className="ml-auto text-[12px] font-black uppercase tracking-[0.08em] text-red-700 underline decoration-red-700/30 underline-offset-2 hover:decoration-red-700 disabled:opacity-40"
+            className="ml-auto rounded-[0.55rem] px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-red-700 underline decoration-red-700/30 underline-offset-2 hover:bg-red-50 hover:decoration-red-700 disabled:opacity-40"
           >
             Remove
           </button>
         </div>
 
         {confirmRemove && (
-          <div className="border border-red-300 bg-red-50 px-3 py-3 flex flex-col gap-3">
+          <div className="admin-notice admin-danger-notice px-3 py-3 flex flex-col gap-3">
             <p className="text-[13px] font-bold leading-snug text-red-800">
               Remove this item from the published issue? This deletes the story blocks from the issue store and refreshes the public page.
             </p>
@@ -400,7 +400,7 @@ function EditableItemRow({
                 type="button"
                 onClick={remove}
                 disabled={removing}
-                className="bg-red-700 px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-white hover:bg-red-800 disabled:opacity-50"
+                className="rounded-[0.55rem] bg-red-700 px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-white hover:bg-red-800 disabled:opacity-50"
               >
                 {removing ? 'Removing...' : 'Remove from issue'}
               </button>
@@ -408,7 +408,7 @@ function EditableItemRow({
                 type="button"
                 onClick={() => setConfirmRemove(false)}
                 disabled={removing}
-                className="px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-ws-black/60 underline hover:text-ws-black disabled:opacity-50"
+                className="rounded-[0.55rem] px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] text-ws-black/60 underline hover:bg-ws-white hover:text-ws-black disabled:opacity-50"
               >
                 Cancel
               </button>

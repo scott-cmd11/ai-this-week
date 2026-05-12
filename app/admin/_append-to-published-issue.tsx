@@ -227,14 +227,14 @@ export function AppendToPublishedIssue({
 
   if (!open && !lockedOpen) {
     return (
-      <div className="border border-ws-black/15 bg-ws-white">
+      <div className="admin-subpanel bg-ws-white">
         <button
           type="button"
           onClick={() => setOpen(true)}
           className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-ws-page"
         >
           <div>
-            <p className="text-[13px] font-black uppercase tracking-[0.12em] text-ws-black/70">Published issue updates</p>
+            <p className="admin-eyebrow">Published issue updates</p>
             <p className="text-[12px] text-ws-black/55 mt-0.5">
               Add an article or learning event to an issue that is already live.
             </p>
@@ -246,10 +246,10 @@ export function AppendToPublishedIssue({
   }
 
   return (
-    <section className="border border-ws-black/15 bg-ws-white p-5 flex flex-col gap-4">
+    <section className="admin-subpanel bg-ws-white p-5 flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <p className="text-[13px] font-black uppercase tracking-[0.12em] text-ws-black/70">Published issue updates</p>
+          <p className="admin-eyebrow">Published issue updates</p>
           <p className="text-[12px] text-ws-black/55 mt-0.5">
             Use this after publishing when you find one more source worth adding. It appends to the selected live issue and refreshes the public page.
           </p>
@@ -265,13 +265,13 @@ export function AppendToPublishedIssue({
         )}
       </div>
 
-      {success && <p className="border border-ws-black/15 bg-ws-page px-3 py-2 text-[13px] font-bold">{success}</p>}
-      {error && <p className="border border-red-300 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-700">{error}</p>}
+      {success && <p className="admin-notice px-3 py-2">{success}</p>}
+      {error && <p className="admin-notice admin-danger-notice px-3 py-2">{error}</p>}
 
       <div className={hideIssuePicker ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-4'}>
         {!hideIssuePicker && (
           <div>
-            <label htmlFor="published-issue-target" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
+            <label htmlFor="published-issue-target" className="admin-field-label">
               Published issue
             </label>
             <select
@@ -279,7 +279,7 @@ export function AppendToPublishedIssue({
               value={issueId}
               onChange={e => setIssueId(e.target.value)}
               disabled={loadingIssues || submitting}
-              className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+              className="admin-input px-3 py-2.5 font-semibold"
             >
               {issues.length === 0 && <option value="">{loadingIssues ? 'Loading issues...' : 'No published issues found'}</option>}
               {issues.map(issue => (
@@ -291,21 +291,21 @@ export function AppendToPublishedIssue({
           </div>
         )}
         {hideIssuePicker && !issueId && (
-          <p className="border border-ws-black/15 bg-ws-page px-3 py-2 text-[13px] font-bold text-ws-black/70">
+          <p className="admin-notice px-3 py-2">
             Choose a published issue above before adding a late article or event.
           </p>
         )}
 
         <div>
-          <span className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">Item type</span>
-          <div className="grid grid-cols-2 border border-ws-black/30">
+          <span className="admin-field-label">Item type</span>
+          <div className="admin-segmented grid grid-cols-2">
             {(['article', 'event'] as ItemType[]).map(option => (
               <button
                 key={option}
                 type="button"
                 onClick={() => { setType(option); resetItemFields() }}
-                className={`px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] ${
-                  type === option ? 'bg-ws-black text-ws-white' : 'bg-ws-page text-ws-black hover:bg-ws-white'
+                className={`px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] transition-colors ${
+                  type === option ? 'bg-ws-black text-ws-white' : 'bg-transparent text-ws-black/65 hover:bg-ws-white hover:text-ws-black'
                 }`}
               >
                 {option === 'article' ? 'Article' : 'Event'}
@@ -316,7 +316,7 @@ export function AppendToPublishedIssue({
       </div>
 
       <div>
-        <label htmlFor="append-url" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
+        <label htmlFor="append-url" className="admin-field-label">
           URL
         </label>
         <input
@@ -326,14 +326,14 @@ export function AppendToPublishedIssue({
           onChange={e => { setUrl(e.target.value); setDuplicate(null); setMemoryWarnings([]); setStaleBlocked(false); setSuccess(null) }}
           disabled={submitting}
           placeholder={type === 'article' ? 'https://source-article...' : 'https://event-or-registration-page...'}
-          className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[15px] font-mono outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+          className="admin-input px-3 py-2.5 font-mono"
         />
       </div>
 
       {type === 'article' ? (
         <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-4">
           <div>
-            <label htmlFor="append-category" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
+            <label htmlFor="append-category" className="admin-field-label">
               Section
             </label>
             <select
@@ -341,7 +341,7 @@ export function AppendToPublishedIssue({
               value={category}
               onChange={e => setCategory(e.target.value as Category)}
               disabled={submitting}
-              className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+              className="admin-input px-3 py-2.5 font-semibold"
             >
               {CATEGORY_ORDER.map(c => (
                 <option key={c} value={c}>{CATEGORY_META[c].icon} {c}</option>
@@ -350,7 +350,7 @@ export function AppendToPublishedIssue({
           </div>
 
           <div>
-            <label htmlFor="append-note" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
+            <label htmlFor="append-note" className="admin-field-label">
               Note <span className="font-normal normal-case tracking-normal text-ws-black/45">(optional)</span>
             </label>
             <textarea
@@ -360,7 +360,7 @@ export function AppendToPublishedIssue({
               rows={2}
               disabled={submitting}
               placeholder="Leave blank and AI writes the summary."
-              className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] leading-[1.45] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+              className="admin-input px-3 py-2.5 leading-[1.45]"
             />
           </div>
 
@@ -395,7 +395,7 @@ export function AppendToPublishedIssue({
             type="button"
             onClick={extractEvent}
             disabled={extracting || submitting || !url.trim().startsWith('http')}
-            className="self-start border border-ws-black/30 bg-ws-page px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-black hover:text-ws-white disabled:opacity-40 disabled:cursor-not-allowed"
+            className="admin-button-secondary self-start px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {extracting ? 'Extracting...' : 'Extract details'}
           </button>
@@ -405,13 +405,13 @@ export function AppendToPublishedIssue({
             <Field label="When" value={eventWhen} setValue={setEventWhen} disabled={submitting} />
             <Field label="Where" value={eventWhere} setValue={setEventWhere} disabled={submitting} />
             <label className="flex flex-col gap-1.5 md:row-span-2">
-              <span className="text-[11px] font-black uppercase tracking-[0.1em]">Description</span>
+              <span className="admin-field-label">Description</span>
               <textarea
                 value={eventDescription}
                 onChange={e => setEventDescription(e.target.value)}
                 disabled={submitting}
                 rows={4}
-                className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] leading-[1.45] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+                className="admin-input px-3 py-2.5 leading-[1.45]"
               />
             </label>
           </div>
@@ -419,7 +419,7 @@ export function AppendToPublishedIssue({
       )}
 
       {duplicate && (
-        <div className="border border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
+        <div className="admin-notice border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
           <p className="text-[13px] text-ws-black leading-snug">
             This URL already appears in Issue #{duplicate.issueNumber} on {duplicate.issueDate}
             {duplicate.published ? ' (published)' : ' (draft)'}. Add it again only if you mean to.
@@ -429,7 +429,7 @@ export function AppendToPublishedIssue({
               type="button"
               onClick={() => submit(true)}
               disabled={submitting}
-              className="border border-ws-black bg-ws-accent text-ws-white px-3 py-1.5 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
+              className="admin-button-primary px-3 py-1.5 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
             >
               Add anyway
             </button>
@@ -445,7 +445,7 @@ export function AppendToPublishedIssue({
       )}
 
       {memoryWarnings.length > 0 && (
-        <div className="border border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
+        <div className="admin-notice border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
           <div>
             <p className="text-[12px] font-black uppercase tracking-[0.12em] text-ws-accent">
               Issue memory warning
@@ -472,7 +472,7 @@ export function AppendToPublishedIssue({
               type="button"
               onClick={() => submit(true)}
               disabled={submitting}
-              className="border border-ws-black bg-ws-accent text-ws-white px-3 py-1.5 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
+              className="admin-button-primary px-3 py-1.5 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
             >
               Add anyway
             </button>
@@ -492,7 +492,7 @@ export function AppendToPublishedIssue({
           type="button"
           onClick={() => submit(false, true)}
           disabled={submitting}
-          className="self-start border border-ws-black bg-ws-page px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] hover:bg-ws-black hover:text-ws-white disabled:opacity-50"
+          className="admin-button-secondary self-start px-3 py-2 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
         >
           Add with older-date override
         </button>
@@ -502,7 +502,7 @@ export function AppendToPublishedIssue({
         type="button"
         onClick={() => submit(false)}
         disabled={submitting || loadingIssues || !issueId || !url.trim() || !!duplicate || memoryWarnings.length > 0 || staleBlocked}
-        className="self-start bg-ws-black text-ws-white px-5 py-3 text-[13px] font-black uppercase tracking-[0.08em] hover:bg-ws-accent disabled:opacity-40 disabled:cursor-not-allowed"
+        className="admin-button-primary self-start px-5 py-3 text-[13px] font-black uppercase tracking-[0.08em] disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {submitting ? 'Adding...' : `Add ${type} to published issue`}
       </button>
@@ -525,7 +525,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-black uppercase tracking-[0.1em]">
+      <span className="admin-field-label">
         {label}{required ? ' *' : ''}
       </span>
       <input
@@ -533,7 +533,7 @@ function Field({
         value={value}
         onChange={e => setValue(e.target.value)}
         disabled={disabled}
-        className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+        className="admin-input px-3 py-2.5"
       />
     </label>
   )

@@ -245,20 +245,20 @@ export function AddToIssue({ password }: { password: string }) {
   }
 
   return (
-    <section id="add-to-issue" className="admin-panel flex flex-col gap-5 bg-ws-white p-4 sm:p-5">
+    <section id="add-to-issue" className="admin-subpanel flex flex-col gap-5 bg-ws-white p-4 sm:p-5">
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] md:items-start">
         <div>
-          <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70">Add to issue</p>
-          <h3 className="mt-2 font-[family-name:var(--font-display)] text-[34px] font-black leading-[0.95] tracking-tight">
+          <p className="admin-eyebrow">Add to issue</p>
+          <h3 className="admin-page-title mt-2">
             Issue append desk
           </h3>
-          <p className="mt-3 max-w-2xl text-[14px] leading-[1.55] text-ws-black/65">
+          <p className="admin-copy mt-3 max-w-2xl">
             Add an article or learning event to a draft, a published issue, or a future issue date without touching the daily candidate review flow.
           </p>
         </div>
 
-        <div className="rounded-[0.65rem] border border-ws-border bg-ws-page/70 p-3">
-          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-black/50">Use this when</p>
+        <div className="admin-subpanel bg-ws-page/70 p-3.5">
+          <p className="admin-field-label mb-2">Use this when</p>
           <ul className="mt-2 flex flex-col gap-1.5 text-[12px] leading-snug text-ws-black/65">
             <li>You find one more source for an already drafted issue.</li>
             <li>You need a late add to a published issue.</li>
@@ -267,12 +267,12 @@ export function AddToIssue({ password }: { password: string }) {
         </div>
       </div>
 
-      {success && <p className="border border-ws-black/15 bg-ws-page px-3 py-2 text-[13px] font-bold">{success}</p>}
-      {error && <p className="border border-red-300 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-700">{error}</p>}
+      {success && <p className="admin-notice px-3 py-2">{success}</p>}
+      {error && <p className="admin-notice admin-danger-notice px-3 py-2">{error}</p>}
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
         <div>
-          <span className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">Destination</span>
+          <span className="admin-field-label">Destination</span>
           <div className="admin-segmented grid grid-cols-2">
             {(['existing', 'date'] as DestinationMode[]).map(option => (
               <button
@@ -290,7 +290,7 @@ export function AddToIssue({ password }: { password: string }) {
         </div>
 
         <div>
-          <span className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">Item type</span>
+          <span className="admin-field-label">Item type</span>
           <div className="admin-segmented grid grid-cols-2">
             {(['article', 'event'] as ItemType[]).map(option => (
               <button
@@ -310,7 +310,7 @@ export function AddToIssue({ password }: { password: string }) {
 
       {destinationMode === 'existing' ? (
         <div>
-          <label htmlFor="append-any-issue" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
+          <label htmlFor="append-any-issue" className="admin-field-label">
             Existing draft or published issue
           </label>
           <select
@@ -318,7 +318,7 @@ export function AddToIssue({ password }: { password: string }) {
             value={issueId}
             onChange={event => setIssueId(event.target.value)}
             disabled={loadingIssues || submitting}
-            className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+            className="admin-input px-3 py-2.5 font-semibold"
           >
             {sortedIssues.length === 0 && <option value="">{loadingIssues ? 'Loading issues...' : 'No issues found'}</option>}
             {sortedIssues.map(issue => (
@@ -328,7 +328,7 @@ export function AddToIssue({ password }: { password: string }) {
         </div>
       ) : (
         <div>
-          <label htmlFor="append-issue-date" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
+          <label htmlFor="append-issue-date" className="admin-field-label">
             Issue date
           </label>
           <input
@@ -337,7 +337,7 @@ export function AddToIssue({ password }: { password: string }) {
             value={issueDate}
             onChange={event => setIssueDate(event.target.value)}
             disabled={submitting}
-            className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+            className="admin-input px-3 py-2.5 font-semibold"
           />
           <p className="mt-1.5 text-[12px] text-ws-black/50">
             If no issue exists for this date, a draft shell is created automatically.
@@ -346,7 +346,7 @@ export function AddToIssue({ password }: { password: string }) {
       )}
 
       <div>
-        <label htmlFor="append-desk-url" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
+        <label htmlFor="append-desk-url" className="admin-field-label">
           URL
         </label>
         <input
@@ -356,14 +356,14 @@ export function AddToIssue({ password }: { password: string }) {
           onChange={event => { setUrl(event.target.value); setDuplicate(null); setMemoryWarnings([]); setStaleBlocked(false); setSuccess(null) }}
           disabled={submitting}
           placeholder={type === 'article' ? 'https://source-article...' : 'https://event-or-registration-page...'}
-          className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[15px] font-mono outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+          className="admin-input px-3 py-2.5 font-mono"
         />
       </div>
 
       {type === 'article' ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
           <div>
-            <label htmlFor="append-desk-category" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
+            <label htmlFor="append-desk-category" className="admin-field-label">
               Section
             </label>
             <select
@@ -371,7 +371,7 @@ export function AddToIssue({ password }: { password: string }) {
               value={category}
               onChange={event => setCategory(event.target.value as Category)}
               disabled={submitting}
-              className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+              className="admin-input px-3 py-2.5 font-semibold"
             >
               {CATEGORY_ORDER.map(categoryOption => (
                 <option key={categoryOption} value={categoryOption}>
@@ -382,7 +382,7 @@ export function AddToIssue({ password }: { password: string }) {
           </div>
 
           <div>
-            <label htmlFor="append-desk-note" className="block text-[11px] font-black uppercase tracking-[0.1em] mb-1.5">
+            <label htmlFor="append-desk-note" className="admin-field-label">
               Note <span className="font-normal normal-case tracking-normal text-ws-black/45">(optional)</span>
             </label>
             <textarea
@@ -392,7 +392,7 @@ export function AddToIssue({ password }: { password: string }) {
               rows={2}
               disabled={submitting}
               placeholder="Leave blank and AI writes the summary."
-              className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] leading-[1.45] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+              className="admin-input px-3 py-2.5 leading-[1.45]"
             />
           </div>
 
@@ -437,13 +437,13 @@ export function AddToIssue({ password }: { password: string }) {
             <TextField label="When" value={eventWhen} setValue={setEventWhen} disabled={submitting} />
             <TextField label="Where" value={eventWhere} setValue={setEventWhere} disabled={submitting} />
             <label className="flex flex-col gap-1.5 md:row-span-2">
-              <span className="text-[11px] font-black uppercase tracking-[0.1em]">Description</span>
+              <span className="admin-field-label">Description</span>
               <textarea
                 value={eventDescription}
                 onChange={event => setEventDescription(event.target.value)}
                 disabled={submitting}
                 rows={4}
-                className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] leading-[1.45] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+                className="admin-input px-3 py-2.5 leading-[1.45]"
               />
             </label>
           </div>
@@ -451,7 +451,7 @@ export function AddToIssue({ password }: { password: string }) {
       )}
 
       {duplicate && (
-        <div className="border border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
+        <div className="admin-notice border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
           <p className="text-[13px] text-ws-black leading-snug">
             This URL already appears in Issue #{duplicate.issueNumber} on {duplicate.issueDate}
             {duplicate.published ? ' (published)' : ' (draft)'}. Add it again only if you mean to.
@@ -477,7 +477,7 @@ export function AddToIssue({ password }: { password: string }) {
       )}
 
       {memoryWarnings.length > 0 && (
-        <div className="border border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
+        <div className="admin-notice border-ws-accent bg-ws-accent-light/40 px-4 py-3 flex flex-col gap-3">
           <div>
             <p className="text-[12px] font-black uppercase tracking-[0.12em] text-ws-accent">
               Issue memory warning
@@ -557,7 +557,7 @@ function TextField({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-black uppercase tracking-[0.1em]">
+      <span className="admin-field-label">
         {label}{required ? ' *' : ''}
       </span>
       <input
@@ -565,7 +565,7 @@ function TextField({
         value={value}
         onChange={event => setValue(event.target.value)}
         disabled={disabled}
-        className="w-full border border-ws-black/30 bg-ws-page px-3 py-2.5 text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent disabled:opacity-60"
+        className="admin-input px-3 py-2.5"
       />
     </label>
   )

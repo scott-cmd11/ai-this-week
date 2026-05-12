@@ -170,3 +170,19 @@
 - The six-step rail uses equal columns on desktop and a clean horizontal scroll on mobile.
 - The main panels now use consistent padding, softer borders, and calmer shadows.
 - Browser smoke checks passed for Status, Choose, Edit, Check, and Publish at desktop width, plus mobile Status.
+
+# Task: Full Desk Admin Polish
+
+- [x] Bring the Full Desk shell and tab rail onto the same admin visual system.
+- [x] Normalize Issue Append and Live Issue Desk panels, labels, inputs, notices, and buttons.
+- [x] Clean up supporting utility panels so the full-desk view feels proportionate.
+- [x] Verify lint, tests, and production build.
+- [x] Verify Full Desk desktop and mobile browser layout.
+- [ ] Commit, push, deploy, and verify live admin.
+
+## Review
+
+- Full Desk now shares the same title, eyebrow, copy, subpanel, input, notice, and button treatments as the guided flow.
+- Issue Desk tabs keep readable labels on mobile by using a horizontal rail instead of wrapping.
+- Issue Append, Live Issue Desk, published updates, capture settings, and stats utilities now have calmer borders and more consistent spacing.
+- Verification passed: `npm run lint`, `npm test`, `npm run build`, plus desktop/mobile Full Desk browser smoke checks with no page-wide horizontal overflow.

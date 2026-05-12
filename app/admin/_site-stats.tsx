@@ -57,27 +57,27 @@ export function SiteStats({ password }: { password: string }) {
   }, [password])
 
   return (
-    <div className="border-[3px] border-ws-black bg-ws-white p-5 shadow-[4px_4px_0_0_var(--color-ws-black)]">
-      <p className="text-[13px] font-black uppercase tracking-[0.15em] text-ws-black/70 mb-4">Overview</p>
+    <div className="admin-subpanel bg-ws-white p-5">
+      <p className="admin-eyebrow mb-4">Overview</p>
 
       {loading && <p className="text-[14px] text-ws-black/70">Loading...</p>}
       {error && <p className="text-[14px] text-ws-accent font-bold">{error}</p>}
 
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="admin-subpanel px-4 py-3 flex min-h-[96px] flex-col gap-1 bg-ws-page/70">
             <p className="text-[32px] font-black leading-none">{stats.totalPublished}</p>
             <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Total published</p>
           </div>
-          <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
+          <div className="admin-subpanel px-4 py-3 flex min-h-[96px] flex-col gap-1 bg-ws-page/70">
             <p className="text-[32px] font-black leading-none">{stats.recentPublished}</p>
             <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Last 30 days</p>
           </div>
-          <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
+          <div className="admin-subpanel px-4 py-3 flex min-h-[96px] flex-col gap-1 bg-ws-page/70">
             <p className="text-[32px] font-black leading-none">{stats.draftsCount}</p>
             <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">Unpublished drafts</p>
           </div>
-          <div className="border-[2px] border-ws-black px-4 py-3 flex flex-col gap-1">
+          <div className="admin-subpanel px-4 py-3 flex min-h-[96px] flex-col gap-1 bg-ws-page/70">
             {stats.latestIssue ? (
               <>
                 <a
@@ -100,8 +100,8 @@ export function SiteStats({ password }: { password: string }) {
       )}
 
       {stats && (
-        <div className="mt-4 border-[2px] border-ws-black/20 bg-ws-page px-4 py-3">
-          <p className="text-[12px] font-black uppercase tracking-wide text-ws-black/70">
+        <div className="admin-notice mt-4 px-4 py-3">
+          <p className="admin-field-label mb-1">
             Usage tracking
           </p>
           <p className="mt-1 text-[13px] leading-snug text-ws-black/65">
