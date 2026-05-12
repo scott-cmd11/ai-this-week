@@ -187,3 +187,17 @@
 - Issue Append, Live Issue Desk, published updates, capture settings, and stats utilities now have calmer borders and more consistent spacing.
 - Verification passed: `npm run lint`, `npm test`, `npm run build`, plus desktop/mobile Full Desk browser smoke checks with no page-wide horizontal overflow.
 - Deployed to production and verified live `/admin` at desktop and mobile widths.
+
+# Task: Footer Proportion Polish
+
+- [x] Give the shared footer stronger hierarchy and breathing room.
+- [x] Separate brand, disclosure, companion project, and credit/social areas.
+- [x] Keep the existing institutional editorial palette and links.
+- [x] Verify lint, build, and desktop/mobile footer rendering.
+- [ ] Commit, push, deploy, and verify live footer.
+
+## Review
+
+- The footer now has clearer editorial hierarchy, larger brand treatment, and better spacing between disclosure, companion project, and credit/social rows.
+- Desktop and mobile footer browser checks passed with no horizontal overflow.
+- Verification passed: `npm run lint`, `npm test`, `npm run build`, and footer-specific desktop/mobile smoke checks.

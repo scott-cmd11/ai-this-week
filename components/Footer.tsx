@@ -33,30 +33,38 @@ const SOCIAL_LINKS = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-ws-border mt-16 py-10 bg-ws-black text-ws-white" role="contentinfo">
-      <div className="w-[min(100%-2rem,1180px)] mx-auto flex flex-col gap-5">
-        <div className="flex items-start justify-between gap-8 flex-wrap">
+    <footer className="mt-16 border-t border-ws-border bg-ws-black text-ws-white" role="contentinfo">
+      <div className="mx-auto flex w-[min(100%-2rem,1180px)] flex-col gap-7 py-10 sm:py-12">
+        <div className="grid gap-6 border-b border-white/12 pb-7 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:items-start">
           <div>
-            <p className="font-[family-name:var(--font-display)] text-[24px] leading-none">AI Today</p>
-            <p className="type-meta type-muted-inverse mt-2 opacity-65">
+            <p className="font-[family-name:var(--font-display)] text-[30px] font-semibold leading-none sm:text-[34px]">
+              AI Today
+            </p>
+            <p className="type-meta type-muted-inverse mt-3 opacity-70">
               Canadian AI signal, daily
             </p>
           </div>
-          <p className="type-body type-muted-inverse max-w-2xl text-[15px]">
-            <span className="font-semibold text-white">AI disclosure -</span>{' '}
-            All summaries are AI-generated. Review official sources. Minor editing happens prior to publishing.{' '}
-            <Link href="/about" className="underline font-semibold text-ws-accent-light hover:text-ws-white hover:no-underline">
-              Learn more
-            </Link>
-            {' / '}
-            <Link href="/contact" className="underline font-semibold text-ws-accent-light hover:text-ws-white hover:no-underline">
-              Contact
-            </Link>
-          </p>
+
+          <div className="max-w-3xl lg:justify-self-end">
+            <p className="type-meta type-muted-inverse opacity-70">Editorial standard</p>
+            <p className="mt-2 text-[16px] leading-[1.6] text-white/78">
+              <span className="font-semibold text-white">AI disclosure:</span>{' '}
+              All summaries are AI-generated. Review official sources. Minor editing happens prior to publishing.
+            </p>
+            <nav aria-label="Footer editorial links" className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+              <Link href="/about" className="text-[14px] font-semibold text-ws-accent-light underline hover:text-ws-white hover:no-underline">
+                Learn more
+              </Link>
+              <Link href="/contact" className="text-[14px] font-semibold text-ws-accent-light underline hover:text-ws-white hover:no-underline">
+                Contact
+              </Link>
+            </nav>
+          </div>
         </div>
 
-        <div className="border-t border-white/12 pt-5">
-          <p className="type-body type-muted-inverse max-w-3xl text-[14px] opacity-85">
+        <div className="grid gap-3 border-b border-white/12 pb-7 lg:grid-cols-[minmax(180px,0.35fr)_minmax(0,1fr)]">
+          <p className="type-meta type-muted-inverse opacity-70">Companion project</p>
+          <p className="max-w-4xl text-[15px] leading-[1.65] text-white/74">
             For a deeper view of Canadian AI adoption, policy, infrastructure, and public-sector signals, visit{' '}
             <a
               href="https://www.aicanadapulse.ca/"
@@ -70,20 +78,33 @@ export function Footer() {
           </p>
         </div>
 
-        <div className="flex items-center justify-between gap-4 flex-wrap border-t border-white/12 pt-5">
-          <p className="type-body type-muted-inverse text-[13px] opacity-80">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[14px] leading-relaxed text-white/68">
             A project by{' '}
-            <a href="https://scotthazlitt.ai" target="_blank" rel="noopener noreferrer" className="font-semibold text-ws-accent-light hover:text-ws-white hover:no-underline underline">
+            <a
+              href="https://scotthazlitt.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-ws-accent-light underline hover:text-ws-white hover:no-underline"
+            >
               Scott Hazlitt
             </a>
           </p>
-          <div className="flex items-center gap-3">
+
+          <div className="flex flex-wrap items-center gap-3">
             {SOCIAL_LINKS.map(({ label, href, icon }) => (
-              <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="text-white/55 transition-colors hover:text-ws-accent-light">
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="inline-flex size-9 items-center justify-center rounded-full border border-white/12 text-white/58 transition-colors hover:border-ws-accent-light/45 hover:text-ws-accent-light"
+              >
                 {icon}
               </a>
             ))}
-            <p className="type-button type-muted-inverse text-[13px] opacity-80">Made in Canada</p>
+            <p className="type-button type-muted-inverse text-[13px] opacity-78">Made in Canada</p>
           </div>
         </div>
       </div>
