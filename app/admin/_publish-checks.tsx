@@ -162,12 +162,12 @@ export function PublishChecks({
       </div>
 
       {requiresWarningAcknowledgement && (
-        <label className="mt-5 flex gap-3 rounded-[0.6rem] border border-ws-border bg-ws-page p-4 text-[14px] font-bold leading-[1.45]">
+        <label className="mt-5 grid cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-[0.6rem] border border-ws-border bg-ws-page px-4 py-3.5 text-[14px] font-bold leading-[1.45]">
           <input
             type="checkbox"
             checked={warningsAcknowledged}
             onChange={event => setAcknowledgedFingerprint(event.target.checked ? checksFingerprint : null)}
-            className="mt-1 h-5 w-5 accent-[var(--color-ws-accent)]"
+            className="h-5 w-5 shrink-0 accent-[var(--color-ws-accent)]"
           />
           <span>I have reviewed the warnings and still want this issue to be eligible for publishing.</span>
         </label>

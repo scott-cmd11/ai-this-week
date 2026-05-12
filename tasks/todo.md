@@ -215,3 +215,14 @@
 - Homepage intro and latest issue sections now use single top rules instead of stacked top-and-bottom black rules.
 - Verification passed: `npm run lint`, `npm test`, `npm run build`, and a local homepage render check confirmed the intro no longer has a bottom black rule.
 - Live desktop/mobile checks confirm intro, latest issue, and archive each have a single top rule with no bottom black rule stacking.
+
+# Task: Publish Acknowledgement Alignment
+
+- [x] Align the warning acknowledgement checkbox and label in the publish readiness panel.
+- [x] Verify lint/build and admin rendering.
+- [ ] Commit, push, deploy, and verify live admin.
+
+## Review
+
+- Warning acknowledgement now uses a two-column grid row with centered alignment and a fixed-size checkbox.
+- Verification passed: `npm run lint`, `npm test`, `npm run build`, and a browser check confirmed the checkbox and label share the same centerline.
