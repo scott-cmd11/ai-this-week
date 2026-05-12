@@ -220,9 +220,10 @@
 
 - [x] Align the warning acknowledgement checkbox and label in the publish readiness panel.
 - [x] Verify lint/build and admin rendering.
-- [ ] Commit, push, deploy, and verify live admin.
+- [x] Commit, push, deploy, and verify live admin.
 
 ## Review
 
 - Warning acknowledgement now uses a two-column grid row with centered alignment and a fixed-size checkbox.
 - Verification passed: `npm run lint`, `npm test`, `npm run build`, and a browser check confirmed the checkbox and label share the same centerline.
+- Deployed to production and verified the live admin checkbox and label centers match.
