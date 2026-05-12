@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isPublishedDateFreshForIssue, parsePublishedDateText } from '@/lib/article-fetcher'
+import { extractTitle, isPublishedDateFreshForIssue, parsePublishedDateText } from '@/lib/article-fetcher'
 
 describe('article freshness guard', () => {
   it('parses publisher date strings used in issue metadata', () => {
@@ -19,5 +19,12 @@ describe('article freshness guard', () => {
 
   it('does not block articles when the publisher date cannot be detected', () => {
     expect(isPublishedDateFreshForIssue(null, '2026-05-03')).toBe(true)
+  })
+})
+
+describe('article title extraction', () => {
+  it('decodes numeric apostrophe entities in titles', () => {
+    const html = '<title>Privacy commissioners&#039; report on OpenAI - Local News</title>'
+    expect(extractTitle(html)).toBe("Privacy commissioners' report on OpenAI")
   })
 })

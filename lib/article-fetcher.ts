@@ -20,6 +20,7 @@ function decodeHtmlAttribute(value: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&#0*39;/g, "'")
     .replace(/&nbsp;/g, ' ')
     .trim()
 }
@@ -218,12 +219,7 @@ export function extractTitle(html: string): string | null {
 
   if (!raw) return null
 
-  return raw
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+  return decodeHtmlAttribute(raw)
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/\s*[\|\-–—]\s*[^|\-–—]{2,40}$/, '')

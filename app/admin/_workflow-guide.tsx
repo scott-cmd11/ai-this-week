@@ -38,7 +38,8 @@ export function WorkflowGuide() {
       {open && (
         <div className="px-5 pb-5 pt-1 border-t-[2px] border-ws-black/15 flex flex-col gap-5 text-[14px] leading-[1.55]">
           <p className="text-ws-black/80">
-            Each morning the automations send article candidates into Supabase.
+            Each evening, source checks and RSS imports prepare article candidates for review.
+            The daily assemble job runs around 6:00 PM Winnipeg time, with publishing around 9:00 PM when a draft is ready.
             The admin flow is the publishing source of truth: review the queue,
             add the best items to the draft, publish, then make live corrections if needed.
           </p>

@@ -490,6 +490,17 @@ export async function captureArticleToTodaysDraft(article: CaptureArticleInput):
   return appendArticleToIssue(issue, article)
 }
 
+export async function captureArticleToDraftDate(
+  article: CaptureArticleInput,
+  issueDate: string,
+): Promise<CaptureResult> {
+  const issue = await findOrCreateDraftByDate(issueDate)
+  if (issue.published) {
+    throw new Error(`Issue ${issueDate} is already published. Use the live issue desk to add late items.`)
+  }
+  return appendArticleToIssue(issue, article)
+}
+
 export async function captureArticleToIssue(issueId: string, article: CaptureArticleInput): Promise<CaptureResult> {
   const issue = await getIssueTargetById(issueId)
   if (!issue) throw new Error('Issue not found.')

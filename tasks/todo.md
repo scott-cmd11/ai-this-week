@@ -227,3 +227,43 @@
 - Warning acknowledgement now uses a two-column grid row with centered alignment and a fixed-size checkbox.
 - Verification passed: `npm run lint`, `npm test`, `npm run build`, and a browser check confirmed the checkbox and label share the same centerline.
 - Deployed to production and verified the live admin checkbox and label centers match.
+
+# Task: Google Alerts AI Candidate Grab
+
+- [x] Recover the current Google Alerts RSS feed URLs from the saved automation outputs.
+- [x] Fetch the current feed entries and normalize them into AI Today candidate shape.
+- [x] Filter for usable AI Today stories and save a reviewable local output.
+- [x] Dry-run the existing candidate importer against the output.
+- [x] Import the curated set into the live Candidate inbox.
+- [x] Verify the live Candidate inbox has the imported Google Alerts items.
+
+## Review
+
+- Fetched 13 Google Alerts RSS feeds, with 260 raw entries and no feed failures.
+- Saved the first-pass candidate output under `tmp/google-alerts-current/2026-05-12T02-22-34/`.
+- Narrowed the first-pass set from 50 to 26 usable AI Today candidates by removing social posts, jobs, obvious non-AI items, and low-value duplicates.
+- Dry-run verification passed against `scripts/import-candidates-from-automation-output.mjs`.
+- Imported 26 candidates into the live AI Today Candidate inbox and verified `26` new `Google Alerts Current RSS` items through the production API.
+
+# Task: May 11 Article Population Investigation
+
+- [x] Map the live article intake paths for candidates, draft assembly, and publish.
+- [x] Confirm the May 11, 2026 automation schedule in Winnipeg time.
+- [x] Inspect local and production-backed data to see where May 11 content exists or failed.
+- [x] Run safe May 11 dry-runs without mutating live data.
+- [x] Fix the smallest code or configuration issue if the root cause is in the app.
+- [x] Verify admin and public surfaces show accurate May 11 state.
+- [x] Document the outcome, commands, and any remaining blocker.
+
+## Review
+
+- Current Vercel cron config runs daily assemble at 23:00 UTC, which is 6:00 PM Winnipeg time during May, and publish at 02:00 UTC, which is 9:00 PM Winnipeg time.
+- Production May 11 issue existed and was published, but initially had only 3 articles, all under Industry & Models.
+- Safe production dry-run for `2026-05-11` showed `Canada AI Daily` had 3 parsed items, `Agriculture AI` had a failed Google Alerts digest with 0 items, `Daily News - AI` had a failed Google Alerts digest plus fallback items that were already duplicates, and research had 0 papers.
+- Separate Google Alerts RSS recovery imported 26 current candidates into the live Candidate inbox after the issue had already published.
+- Backfilled the May 11 published issue with 4 clean, non-duplicate items: Bill C-16/deepfake amendments, Canadian AI regulation commentary, OpenAI/privacy coverage, and Microsoft SocialReasoning-Bench.
+- Skipped the TELUS sovereign compute item because issue-memory correctly flagged it as related to a May 5 sovereign compute story, and skipped the Senate PDF because the fetcher would title it as `sencanada.ca`.
+- Production verification now shows May 11 has 7 articles across Industry & Models, Policy & Regulation, Canada, and Research, with no duplicate, stale-source, missing-title, missing-summary, or broken-URL blockers.
+- Code changes made locally: date-targeted daily assemble now writes to the requested issue date instead of implicit "today"; title extraction decodes numeric apostrophe entities; admin workflow copy now says evening and documents the 6 PM / 9 PM Winnipeg schedule.
+- Created the active Codex automation `AI Today evening RSS candidate import` to repeat the Google Alerts RSS candidate import each evening before the publish window.
+- Validation passed: focused article-fetcher test, full Vitest suite, ESLint, production build, and live API/page smoke checks.

@@ -6,7 +6,7 @@ import { parseBriefingBlocks } from '@/lib/briefing-parser'
 import { categorize, CATEGORY_ORDER } from '@/lib/category-mapping'
 import { generateAnnotation } from '@/lib/ai-annotation'
 import { fetchArticleMeta, isPublishedDateFreshForIssue } from '@/lib/article-fetcher'
-import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/issue-store'
+import { captureArticleToDraftDate, type CaptureArticleInput } from '@/lib/issue-store'
 import { buildKnownTitleList, buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
 import { fetchResearchPapersForDate } from '@/lib/research-papers'
@@ -224,7 +224,7 @@ async function assemble(
             category: article.category,
           }
 
-          await captureArticleToTodaysDraft(input)
+          await captureArticleToDraftDate(input, date)
         }
 
         result.imported++
@@ -289,14 +289,14 @@ async function assemble(
           fallbackSummary: paper.summary ?? paper.keyFindings,
         })
 
-        await captureArticleToTodaysDraft({
+        await captureArticleToDraftDate({
           title: paper.title,
           annotation,
           url: paper.url,
           publishedDate: paper.date,
           imageUrl: null,
           category: 'Research',
-        })
+        }, date)
       }
 
       researchResult.imported++
