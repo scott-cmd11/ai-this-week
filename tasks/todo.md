@@ -326,3 +326,17 @@
 - Any article mentioning Canada, Canadian, common Canadian places, known Canadian news/source names, Canadian government domains, or `.ca` source domains is now routed to `Canada` even when the upstream source labels it as Policy, Industry, Research, or another section.
 - The rule now runs in the candidate layer, admin briefing import view, `/api/import-briefing-articles`, `/api/cron/daily-assemble`, `/api/append-to-issue`, and the final `appendArticleToIssue` storage function.
 - Verification passed: `npm run test -- tests/lib/category-mapping.test.ts tests/lib/article-candidates.test.ts tests/lib/notion-renderer.test.tsx`, `npm test`, `npm run lint`, and `npm run build`.
+
+# Task: Compact Issue Footer
+
+- [x] Reduce the issue tools area height.
+- [x] Make previous/next issue navigation compact.
+- [x] Replace large related-issue cards with compact archive rows.
+- [x] Verify lint, full tests, and production build.
+
+## Review
+
+- The lower issue footer now behaves like a compact utility/archive strip instead of a large second page section.
+- Previous/next links use smaller type and tighter spacing.
+- Related archive links now render as compact rows with issue number, date, and a shortened summary.
+- Verification passed: `npm run lint`, `npm run build`, and `npm test`. The first build attempt hit a local Windows/OneDrive `.next` file lock; clearing the local build cache and rerunning passed.

@@ -15,7 +15,6 @@ import { CopyMarkdownButton } from '@/components/CopyMarkdownButton'
 import { TableOfContents } from '@/components/TableOfContents'
 import { MobileToc } from '@/components/MobileToc'
 import { ArticleJsonLd } from '@/components/ArticleJsonLd'
-import { IssueCard } from '@/components/IssueCard'
 import { SignalLedger } from '@/components/SignalLedger'
 import { estimateReadingTime } from '@/lib/reading-time'
 import { blocksToMarkdown } from '@/lib/to-markdown'
@@ -156,11 +155,11 @@ export default async function IssuePage({ params }: Props) {
 
           <NotionRenderer blocks={blocks} />
 
-          <footer className="mt-14 border-t border-ws-black/70 pt-6">
-            <div className="grid gap-4 border-b border-ws-border pb-6 sm:grid-cols-[1fr_auto] sm:items-center">
+          <footer className="mt-12 border-t border-ws-black/70 pt-4">
+            <div className="grid gap-3 border-b border-ws-border pb-4 sm:grid-cols-[1fr_auto] sm:items-center">
               <div>
                 <p className="type-meta text-ws-accent">Issue tools</p>
-                <p className="mt-2 max-w-xl text-[14px] leading-[1.5] text-ws-muted">
+                <p className="mt-1 max-w-xl text-[13px] leading-[1.45] text-ws-muted">
                   Save, cite, or share this edition.
                 </p>
               </div>
@@ -172,7 +171,7 @@ export default async function IssuePage({ params }: Props) {
 
             <nav
               aria-label="Issue navigation"
-              className="grid grid-cols-1 gap-4 border-b border-ws-border py-6 sm:grid-cols-2"
+              className="grid grid-cols-1 gap-2 border-b border-ws-border py-3 sm:grid-cols-2"
             >
               {adjacent.prev ? (
                 <IssueNavLink label="Previous issue" issue={adjacent.prev} />
@@ -183,8 +182,8 @@ export default async function IssuePage({ params }: Props) {
             </nav>
 
             {related.length > 0 && (
-              <section aria-label="More issues" className="py-6">
-                <div className="mb-4 flex items-baseline justify-between gap-4">
+              <section aria-label="More issues" className="py-4">
+                <div className="mb-2 flex items-baseline justify-between gap-4">
                   <h2 className="type-meta text-ws-accent">More from the archive</h2>
                   <Link href="/issues" className="type-meta text-ws-muted hover:text-ws-accent">
                     All issues
@@ -193,7 +192,7 @@ export default async function IssuePage({ params }: Props) {
                 <ul className="m-0 grid list-none gap-0 divide-y divide-ws-border border-y border-ws-border p-0">
                   {related.map(other => (
                     <li key={other.id}>
-                      <IssueCard issue={other} compact />
+                      <CompactIssueRow issue={other} />
                     </li>
                   ))}
                 </ul>
@@ -221,16 +220,43 @@ function IssueNavLink({
     <Link
       href={`/issues/${issue.slug}`}
       className={[
-        'group block border border-transparent py-2 no-underline transition-colors hover:border-ws-border hover:bg-ws-white/50',
+        'group grid gap-1 border border-transparent py-2 no-underline transition-colors hover:border-ws-border hover:bg-ws-white/50 sm:px-2',
         align === 'right' ? 'sm:text-right' : '',
       ].join(' ')}
     >
       <span className="type-meta text-ws-muted group-hover:text-ws-accent">{label}</span>
-      <span className="mt-2 block font-[family-name:var(--font-display)] text-[1.45rem] font-medium leading-tight text-ws-black group-hover:text-ws-accent">
+      <span className="block font-[family-name:var(--font-display)] text-[1.05rem] font-medium leading-tight text-ws-black group-hover:text-ws-accent">
         {nonBreakingDate(issueDisplayTitle(issue.title))}
       </span>
     </Link>
   )
+}
+
+function CompactIssueRow({ issue }: { issue: { slug: string; title: string; issueNumber: number; summary?: string } }) {
+  const summary = compactIssueSummary(issue.summary)
+
+  return (
+    <Link
+      href={`/issues/${issue.slug}`}
+      className="grid gap-1 py-2 no-underline transition-colors hover:bg-ws-white/60 focus-visible:outline-2 focus-visible:outline-ws-accent focus-visible:outline-offset-2 sm:grid-cols-[4.75rem_9rem_minmax(0,1fr)] sm:items-baseline sm:gap-4 sm:px-2"
+    >
+      <span className="type-meta text-ws-muted">Issue {issue.issueNumber}</span>
+      <span className="font-[family-name:var(--font-display)] text-[1.05rem] font-medium leading-tight text-ws-black">
+        {nonBreakingDate(issueDisplayTitle(issue.title))}
+      </span>
+      {summary && (
+        <span className="text-[13px] leading-[1.4] text-ws-muted">
+          {summary}
+        </span>
+      )}
+    </Link>
+  )
+}
+
+function compactIssueSummary(summary: string | undefined) {
+  const text = summary?.replace(/\s+/g, ' ').trim()
+  if (!text) return ''
+  return text.length > 132 ? `${text.slice(0, 129).trimEnd()}...` : text
 }
 
 function IssueSignalBoard({
