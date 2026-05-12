@@ -29,7 +29,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <section aria-label="Publication introduction" className="mb-10 border-y border-ws-black py-7">
+      <section aria-label="Publication introduction" className="mb-9 border-t border-ws-black pt-7">
         <p className="type-meta mb-4 text-ws-accent">Canadian AI signal, daily</p>
         <h1 className="max-w-3xl font-[family-name:var(--font-display)] text-[clamp(2.65rem,6vw,4.75rem)] font-medium leading-[0.98] text-ws-black">
           Canadian AI, in plain English.
@@ -60,7 +60,7 @@ export default async function HomePage() {
       </section>
 
       {latest && (
-        <section aria-label="Latest issue" className="mb-14 border-y border-ws-black py-7">
+        <section aria-label="Latest issue" className="mb-14 border-t border-ws-black pt-7">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
             <article>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2">

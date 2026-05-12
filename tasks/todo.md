@@ -202,3 +202,16 @@
 - Desktop and mobile footer browser checks passed with no horizontal overflow.
 - Verification passed: `npm run lint`, `npm test`, `npm run build`, and footer-specific desktop/mobile smoke checks.
 - Deployed to production and verified the live footer on desktop and mobile.
+
+# Task: Homepage Rule Cleanup
+
+- [x] Remove doubled black section rules on the homepage.
+- [x] Preserve the editorial section rhythm with single transition rules.
+- [x] Verify lint, build, and desktop/mobile homepage rendering.
+- [ ] Commit, push, deploy, and verify live homepage.
+
+## Review
+
+- Homepage intro and latest issue sections now use single top rules instead of stacked top-and-bottom black rules.
+- Verification passed: `npm run lint`, `npm test`, `npm run build`, and a local homepage render check confirmed the intro no longer has a bottom black rule.
+- Local env does not render the live latest issue data, so final visual verification must happen against production after deploy.
