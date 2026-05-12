@@ -178,7 +178,7 @@
 - [x] Clean up supporting utility panels so the full-desk view feels proportionate.
 - [x] Verify lint, tests, and production build.
 - [x] Verify Full Desk desktop and mobile browser layout.
-- [ ] Commit, push, deploy, and verify live admin.
+- [x] Commit, push, deploy, and verify live admin.
 
 ## Review
 
@@ -186,3 +186,4 @@
 - Issue Desk tabs keep readable labels on mobile by using a horizontal rail instead of wrapping.
 - Issue Append, Live Issue Desk, published updates, capture settings, and stats utilities now have calmer borders and more consistent spacing.
 - Verification passed: `npm run lint`, `npm test`, `npm run build`, plus desktop/mobile Full Desk browser smoke checks with no page-wide horizontal overflow.
+- Deployed to production and verified live `/admin` at desktop and mobile widths.
