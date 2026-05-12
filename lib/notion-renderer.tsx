@@ -1,6 +1,6 @@
 import React from 'react'
 import type { NotionBlock, RichTextSegment } from './types'
-import { CATEGORY_META, CATEGORY_ORDER, type Category } from './category-mapping'
+import { CATEGORY_META, CATEGORY_ORDER, categoryOrderRank, type Category } from './category-mapping'
 
 interface Props {
   blocks: NotionBlock[]
@@ -199,7 +199,7 @@ function chunkBySections(items: RenderItem[]): SectionChunk[] {
 
   pushCurrent()
 
-  return mergeRepeatedSections(chunks)
+  return orderSectionChunks(mergeRepeatedSections(chunks))
 }
 
 function mergeRepeatedSections(chunks: SectionChunk[]): SectionChunk[] {
@@ -226,6 +226,23 @@ function mergeRepeatedSections(chunks: SectionChunk[]): SectionChunk[] {
   }
 
   return merged
+}
+
+function orderSectionChunks(chunks: SectionChunk[]): SectionChunk[] {
+  return chunks
+    .map((chunk, index) => ({ chunk, index }))
+    .sort((a, b) => {
+      const aLabel = a.chunk.header?.block.content.trim() ?? ''
+      const bLabel = b.chunk.header?.block.content.trim() ?? ''
+      const aRank = categoryOrderRank(aLabel)
+      const bRank = categoryOrderRank(bLabel)
+
+      if (aRank !== null && bRank !== null) return aRank - bRank || a.index - b.index
+      if (aRank !== null) return -1
+      if (bRank !== null) return 1
+      return a.index - b.index
+    })
+    .map(entry => entry.chunk)
 }
 
 function SectionHeader({ block, count }: { block: NotionBlock; count: number }) {

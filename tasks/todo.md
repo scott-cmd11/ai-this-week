@@ -293,3 +293,19 @@
 - Noise filtering remains intact: existing dedupe, stale-source, weak-title, weak-source, duplicate-topic, and canonical URL handling were not loosened.
 - Validation passed: `npm run test -- tests/lib/article-candidates.test.ts tests/lib/category-mapping.test.ts`, `npm test`, `npm run lint`, and `npm run build`.
 - Remaining risk: production will not use the improved scoring/order/category logic until this branch is deployed. No push, deploy, live publish, destructive data edit, or secret change was performed for this task.
+
+# Task: Canada-First Public Issue Section Order
+
+- [x] Confirm why May 11 rendered Industry & Models before Canada.
+- [x] Apply the canonical category order to public issue section rendering.
+- [x] Keep the table of contents in the same Canada-first order.
+- [x] Add a regression test for out-of-order saved blocks.
+- [x] Verify focused tests, full test suite, lint, and production build.
+
+## Review
+
+- Root cause: the stored May 11 issue blocks were saved with `Industry & Models` before `Canada`, and the public renderer preserved stored block order even though the taxonomy order already had `Canada` first.
+- Added a shared `categoryOrderRank` helper and used it to order public issue sections by the canonical taxonomy, with `Canada` first, without rewriting stored issue data.
+- Updated the issue table of contents to use the same ordering so desktop/mobile navigation matches the rendered article body.
+- Added a renderer regression test proving `Canada` renders first even when saved after `Industry & Models`.
+- Verification passed: `npm run test -- tests/lib/notion-renderer.test.tsx tests/lib/category-mapping.test.ts`, `npm test`, `npm run lint`, and `npm run build`.

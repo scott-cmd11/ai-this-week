@@ -20,6 +20,25 @@ describe('NotionRenderer', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Section Title' })).toBeInTheDocument()
   })
 
+  it('renders canonical issue sections with Canada first even when saved later', () => {
+    const blocks: NotionBlock[] = [
+      { id: 'industry', type: 'heading_2', content: 'Industry & Models', headingId: 'industry-models' },
+      { id: 'industry-title', type: 'heading_3', content: 'Global model story' },
+      { id: 'industry-summary', type: 'paragraph', content: 'A global AI model update.' },
+      { id: 'industry-link', type: 'bookmark', content: 'Read more', href: 'https://example.com/global' },
+      { id: 'industry-divider', type: 'divider', content: '' },
+      { id: 'canada', type: 'heading_2', content: 'Canada', headingId: 'canada' },
+      { id: 'canada-title', type: 'heading_3', content: 'Canadian AI policy story' },
+      { id: 'canada-summary', type: 'paragraph', content: 'A Canadian AI policy update.' },
+      { id: 'canada-link', type: 'bookmark', content: 'Read more', href: 'https://example.com/canada' },
+    ]
+
+    render(<NotionRenderer blocks={blocks} />)
+
+    const headings = screen.getAllByRole('heading', { level: 2 }).map(heading => heading.textContent)
+    expect(headings).toEqual(['Canada', 'Industry & Models'])
+  })
+
   it('renders bulleted list items as a ul > li structure', () => {
     const blocks: NotionBlock[] = [
       { id: '3', type: 'bulleted_list_item', content: 'First item' },

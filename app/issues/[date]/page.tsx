@@ -22,6 +22,7 @@ import { blocksToMarkdown } from '@/lib/to-markdown'
 import { publicIssueBlocks } from '@/lib/issue-block-filter'
 import { deriveIssueSummary } from '@/lib/issue-summary'
 import { SITE_URL } from '@/lib/site'
+import { categoryOrderRank } from '@/lib/category-mapping'
 
 export const revalidate = 300
 
@@ -89,6 +90,14 @@ export default async function IssuePage({ params }: Props) {
     .filter((entry, index, entries) =>
       entries.findIndex(candidate => candidate.label === entry.label) === index
     )
+    .map((entry, index) => ({ entry, index, rank: categoryOrderRank(entry.label) }))
+    .sort((a, b) => {
+      if (a.rank !== null && b.rank !== null) return a.rank - b.rank || a.index - b.index
+      if (a.rank !== null) return -1
+      if (b.rank !== null) return 1
+      return a.index - b.index
+    })
+    .map(({ entry }) => entry)
 
   return (
     <>

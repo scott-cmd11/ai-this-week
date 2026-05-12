@@ -25,6 +25,11 @@ export const CATEGORY_ORDER: Category[] = [
   'Research',
 ]
 
+export function categoryOrderRank(label: string): number | null {
+  const index = CATEGORY_ORDER.indexOf(label as Category)
+  return index === -1 ? null : index
+}
+
 // ─── Section name alternates ────────────────────────────────────────────────────
 // "Industry & Models" mashes a lot together; "Sectors & Applications" is
 // awkward. To switch, replace the corresponding label in CATEGORY_ORDER and
