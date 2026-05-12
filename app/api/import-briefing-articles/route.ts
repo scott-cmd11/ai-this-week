@@ -3,7 +3,7 @@ import OpenAI from 'openai'
 import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/issue-store'
 import { generateAnnotation } from '@/lib/ai-annotation'
 import { fetchArticleMeta, isPublishedDateFreshForIssue } from '@/lib/article-fetcher'
-import { CATEGORY_ORDER } from '@/lib/category-mapping'
+import { categoryForArticle, CATEGORY_ORDER } from '@/lib/category-mapping'
 import { buildKnownTitleList, buildKnownUrlMap } from '@/lib/known-urls'
 import { normalizeUrl } from '@/lib/url-normalize'
 import { chooseSourceTitle, type TitleQualityWarning } from '@/lib/title-quality'
@@ -86,7 +86,15 @@ export async function POST(request: NextRequest) {
   // when articles arrive interleaved by source).
   const categoryRank = new Map<string, number>()
   CATEGORY_ORDER.forEach((c, i) => categoryRank.set(c, i))
-  const sortedArticles = [...body.articles].sort((a, b) => {
+  const sortedArticles = body.articles.map(article => ({
+    ...article,
+    category: categoryForArticle({
+      title: article.title,
+      summary: article.summary,
+      url: article.url,
+      category: article.category,
+    }, article.category),
+  })).sort((a, b) => {
     const ra = categoryRank.get(a?.category ?? '') ?? Number.MAX_SAFE_INTEGER
     const rb = categoryRank.get(b?.category ?? '') ?? Number.MAX_SAFE_INTEGER
     return ra - rb
@@ -189,7 +197,13 @@ export async function POST(request: NextRequest) {
       url: articleUrl,
       publishedDate: resolvedPublishedDate,
       imageUrl: resolvedImageUrl,
-      category: article.category?.trim() || null,
+      category: categoryForArticle({
+        title: resolvedTitle,
+        summary: article.summary,
+        annotation,
+        url: articleUrl,
+        category: article.category,
+      }, article.category),
     }
 
     try {

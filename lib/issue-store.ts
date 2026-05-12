@@ -1,6 +1,7 @@
 import 'server-only'
 
 import type { Issue, NotionBlock } from './types'
+import { categoryForArticle } from './category-mapping'
 import { issueDateFor } from './issue-date'
 import { formatIsoDate } from './notion-blocks'
 
@@ -467,6 +468,12 @@ function articleCount(blocks: NotionBlock[]) {
 export async function appendArticleToIssue(issue: IssueTarget, article: CaptureArticleInput): Promise<CaptureResult> {
   const row = await getIssueRowById(issue.issueId)
   if (!row) throw new Error('Issue not found.')
+  const category = categoryForArticle({
+    title: article.title,
+    annotation: article.annotation,
+    url: article.url,
+    category: article.category,
+  }, article.category)
   const blocksToAppend = [
     h3(article.title),
     ...(article.publishedDate ? [paragraph(`Published: ${article.publishedDate}`)] : []),
@@ -475,7 +482,7 @@ export async function appendArticleToIssue(issue: IssueTarget, article: CaptureA
     ...(article.imageUrl ? [image(article.imageUrl)] : []),
     divider(),
   ]
-  const blocks = insertIntoSection(row.blocks ?? [], article.category?.trim() || null, blocksToAppend)
+  const blocks = insertIntoSection(row.blocks ?? [], category, blocksToAppend)
   const updated = await updateIssueBlocks(issue.issueId, blocks)
   return {
     issueId: issue.issueId,

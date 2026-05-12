@@ -3,7 +3,7 @@ import { Client } from '@notionhq/client'
 import OpenAI from 'openai'
 import { revalidatePath } from 'next/cache'
 import { parseBriefingBlocks } from '@/lib/briefing-parser'
-import { categorize, CATEGORY_ORDER } from '@/lib/category-mapping'
+import { categorize, categoryForArticle, CATEGORY_ORDER } from '@/lib/category-mapping'
 import { generateAnnotation } from '@/lib/ai-annotation'
 import { fetchArticleMeta, isPublishedDateFreshForIssue } from '@/lib/article-fetcher'
 import { captureArticleToDraftDate, type CaptureArticleInput } from '@/lib/issue-store'
@@ -148,12 +148,18 @@ async function assemble(
       const blocks = await fetchAllBlocks(notion, briefingPage.id)
       const briefing = parseBriefingBlocks(blocks)
       let articles: AssemblyArticle[] = briefing.sections.flatMap(section => {
-        const category = categorize(source.label, section.name)
+        const sectionCategory = categorize(source.label, section.name)
         return section.articles.map(article => ({
           title: article.title,
           summary: article.summary,
           url: article.urls[0] ?? '',
-          category,
+          category: categoryForArticle({
+            title: article.title,
+            summary: article.summary,
+            url: article.urls[0] ?? '',
+            sourceLabel: source.label,
+            category: sectionCategory,
+          }, sectionCategory),
         }))
       }).sort((a, b) => {
         const ar = categoryRank.get(a.category) ?? Number.MAX_SAFE_INTEGER
@@ -167,7 +173,13 @@ async function assemble(
           title: article.title,
           summary: article.summary,
           url: article.url,
-          category: article.category,
+          category: categoryForArticle({
+            title: article.title,
+            summary: article.summary,
+            url: article.url,
+            sourceLabel: 'AI Voices',
+            category: article.category,
+          }, article.category),
           publishedDate: article.publishedDate,
           maxAgeDays: article.maxAgeDays,
         }))])

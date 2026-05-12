@@ -6,6 +6,7 @@ import { generateAnnotation, polishAnnotation } from '@/lib/ai-annotation'
 import { buildKnownTitleList, buildKnownUrlMap } from '@/lib/known-urls'
 import { findIssueMemoryWarnings } from '@/lib/issue-memory'
 import { normalizeUrl } from '@/lib/url-normalize'
+import { categoryForArticle } from '@/lib/category-mapping'
 import {
   appendArticleToIssue,
   appendEventToIssue,
@@ -149,13 +150,19 @@ async function appendArticle(
   } else {
     annotation = '[Add annotation]'
   }
+  const category = categoryForArticle({
+    title,
+    annotation,
+    url,
+    category: body.category,
+  }, body.category)
 
   if (body.dryRun) {
     return NextResponse.json({
       success: true,
       dryRun: true,
       issue,
-      article: { title, url, publishedDate, imageUrl, annotation, category: body.category?.trim() || null },
+      article: { title, url, publishedDate, imageUrl, annotation, category },
       duplicate,
       issueMemoryWarnings,
     })
@@ -167,7 +174,7 @@ async function appendArticle(
     url,
     publishedDate,
     imageUrl,
-    category: body.category?.trim() || null,
+    category,
   })
 
   revalidatePath('/', 'layout')

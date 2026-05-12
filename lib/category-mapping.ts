@@ -30,6 +30,79 @@ export function categoryOrderRank(label: string): number | null {
   return index === -1 ? null : index
 }
 
+const CANADA_ARTICLE_SIGNALS = [
+  'canada',
+  'canadian',
+  'ottawa',
+  'winnipeg',
+  'manitoba',
+  'toronto',
+  'vancouver',
+  'calgary',
+  'montreal',
+  'british columbia',
+  'alberta',
+  'saskatchewan',
+  'ontario',
+  'quebec',
+  'cbc.ca',
+  'global news',
+  'globe and mail',
+  'ipolitics',
+  'canada.ca',
+  'gc.ca',
+  'sencanada',
+]
+
+interface ArticleCategoryInput {
+  title?: string | null
+  summary?: string | null
+  annotation?: string | null
+  url?: string | null
+  source?: string | null
+  sourceLabel?: string | null
+  category?: string | null
+}
+
+function validCategory(value: string | null | undefined): Category | null {
+  return value && CATEGORY_ORDER.includes(value as Category) ? value as Category : null
+}
+
+function articleCategoryText(input: ArticleCategoryInput): string {
+  return [
+    input.title,
+    input.summary,
+    input.annotation,
+    input.url,
+    input.source,
+    input.sourceLabel,
+    input.category,
+  ].filter(Boolean).join(' ').toLowerCase()
+}
+
+function hasCanadianHost(url: string | null | undefined): boolean {
+  if (!url) return false
+  try {
+    const hostname = new URL(url).hostname.toLowerCase()
+    return hostname.endsWith('.ca') || hostname.includes('.gc.ca')
+  } catch {
+    return false
+  }
+}
+
+export function isCanadaMention(input: ArticleCategoryInput): boolean {
+  const text = articleCategoryText(input)
+  return hasCanadianHost(input.url) || CANADA_ARTICLE_SIGNALS.some(signal => text.includes(signal))
+}
+
+export function categoryForArticle(
+  input: ArticleCategoryInput,
+  fallbackCategory?: Category | string | null,
+): Category {
+  if (isCanadaMention(input)) return 'Canada'
+  return validCategory(fallbackCategory) ?? validCategory(input.category) ?? 'Industry & Models'
+}
+
 // ─── Section name alternates ────────────────────────────────────────────────────
 // "Industry & Models" mashes a lot together; "Sectors & Applications" is
 // awkward. To switch, replace the corresponding label in CATEGORY_ORDER and

@@ -309,3 +309,20 @@
 - Updated the issue table of contents to use the same ordering so desktop/mobile navigation matches the rendered article body.
 - Added a renderer regression test proving `Canada` renders first even when saved after `Industry & Models`.
 - Verification passed: `npm run test -- tests/lib/notion-renderer.test.tsx tests/lib/category-mapping.test.ts`, `npm test`, `npm run lint`, and `npm run build`.
+
+# Task: Canadian Article Routing
+
+- [x] Add one shared Canada-detection rule for article title, summary, annotation, source, and URL.
+- [x] Apply the rule to candidate scoring/category inference.
+- [x] Apply the rule to scheduled daily assemble and manual briefing import.
+- [x] Apply the rule at final issue append so live/manual additions cannot land in the wrong section.
+- [x] Make the admin briefing import buckets reflect the same Canada-first routing.
+- [x] Add tests for Canada mentions, Canadian domains, and place-name routing.
+- [x] Verify focused tests, full tests, lint, and production build.
+
+## Review
+
+- Added `isCanadaMention` and `categoryForArticle` in `lib/category-mapping.ts`.
+- Any article mentioning Canada, Canadian, common Canadian places, known Canadian news/source names, Canadian government domains, or `.ca` source domains is now routed to `Canada` even when the upstream source labels it as Policy, Industry, Research, or another section.
+- The rule now runs in the candidate layer, admin briefing import view, `/api/import-briefing-articles`, `/api/cron/daily-assemble`, `/api/append-to-issue`, and the final `appendArticleToIssue` storage function.
+- Verification passed: `npm run test -- tests/lib/category-mapping.test.ts tests/lib/article-candidates.test.ts tests/lib/notion-renderer.test.tsx`, `npm test`, `npm run lint`, and `npm run build`.

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { categorize, CATEGORY_ORDER, CATEGORY_META, type Category } from '@/lib/category-mapping'
+import { categorize, categoryForArticle, CATEGORY_ORDER, CATEGORY_META, type Category } from '@/lib/category-mapping'
 import { findSimilarTitle as findSimilarTitleMatch } from '@/lib/title-dedupe'
 import { useKnownUrls } from './_use-known-urls'
 
@@ -161,11 +161,18 @@ export function BriefingImport({ password }: { password: string }) {
     for (const source of data.sources) {
       if (!source.briefing) continue
         for (const section of source.briefing.sections) {
-        const autoCat = categorize(source.sourceLabel, section.name)
+        const sectionCategory = categorize(source.sourceLabel, section.name)
         for (let index = 0; index < section.articles.length; index++) {
           const a = section.articles[index]
           const k = articleKey(source.sourceId, section.name, a, index)
           if (selected.has(k) && a.urls[0]) {
+            const autoCat = categoryForArticle({
+              title: a.title,
+              summary: a.summary,
+              url: a.urls[0],
+              sourceLabel: source.sourceLabel,
+              category: sectionCategory,
+            }, sectionCategory)
             const cat = overrides.get(k) ?? autoCat
             toImport.push({ title: a.title, summary: a.summary, url: a.urls[0], category: cat })
           }
@@ -354,10 +361,17 @@ export function BriefingImport({ password }: { password: string }) {
         for (const source of data.sources) {
           if (!source.briefing) continue
           for (const section of source.briefing.sections) {
-            const autoCat = categorize(source.sourceLabel, section.name)
+            const sectionCategory = categorize(source.sourceLabel, section.name)
             for (let index = 0; index < section.articles.length; index++) {
               const a = section.articles[index]
               const k = articleKey(source.sourceId, section.name, a, index)
+              const autoCat = categoryForArticle({
+                title: a.title,
+                summary: a.summary,
+                url: a.urls[0],
+                sourceLabel: source.sourceLabel,
+                category: sectionCategory,
+              }, sectionCategory)
               const effective = overrides.get(k) ?? autoCat
               entries.push({
                 key: k,

@@ -1,4 +1,4 @@
-import { CATEGORY_ORDER, type Category } from './category-mapping'
+import { CATEGORY_ORDER, isCanadaMention, type Category } from './category-mapping'
 import { normalizeUrl } from './url-normalize'
 
 export type CandidateStatus = 'new' | 'shortlisted' | 'approved' | 'rejected' | 'imported'
@@ -87,30 +87,6 @@ const WEAK_SOURCE_PATTERNS = [
   'crypto',
 ]
 
-const CANADA_SIGNALS = [
-  'canada',
-  'canadian',
-  'ottawa',
-  'winnipeg',
-  'manitoba',
-  'toronto',
-  'vancouver',
-  'calgary',
-  'montreal',
-  'british columbia',
-  'alberta',
-  'saskatchewan',
-  'ontario',
-  'quebec',
-  'cbc',
-  'global news',
-  'globe and mail',
-  'ipolitics',
-  'canada.ca',
-  'gc.ca',
-  'sencanada',
-]
-
 const POLICY_SIGNALS = [
   'policy',
   'regulation',
@@ -180,7 +156,7 @@ function hasAnySignal(text: string, signals: string[]): boolean {
 export function isCanadaRelevant(
   input: Pick<IncomingArticleCandidate, 'title' | 'summary' | 'source' | 'sourceType' | 'category'>,
 ): boolean {
-  return hasAnySignal(candidateText(input), CANADA_SIGNALS)
+  return isCanadaMention(input)
 }
 
 export function inferCandidateCategory(
