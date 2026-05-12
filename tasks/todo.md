@@ -1,3 +1,120 @@
+# Task: Expert Site and Publishing Flow Audit
+
+## Audit Status
+
+- [x] Read `AGENTS.md`, `docs/visual-system.md`, `tasks/lessons.md`, `package.json`, public route files, admin route files, cron routes, and issue-store/readiness files.
+- [x] Start the local site on `http://localhost:3035`.
+- [x] Check local route health for `/`, `/issues`, `/sections`, `/about`, `/contact`, `/capture`, and `/admin`.
+- [x] Confirm current local issue-store limitation: `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are missing locally, so public issues/archive render empty and known issue URLs 404 in local QA.
+- [x] Review the publishing flow from candidate intake through draft edit, readiness checks, cron assemble, cron publish, and Supabase public rendering.
+- [x] Get user approval before implementation.
+- [x] Implement approved P0/P1 improvements only.
+- [x] Validate with lint, tests, build, TypeScript, and local smoke checks after implementation.
+
+## Expert Review
+
+AI Today has a strong core direction: it feels more like a Canadian public-interest briefing desk than a generic AI/news product. The homepage, issue page, footer, and admin visual system have already moved toward a coherent editorial product with warm paper, ruled structure, maple red, serif hierarchy, and operational density.
+
+The remaining opportunity is not a broad redesign. The highest-value work is to make the experience feel complete at every task boundary: archive browsing should have the same editorial confidence as the homepage, capture/admin utility pages should stop showing older visual language, and the guided admin workflow should remove placeholder/dead-end moments from the main daily path.
+
+The backend is structurally healthier than the old Notion publishing model: Supabase is the issue source of truth, Winnipeg issue dates are centralized, and publish readiness is recalculated server-side. The biggest reliability gap for this audit is QA visibility: the local checkout cannot currently render real published issues because the Supabase issue-store env is absent, so issue-page visual QA is only partial unless a safe read-only issue-store target is configured or the user approves live read-only verification.
+
+## Site Map
+
+- Public reader surfaces: `/`, `/issues`, `/issues/[date]`, `/sections`, `/sections/[section]`, `/about`, `/contact`, `/feed.xml`, `/sitemap.xml`, `/robots.txt`.
+- Utility/editor surfaces: `/capture`, `/admin`.
+- Admin workflow APIs: `/api/admin/today-status`, `/api/article-candidates`, `/api/import-briefing-articles`, `/api/today-draft`, `/api/publish-issue`, `/api/append-to-issue`, `/api/published-issue-items`.
+- Scheduled jobs: `/api/cron/daily-assemble` at `23:00 UTC` and `/api/cron/daily-publish` at `02:00 UTC`, which is currently documented as the evening Winnipeg publishing window.
+
+## Admin Workflow Map
+
+1. Source automation and manual/RSS intake add article candidates or draft items.
+2. `/admin` signs in against `/api/admin/today-status`.
+3. Guided flow opens on Status, then moves through Intake, Choose, Edit, Check, and Publish.
+4. Candidate triage keeps/rejects/holds items; Keep imports to today's draft through `/api/import-briefing-articles`.
+5. Draft editor reviews and edits the assembled issue.
+6. Publish checks surface blockers and warnings from shared readiness logic.
+7. `/api/publish-issue` recalculates readiness server-side and publishes the Supabase issue if checks pass.
+8. Full Desk contains secondary work: Issue Desk, Future Queue, Health, Settings, live issue edits, append flow, and legacy fallback imports.
+
+## Reader-Facing Findings
+
+- **P0: Local published-issue QA is blocked by missing issue-store env.** The local site returns `200` for public routes, but `/` and `/issues` show no published issues and `/issues/2026-05-11`, `/issues/2026-05-12`, and `/issues/2026-05-08` return `404`. This prevents reliable local visual QA of the most important reader surface.
+- **P1: Archive and section pages feel thinner than the homepage/issue page.** `/issues` and `/sections` are usable, but they do not yet feel as editorially resolved as the homepage. They could better use the "signal desk" language: counts, section context, issue rhythm, and stronger empty states.
+- **P1: Capture page still uses older high-contrast utility styling.** `/capture` visually diverges from the calmer admin system, and the source contains garbled characters in comments/string-adjacent text from prior encoding issues. It works as a tool, but it feels less like part of the same 2026 product.
+- **P1: Contact page is clear but generic.** The H1 is simply "Contact"; it could better carry the corrections/tips/source-suggestion job and reinforce trust without adding noise.
+- **P2: Header navigation is minimal.** It intentionally stays quiet, but `/sections`, `/contact`, and RSS/feed discovery are not surfaced in the primary nav. This may be fine, but should be an explicit product choice.
+
+## Admin and Task-Flow Findings
+
+- **P0: Guided Intake step is still a placeholder.** The main daily flow includes an "Intake" step that says controls arrive later, while real candidate review lives in "Choose". This creates a dead-end in the primary workflow and undermines confidence.
+- **P1: Status and Choose overlap conceptually.** Status tells the editor to review candidates, but the step rail splits Intake and Choose in a way that makes source intake, candidate triage, and draft assembly feel less crisp than the underlying system actually is.
+- **P1: Secondary Health and Future Queue are still mostly explanatory shells.** Full Desk is organized well, but Health says diagnostics are a follow-up and Future Queue is not a full board. This should either be tightened as explicit "not yet" copy or turned into useful read-only status.
+- **P1: Admin auth/local status QA is awkward.** A local read-only call to `/api/admin/today-status` returned `401` using the parsed local env value, which means the status flow needs a clearer local verification path before implementation QA.
+- **P2: Publish readiness labels are accurate but clinical.** The checks are strong; the presentation could better tell the editor what to do next for each blocker/warning without weakening the guardrails.
+
+## Backend and Reliability Findings
+
+- **P0: Local QA parity depends on absent Supabase env.** The app degrades safely to empty public issues when Supabase is not configured, but the repo needs a documented read-only QA path or fixture strategy to verify issue pages locally.
+- **P1: Cron status is inferred, not actually observed in the admin status summary.** `getAdminRunSummaries()` currently returns `lastRunAt: null` and approximates automation failure from candidate-store errors. The Status card can say "Needs check" even when the real cron/import path may be fine.
+- **P1: `daily-publish` has fewer readiness gates than manual publish.** Manual publish uses shared readiness checks and warning acknowledgement. Cron publish currently checks only draft existence, published state, and article count before publishing. That may be intentional automation policy, but it should be reviewed because it can bypass the richer readiness model.
+- **P1: Revalidation is broad but not always specific.** Several write paths call `revalidatePath('/', 'layout')`; some item update/remove paths also revalidate issue/archive paths. The audit should confirm whether all public/RSS/sitemap surfaces refresh predictably after publish, append, edit, remove, and archive.
+- **P2: Legacy Notion naming remains in types, renderer names, and some comments.** This is not urgent because the block contract still evolved from Notion, but product-facing/admin copy should avoid implying Notion is still the publishing source of truth except where it is truly an input fallback.
+
+## Proposed Implementation Plan
+
+- [x] **P0: Remove the guided-flow dead end.** Replace the Intake placeholder with a useful source/intake status panel or merge the step meaning into Candidate Triage so the primary admin path has no "coming next" section.
+- [x] **P0: Establish a safe issue-page QA path.** Add a documented read-only local verification option or a small fixture/dev fallback that lets `/`, `/issues`, and `/issues/[date]` be smoke-checked without production mutation.
+- [x] **P1: Bring `/capture` onto the admin visual system.** Keep behaviour intact, but replace the older heavy-border/shadow style with the shared admin panel/input/button primitives and fix visible text encoding if any appears at runtime.
+- [x] **P1: Strengthen archive and section surfaces.** Add compact editorial context, counts/metadata when available, stronger empty states, and section descriptions without turning them into card-heavy pages.
+- [x] **P1: Clarify admin Health/Future Queue.** Either make them useful read-only status views or make the copy explicitly say where the working controls live today.
+- [x] **P1: Review cron publish parity.** Decide whether scheduled publish should use the same blocker model as manual publish. If yes, add shared readiness enforcement; if no, document the intentional policy in code/admin copy.
+- [x] **P2: Tune contact and footer microcopy.** Make corrections/tips/source submissions feel more official and source-trust aligned.
+
+## Validation Plan
+
+- `npm run lint`
+- `npm test`
+- `npm run build`
+- `npx tsc --noEmit` after build if `.next/types` needs regeneration
+- Local route checks: `/`, `/issues`, one real or fixture-backed `/issues/[date]`, `/sections`, `/about`, `/contact`, `/capture`, `/admin`
+- Read-only admin/API checks only unless write-path testing is explicitly approved
+- Desktop and mobile browser checks for the changed surfaces when browser tooling is available
+
+## Non-Goals During Implementation
+
+- No push, deploy, Vercel changes, or live production mutation before explicit approval.
+- No secret changes or credential display.
+- No Supabase schema migration unless explicitly approved.
+- No broad visual rebrand away from the current AI Today editorial system.
+- No destructive publish, append, archive, remove, or live-edit testing.
+
+## Implementation Review
+
+- Added `lib/sample-issues.ts` and a dev-only sample issue fallback in `lib/issue-store.ts` so local public QA can render `/`, `/issues`, `/issues/2026-05-12`, `/sections`, and `/sections/canada` without Supabase issue-store credentials. Production remains unchanged because the fallback is disabled when `NODE_ENV` is `production`.
+- Documented the local sample toggle in `.env.local.example` with `AI_TODAY_DISABLE_SAMPLE_ISSUES`.
+- Replaced the guided admin Intake placeholder with a real read-only source-intake panel showing automation, candidate, and draft state plus direct next-step actions.
+- Clarified Full Desk Future Queue and Health panels with concrete operating notes so they no longer read like unfinished placeholders.
+- Rebuilt `/capture` on the shared admin visual system while preserving token setup, article capture, duplicate warning, optional image URL, success, reset-token, and add-another behaviour.
+- Strengthened `/issues`, `/sections`, `/sections/[section]`, and `/contact` with calmer editorial context, metadata ledgers, counts, descriptions, and stronger source/correction language.
+- Changed `/api/cron/daily-publish` so scheduled publishing uses the same readiness model as admin status and skips auto-publish when blockers or warnings exist.
+
+## Validation Results
+
+- `npm run lint` passed.
+- `npm test` passed: 13 test files, 58 tests.
+- `npm run build` passed.
+- `npx tsc --noEmit` passed.
+- `git diff --check` passed.
+- Local smoke checks on `http://localhost:3035` passed for `/`, `/issues`, `/issues/2026-05-12`, `/sections`, `/sections/canada`, `/about`, `/contact`, `/capture`, and `/admin`.
+- The local sample issue page check confirmed `/issues/2026-05-12` returns `200` and renders sample issue content without Supabase issue-store credentials.
+
+## Remaining Notes
+
+- Implementation avoided live production mutation, secret changes, Supabase schema migration, and destructive write-path testing. Push/deploy is only being performed after explicit user approval.
+- Browser screenshot automation was not available in this environment, so verification used route-level smoke checks and rendered HTML evidence.
+- Cron publish is now intentionally conservative: warnings block scheduled auto-publish and require a manual editor review/publish path.
+
 # Task: Replace Notion Publishing Layer
 
 - [x] Map the current draft, publish, append, and public-render paths.

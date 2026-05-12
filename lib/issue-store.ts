@@ -4,6 +4,13 @@ import type { Issue, NotionBlock } from './types'
 import { categoryForArticle } from './category-mapping'
 import { issueDateFor } from './issue-date'
 import { formatIsoDate } from './notion-blocks'
+import {
+  getSampleIssueBlocks,
+  getSampleIssueByDate,
+  getSamplePublishedIssues,
+  listSampleIssues,
+  shouldUseSampleIssues,
+} from './sample-issues'
 
 export type StoredIssue = Issue
 export type SectionSlug =
@@ -19,25 +26,52 @@ export interface SectionMeta {
   label: string
   keyword: string
   code: string
+  description: string
 }
 
 export const SECTIONS: SectionMeta[] = [
-  { slug: 'canada', label: 'Canada', keyword: 'Canada', code: 'CAN' },
-  { slug: 'policy-regulation', label: 'Policy & Regulation', keyword: 'Policy & Regulation', code: 'POL' },
+  {
+    slug: 'canada',
+    label: 'Canada',
+    keyword: 'Canada',
+    code: 'CAN',
+    description: 'Canadian AI policy, companies, infrastructure, adoption, and public-interest signals.',
+  },
+  {
+    slug: 'policy-regulation',
+    label: 'Policy & Regulation',
+    keyword: 'Policy & Regulation',
+    code: 'POL',
+    description: 'Privacy, copyright, safety, governance, and regulatory developments.',
+  },
   {
     slug: 'government-public-sector',
     label: 'Government & Public Sector',
     keyword: 'Government & Public Sector',
     code: 'GOV',
+    description: 'Public-sector AI, defence, civic technology, procurement, and service delivery.',
   },
-  { slug: 'industry-models', label: 'Industry & Models', keyword: 'Industry & Models', code: 'IND' },
+  {
+    slug: 'industry-models',
+    label: 'Industry & Models',
+    keyword: 'Industry & Models',
+    code: 'IND',
+    description: 'Model releases, companies, funding, infrastructure, agents, and coding tools.',
+  },
   {
     slug: 'sectors-applications',
     label: 'Sectors & Applications',
     keyword: 'Sectors & Applications',
     code: 'APP',
+    description: 'Applied AI in health, agriculture, education, environment, jobs, and services.',
   },
-  { slug: 'research', label: 'Research', keyword: 'Research', code: 'RES' },
+  {
+    slug: 'research',
+    label: 'Research',
+    keyword: 'Research',
+    code: 'RES',
+    description: 'Research papers, benchmarks, technical signals, and evaluation work in plain language.',
+  },
 ]
 
 export interface SectionArticle {
@@ -209,12 +243,16 @@ async function getIssueRowById(issueId: string): Promise<IssueRow | null> {
 }
 
 export async function getIssueById(issueId: string): Promise<Issue | null> {
+  if (!isIssueStoreConfigured() && shouldUseSampleIssues()) {
+    return getSamplePublishedIssues().find(issue => issue.id === issueId) ?? null
+  }
   if (!isIssueStoreConfigured()) return null
   const row = await getIssueRowById(issueId)
   return row ? mapIssue(row) : null
 }
 
 export async function getPublishedIssues(): Promise<Issue[]> {
+  if (!isIssueStoreConfigured() && shouldUseSampleIssues()) return getSamplePublishedIssues()
   if (!isIssueStoreConfigured()) return []
   const params = new URLSearchParams({
     select: 'id,title,issue_date,issue_number,published,summary,ai_assisted,published_at,created_at,updated_at',
@@ -231,6 +269,7 @@ export async function getLatestIssue(): Promise<Issue | null> {
 }
 
 export async function getIssueByDate(date: string, publishedOnly = true): Promise<Issue | null> {
+  if (!isIssueStoreConfigured() && shouldUseSampleIssues()) return getSampleIssueByDate(date, publishedOnly)
   if (!isIssueStoreConfigured()) return null
   const params = new URLSearchParams({
     select: 'id,title,issue_date,issue_number,published,summary,ai_assisted,published_at,created_at,updated_at',
@@ -243,6 +282,7 @@ export async function getIssueByDate(date: string, publishedOnly = true): Promis
 }
 
 export async function getIssueBlocks(issueId: string): Promise<NotionBlock[]> {
+  if (!isIssueStoreConfigured() && shouldUseSampleIssues()) return getSampleIssueBlocks(issueId)
   if (!isIssueStoreConfigured()) return []
   const params = new URLSearchParams({ select: 'blocks', id: `eq.${issueId}`, limit: '1' })
   const rows = await supabaseRequest<Pick<IssueRow, 'blocks'>[]>(`issues?${params.toString()}`)
@@ -272,6 +312,15 @@ export async function getArticlesBySection(keyword: string): Promise<SectionArti
   return issues
     .filter(issue => issue.published)
     .flatMap(issue => parseSectionArticles(issue.blocks, issue, keyword))
+}
+
+export async function getSectionArticleCounts(): Promise<Record<SectionSlug, number>> {
+  const issues = await listAllIssues()
+  const published = issues.filter(issue => issue.published)
+  return SECTIONS.reduce((counts, section) => {
+    counts[section.slug] = published.flatMap(issue => parseSectionArticles(issue.blocks, issue, section.keyword)).length
+    return counts
+  }, {} as Record<SectionSlug, number>)
 }
 
 function parseSectionArticles(
@@ -698,6 +747,13 @@ export async function removePublishedIssueItem(
 }
 
 export async function listAllIssues(days?: number): Promise<Array<Issue & { blocks: NotionBlock[] }>> {
+  if (!isIssueStoreConfigured() && shouldUseSampleIssues()) {
+    if (!days) return listSampleIssues()
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+    const cutoffDate = cutoff.toISOString().slice(0, 10)
+    return listSampleIssues().filter(issue => issue.issueDate >= cutoffDate)
+  }
   if (!isIssueStoreConfigured()) return []
   const params = new URLSearchParams({ select: '*', order: 'issue_date.desc' })
   if (days) {

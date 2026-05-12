@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
+import { buildIssueReadiness, getAdminRunSummaries } from '@/lib/admin-issue-readiness'
 import { issueDateFor } from '@/lib/issue-date'
 import { getIssueBlocks, getIssueByDate, publishIssue } from '@/lib/issue-store'
 import { buildIssuePublishSummary } from '@/lib/issue-publish-summary'
@@ -21,10 +22,27 @@ export async function GET(request: NextRequest) {
     }
 
     const blocks = await getIssueBlocks(draft.id)
-    const articleCount = blocks.filter(block => block.type === 'heading_3').length
+    const { candidates, automation } = await getAdminRunSummaries()
+    const { draftSummary, readiness } = await buildIssueReadiness({
+      issueDate: today,
+      draft,
+      blocks,
+      candidates,
+      automation,
+    })
+    const articleCount = draftSummary.articleCount
 
     if (articleCount === 0) {
       return NextResponse.json({ skipped: true, reason: 'empty' })
+    }
+
+    if (readiness.blockers.length > 0 || readiness.warnings.length > 0) {
+      return NextResponse.json({
+        skipped: true,
+        reason: 'publish_readiness',
+        blockers: readiness.blockers,
+        warnings: readiness.warnings,
+      })
     }
 
     const summary = await buildIssuePublishSummary(draft, blocks)

@@ -177,7 +177,15 @@ export function DailyRunShell({
           </section>
         )}
 
-        {status && renderActiveStep(activeStep, status, password, statusLoading, handlePrimaryAction, () => void loadStatus())}
+        {status && renderActiveStep(
+          activeStep,
+          status,
+          password,
+          statusLoading,
+          handlePrimaryAction,
+          () => void loadStatus(),
+          setActiveStep,
+        )}
 
         <div className="admin-panel flex flex-col-reverse gap-3 bg-ws-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <button
@@ -212,6 +220,7 @@ function renderActiveStep(
   statusRefreshing: boolean,
   onPrimaryAction: () => void,
   onChanged: () => void,
+  onStepChange: (step: DailyRunStep) => void,
 ) {
   if (activeStep === 'status') {
     return <TodayRunStatus status={status} onPrimaryAction={onPrimaryAction} />
@@ -221,10 +230,7 @@ function renderActiveStep(
     return (
       <div className="flex flex-col gap-4">
         <TodayRunStatus status={status} onPrimaryAction={onPrimaryAction} />
-        <PlaceholderSection
-          title="Automation intake"
-          note="Daily source review and import controls arrive in a later task."
-        />
+        <IntakeStatusPanel status={status} onStepChange={onStepChange} />
       </div>
     )
   }
@@ -258,6 +264,111 @@ function renderActiveStep(
       title="Publish readiness"
       note="Blocker and warning controls arrive in the publish gate task."
     />
+  )
+}
+
+function IntakeStatusPanel({
+  status,
+  onStepChange,
+}: {
+  status: TodayStatusPayload
+  onStepChange: (step: DailyRunStep) => void
+}) {
+  const hasCandidates = status.candidates.totalActive > 0
+  const hasDraft = status.draft.exists
+  const hasAutomationSignal = status.automation.sourceCount > 0 || status.automation.failureCount > 0
+
+  return (
+    <section className="admin-panel bg-ws-white p-5 sm:p-6">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+        <div>
+          <p className="admin-eyebrow">Intake</p>
+          <h2 className="admin-page-title mt-2">
+            Source intake
+          </h2>
+          <p className="admin-copy mt-3 max-w-3xl">
+            Check whether the source run produced usable material, then move directly into candidate review or draft editing.
+            This step is read-only so the daily path stays safe before any publish action.
+          </p>
+        </div>
+
+        <div className="admin-subpanel p-4">
+          <p className="admin-field-label">Next move</p>
+          <div className="mt-3 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => onStepChange(hasCandidates ? 'choose' : 'edit')}
+              className="admin-button-primary px-4 py-2 text-[12px] font-black uppercase tracking-[0.08em]"
+            >
+              {hasCandidates ? 'Review candidates' : 'Open draft editor'}
+            </button>
+            {hasDraft && (
+              <button
+                type="button"
+                onClick={() => onStepChange('check')}
+                className="admin-button-secondary px-4 py-2 text-[12px] font-black uppercase tracking-[0.08em]"
+              >
+                Check readiness
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-3 md:grid-cols-3">
+        <IntakeMetric
+          label="Automation record"
+          value={status.automation.lastRunAt ? 'Run detected' : hasAutomationSignal ? 'Needs review' : 'No run recorded'}
+          detail={`${status.automation.sourceCount} sources / ${status.automation.failureCount} failures`}
+          tone={status.automation.failureCount > 0 ? 'warning' : 'neutral'}
+        />
+        <IntakeMetric
+          label="Candidate queue"
+          value={`${status.candidates.totalActive} active`}
+          detail={`${status.candidates.topPicks} top picks / ${status.candidates.held} held / ${status.candidates.imported} imported`}
+          tone={hasCandidates ? 'good' : 'neutral'}
+        />
+        <IntakeMetric
+          label="Draft state"
+          value={hasDraft ? `${status.draft.articleCount} articles` : 'No draft'}
+          detail={hasDraft ? `${status.draft.sections.length} sections represented` : 'Keep a candidate or add an item to start'}
+          tone={hasDraft ? 'good' : 'neutral'}
+        />
+      </div>
+
+      {status.candidateError && (
+        <div className="admin-danger-notice mt-5 rounded-[0.6rem] px-4 py-3">
+          <p className="admin-field-label text-red-800">Candidate inbox</p>
+          <p className="mt-1 text-[14px] font-bold leading-snug">{status.candidateError}</p>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function IntakeMetric({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string
+  value: string
+  detail: string
+  tone: 'good' | 'warning' | 'neutral'
+}) {
+  const toneClass = tone === 'good'
+    ? 'border-green-800/20 bg-green-50/80'
+    : tone === 'warning'
+      ? 'border-amber-700/35 bg-amber-50'
+      : 'border-ws-border bg-ws-page/70'
+
+  return (
+    <div className={`min-h-[104px] rounded-[0.6rem] border px-4 py-3.5 ${toneClass}`}>
+      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ws-black/55">{label}</p>
+      <p className="mt-2 text-[20px] font-black leading-tight text-ws-black">{value}</p>
+      <p className="mt-2 text-[12px] leading-snug text-ws-black/60">{detail}</p>
+    </div>
   )
 }
 

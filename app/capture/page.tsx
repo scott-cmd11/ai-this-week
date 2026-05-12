@@ -1,9 +1,8 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
-
-// ── Types ────────────────────────────────────────────────────────────────────
 
 interface CaptureResult {
   title?: string
@@ -11,31 +10,22 @@ interface CaptureResult {
   articlesTotal?: number
 }
 
-// ── Inner component (needs useSearchParams) ──────────────────────────────────
-
 function CaptureInner() {
   const searchParams = useSearchParams()
   const prefillUrl = searchParams.get('url') ?? ''
 
-  // Auth
   const [token, setToken] = useState('')
   const [tokenInput, setTokenInput] = useState('')
   const [tokenSet, setTokenSet] = useState(false)
-
-  // Form
   const [url, setUrl] = useState(prefillUrl)
   const [annotation, setAnnotation] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [showImageField, setShowImageField] = useState(false)
-
-  // Status
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<CaptureResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-  // Duplicate-URL warning — shown when /api/capture returns 409.
   const [duplicate, setDuplicate] = useState<{ issueNumber: number; issueDate: string; published: boolean } | null>(null)
 
-  // Load token from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem('captureToken')
     if (stored) {
@@ -81,7 +71,7 @@ function CaptureInner() {
         setDuplicate(null)
       }
     } catch {
-      setError('Network error — check your connection and try again.')
+      setError('Network error. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -104,158 +94,123 @@ function CaptureInner() {
     setDuplicate(null)
   }
 
-  // ── Token setup screen ────────────────────────────────────────────────────
-
   if (!tokenSet) {
     return (
-      <div className="max-w-sm mx-auto pt-8 px-4">
-        <div className="border-[3px] border-ws-black bg-ws-page shadow-[6px_6px_0_0_var(--color-ws-black)] p-6">
-          <h1 className="text-[28px] font-black uppercase tracking-tight leading-tight mb-2">
-            Capture Setup
-          </h1>
-          <div className="w-10 h-[3px] bg-ws-accent mb-5" aria-hidden="true" />
-          <p className="text-[16px] leading-[1.5] mb-6 text-ws-muted">
-            Enter your capture token to start saving articles.
+      <CaptureShell eyebrow="Capture setup" title="Save article links to the issue desk.">
+        <div className="admin-panel bg-ws-white p-5 sm:p-6">
+          <p className="admin-copy max-w-xl">
+            Enter your capture token once on this device. The token is stored locally and only grants article-capture access.
           </p>
-          <label className="block text-[12px] font-black uppercase tracking-[0.12em] mb-2">
-            Capture Token
-          </label>
-          <input
-            type="password"
-            value={tokenInput}
-            onChange={e => setTokenInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSaveToken()}
-            placeholder="Paste your token here"
-            autoFocus
-            className="w-full border-[3px] border-ws-black bg-ws-white px-4 py-3 text-[18px] font-mono mb-4 outline-none focus-visible:ring-2 focus-visible:ring-ws-accent"
-          />
+          <div className="mt-5">
+            <label htmlFor="capture-token" className="admin-field-label">Capture token</label>
+            <input
+              id="capture-token"
+              type="password"
+              value={tokenInput}
+              onChange={e => setTokenInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSaveToken()}
+              placeholder="Paste your token here"
+              autoFocus
+              className="admin-input px-4 py-3 font-mono text-[16px]"
+            />
+          </div>
           <button
             type="button"
             onClick={handleSaveToken}
             disabled={!tokenInput.trim()}
-            className="w-full border-[3px] border-ws-black bg-ws-accent text-ws-white px-5 py-3 text-[16px] font-black uppercase tracking-wide shadow-[4px_4px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="admin-button-primary mt-5 w-full px-5 py-3 text-[13px] font-black uppercase tracking-[0.08em] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Save Token
+            Save token
           </button>
         </div>
-      </div>
+      </CaptureShell>
     )
   }
 
-  // ── Success panel ─────────────────────────────────────────────────────────
-
   if (result) {
     return (
-      <div className="max-w-sm mx-auto pt-8 px-4">
-        <div className="border-[3px] border-ws-black bg-ws-accent-light shadow-[6px_6px_0_0_var(--color-ws-black)] p-6">
-          <p className="text-[13px] font-black uppercase tracking-[0.12em] text-ws-accent mb-3">
-            Saved
-          </p>
+      <CaptureShell eyebrow="Saved" title="Article added.">
+        <div className="admin-panel bg-ws-white p-5 sm:p-6">
           {result.title && (
-            <p className="text-[18px] font-black leading-tight mb-3 text-ws-black">
+            <p className="font-[family-name:var(--font-display)] text-[1.55rem] font-semibold leading-tight text-ws-black">
               {result.title}
             </p>
           )}
-          <p className="text-[15px] text-ws-muted mb-6">
+          <p className="admin-copy mt-3">
             {result.issueNumber != null && result.articlesTotal != null
-              ? `Added to Issue #${result.issueNumber} · ${result.articlesTotal} article${result.articlesTotal === 1 ? '' : 's'} today`
-              : 'Article saved to today\'s draft.'}
+              ? `Added to Issue ${result.issueNumber}. The draft now has ${result.articlesTotal} article${result.articlesTotal === 1 ? '' : 's'}.`
+              : "Article saved to today's draft."}
           </p>
           <button
             type="button"
             onClick={handleAddAnother}
-            className="w-full border-[3px] border-ws-black bg-ws-white text-ws-black px-5 py-3 text-[15px] font-black uppercase tracking-wide shadow-[4px_4px_0_0_var(--color-ws-black)] hover:bg-ws-page active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all"
+            className="admin-button-primary mt-5 w-full px-5 py-3 text-[13px] font-black uppercase tracking-[0.08em]"
           >
-            Add Another
+            Add another
           </button>
         </div>
-      </div>
+      </CaptureShell>
     )
   }
 
-  // ── Main capture form ─────────────────────────────────────────────────────
-
   return (
-    <div className="max-w-sm mx-auto pt-8 px-4 pb-12">
-      <div className="border-[3px] border-ws-black bg-ws-page shadow-[6px_6px_0_0_var(--color-ws-black)] p-6">
-        <h1 className="text-[28px] font-black uppercase tracking-tight leading-tight mb-2">
-          Add Article
-        </h1>
-        <div className="w-10 h-[3px] bg-ws-accent mb-6" aria-hidden="true" />
-
-        <form onSubmit={handleSubmit} noValidate>
-          {/* URL */}
-          <div className="mb-5">
-            <label
-              htmlFor="cap-url"
-              className="block text-[12px] font-black uppercase tracking-[0.12em] mb-2"
-            >
-              URL <span className="text-ws-accent" aria-hidden="true">*</span>
-            </label>
+    <CaptureShell eyebrow="Capture" title="Add an article to today's issue.">
+      <form onSubmit={handleSubmit} noValidate className="admin-panel bg-ws-white p-5 sm:p-6">
+        <div className="grid gap-5">
+          <div>
+            <label htmlFor="cap-url" className="admin-field-label">Source URL</label>
             <input
               id="cap-url"
               type="url"
               required
               value={url}
               onChange={e => setUrl(e.target.value)}
-              placeholder="https://…"
-              className="w-full border-[3px] border-ws-black bg-ws-white px-4 py-3 text-[18px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent"
+              placeholder="https://..."
+              className="admin-input px-4 py-3 text-[16px]"
             />
           </div>
 
-          {/* Annotation */}
-          <div className="mb-5">
-            <label
-              htmlFor="cap-note"
-              className="block text-[12px] font-black uppercase tracking-[0.12em] mb-2"
-            >
-              Note <span className="text-ws-muted font-normal normal-case tracking-normal">(optional)</span>
-            </label>
+          <div>
+            <label htmlFor="cap-note" className="admin-field-label">Note</label>
             <textarea
               id="cap-note"
               value={annotation}
               onChange={e => setAnnotation(e.target.value)}
-              placeholder="Add a note… or leave blank for AI annotation"
+              placeholder="Add a note, or leave blank for AI annotation."
               rows={3}
-              className="w-full border-[3px] border-ws-black bg-ws-white px-4 py-3 text-[16px] leading-[1.5] resize-y outline-none focus-visible:ring-2 focus-visible:ring-ws-accent"
+              className="admin-input resize-y px-4 py-3 text-[15px] leading-[1.5]"
             />
           </div>
 
-          {/* Image URL (collapsible) */}
-          <div className="mb-6">
+          <div className="admin-subpanel p-4">
             <button
               type="button"
-              onClick={() => setShowImageField(v => !v)}
-              className="text-[12px] font-black uppercase tracking-[0.12em] text-ws-accent hover:text-ws-accent-hover flex items-center gap-1"
+              onClick={() => setShowImageField(value => !value)}
+              className="admin-button-ghost flex min-h-0 items-center gap-2 text-[12px] font-black uppercase tracking-[0.08em] text-ws-accent hover:text-ws-accent-hover"
               aria-expanded={showImageField}
             >
-              <span aria-hidden="true">{showImageField ? '−' : '+'}</span>
+              <span aria-hidden="true">{showImageField ? '-' : '+'}</span>
               {showImageField ? 'Hide image URL' : 'Add image URL'}
             </button>
 
             {showImageField && (
-              <div className="mt-3">
-                <label
-                  htmlFor="cap-image"
-                  className="block text-[12px] font-black uppercase tracking-[0.12em] mb-2"
-                >
-                  Image URL
-                </label>
+              <div className="mt-4">
+                <label htmlFor="cap-image" className="admin-field-label">Image URL</label>
                 <input
                   id="cap-image"
                   type="url"
                   value={imageUrl}
                   onChange={e => setImageUrl(e.target.value)}
-                  placeholder="https://…"
-                  className="w-full border-[3px] border-ws-black bg-ws-white px-4 py-3 text-[16px] outline-none focus-visible:ring-2 focus-visible:ring-ws-accent mb-3"
+                  placeholder="https://..."
+                  className="admin-input px-4 py-3 text-[15px]"
                 />
                 {imageUrl && (
-                  <div className="border-[3px] border-ws-black overflow-hidden">
+                  <div className="mt-3 overflow-hidden rounded-[0.55rem] border border-ws-border">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={imageUrl}
                       alt="Article image preview"
-                      className="w-full h-32 object-cover"
+                      className="h-32 w-full object-cover"
                       onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                     />
                   </div>
@@ -263,101 +218,98 @@ function CaptureInner() {
               </div>
             )}
           </div>
+        </div>
 
-          {/* Error */}
-          {error && (
-            <div
-              role="alert"
-              className="border-[3px] border-ws-black bg-red-50 px-4 py-3 mb-5 text-[15px] font-bold text-red-700"
-            >
-              {error}
+        {error && (
+          <div role="alert" className="admin-danger-notice mt-5 rounded-[0.6rem] px-4 py-3">
+            <p className="admin-field-label text-red-800">Capture error</p>
+            <p className="mt-1 text-[14px] font-bold leading-snug">{error}</p>
+          </div>
+        )}
+
+        {duplicate && (
+          <div role="alert" className="mt-5 rounded-[0.6rem] border border-ws-accent/35 bg-ws-accent-light/45 px-4 py-3">
+            <p className="text-[14px] font-bold leading-snug text-ws-black">
+              Already added to <strong>Issue {duplicate.issueNumber}</strong> on{' '}
+              <strong>{duplicate.issueDate}</strong> ({duplicate.published ? 'published' : 'draft'}).
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void submitCapture(true)}
+                disabled={loading}
+                className="admin-button-primary px-4 py-2 text-[12px] font-black uppercase tracking-[0.08em] disabled:opacity-50"
+              >
+                Add anyway
+              </button>
+              <button
+                type="button"
+                onClick={() => setDuplicate(null)}
+                className="admin-button-secondary px-4 py-2 text-[12px] font-black uppercase tracking-[0.08em]"
+              >
+                Cancel
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Duplicate-URL soft warning */}
-          {duplicate && (
-            <div
-              role="alert"
-              className="border-[3px] border-ws-accent bg-ws-accent-light px-4 py-3 mb-5 flex flex-col gap-3"
-            >
-              <p className="text-[15px] text-ws-black leading-snug">
-                <span aria-hidden="true">⚠</span> Already added to{' '}
-                <strong>Issue #{duplicate.issueNumber}</strong> on{' '}
-                <strong>{duplicate.issueDate}</strong>{' '}
-                ({duplicate.published ? 'published' : 'draft'}).
-              </p>
-              <div className="flex gap-3 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => submitCapture(true)}
-                  disabled={loading}
-                  className="border-[3px] border-ws-black bg-ws-accent text-ws-white font-black uppercase tracking-wide text-[13px] px-4 py-2 hover:bg-ws-accent-hover disabled:opacity-50"
-                >
-                  Add anyway
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDuplicate(null)}
-                  className="text-[13px] font-bold uppercase tracking-wide underline hover:no-underline"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
+        <button
+          type="submit"
+          disabled={loading || !url.trim() || !!duplicate}
+          className="admin-button-primary mt-5 w-full px-5 py-3 text-[13px] font-black uppercase tracking-[0.08em] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {loading ? 'Adding...' : "Add to today's issue"}
+        </button>
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading || !url.trim() || !!duplicate}
-            className="w-full border-[3px] border-ws-black bg-ws-accent text-ws-white px-5 py-4 text-[17px] font-black uppercase tracking-wide shadow-[4px_4px_0_0_var(--color-ws-black)] hover:bg-ws-accent-hover active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <span
-                  className="inline-block w-4 h-4 border-2 border-ws-white border-t-transparent rounded-full animate-spin"
-                  aria-hidden="true"
-                />
-                Adding…
-              </>
-            ) : (
-              'Add to today\'s issue'
-            )}
-          </button>
-        </form>
-
-        {/* Token reset */}
-        <p className="mt-6 text-center">
-          <button
-            type="button"
-            onClick={() => {
-              localStorage.removeItem('captureToken')
-              setToken('')
-              setTokenSet(false)
-            }}
-            className="text-[12px] text-ws-muted hover:text-ws-black underline"
-          >
-            Reset token
-          </button>
-        </p>
-      </div>
-    </div>
+        <button
+          type="button"
+          onClick={() => {
+            localStorage.removeItem('captureToken')
+            setToken('')
+            setTokenSet(false)
+          }}
+          className="admin-button-ghost mx-auto mt-4 block text-[12px] font-bold text-ws-muted hover:text-ws-black"
+        >
+          Reset token
+        </button>
+      </form>
+    </CaptureShell>
   )
 }
 
-// ── Page export (wraps inner in Suspense for useSearchParams) ─────────────────
+function CaptureShell({
+  eyebrow,
+  title,
+  children,
+}: {
+  eyebrow: string
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <div className="admin-workspace mx-auto max-w-md px-2 py-8">
+      <header className="mb-5 border-t border-ws-black pt-5">
+        <p className="admin-eyebrow text-ws-accent">{eyebrow}</p>
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-[2.6rem] font-bold leading-[0.95] text-ws-black">
+          {title}
+        </h1>
+      </header>
+      {children}
+    </div>
+  )
+}
 
 export default function CapturePage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-sm mx-auto pt-8 px-4">
-          <div className="border-[3px] border-ws-black bg-ws-page shadow-[6px_6px_0_0_var(--color-ws-black)] p-6">
-            <div className="h-8 w-40 bg-ws-border animate-pulse mb-4" />
-            <div className="h-4 w-full bg-ws-border animate-pulse mb-2" />
-            <div className="h-4 w-3/4 bg-ws-border animate-pulse" />
+        <CaptureShell eyebrow="Capture" title="Loading capture desk.">
+          <div className="admin-panel bg-ws-white p-5 sm:p-6">
+            <div className="h-8 w-40 animate-pulse rounded bg-ws-border" />
+            <div className="mt-4 h-4 w-full animate-pulse rounded bg-ws-border" />
+            <div className="mt-2 h-4 w-3/4 animate-pulse rounded bg-ws-border" />
           </div>
-        </div>
+        </CaptureShell>
       }
     >
       <CaptureInner />

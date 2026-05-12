@@ -65,7 +65,12 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
           <SecondaryNote
             title="Future Queue"
             eyebrow="Follow-up board"
-            body="Held candidates live under Candidate Triage -> Held for this milestone. A dedicated future-issue board is a follow-up once the held queue has enough volume to need its own workflow."
+            body="Held candidates are managed in Candidate Triage under the Held view. This panel is intentionally read-only today: use it as the reminder that future planning starts by holding a candidate, then returning to Choose when it is ready for a draft."
+            actions={[
+              'Open Guided mode, then Choose, to review Held candidates.',
+              'Use Issue Desk when an item already belongs in a specific draft or published issue.',
+              'Keep this area read-only until held volume justifies a dedicated scheduling board.',
+            ]}
           />
         )}
 
@@ -73,7 +78,12 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
           <SecondaryNote
             title="Health"
             eyebrow="Diagnostics"
-            body="Health starts with Today's Run Status in the guided desk. Source-specific diagnostics are a follow-up so the daily publishing view stays focused on blockers and readiness."
+            body="Health is currently centred on Today's Run Status and publish readiness. Treat this tab as the operating note for where diagnostics live before adding source-specific dashboards."
+            actions={[
+              "Use Today's Run Status for source count, candidate inbox, draft state, blockers, and warnings.",
+              'Use Publish readiness for the final blocker and warning list before any manual publish.',
+              'If source-specific failures become frequent, this is the right home for a read-only diagnostics board.',
+            ]}
           />
         )}
 
@@ -114,10 +124,12 @@ function SecondaryNote({
   title,
   eyebrow,
   body,
+  actions = [],
 }: {
   title: string
   eyebrow: string
   body: string
+  actions?: string[]
 }) {
   return (
     <div className="admin-subpanel p-5">
@@ -126,6 +138,16 @@ function SecondaryNote({
         {title}
       </h3>
       <p className="admin-copy mt-3 max-w-3xl">{body}</p>
+      {actions.length > 0 && (
+        <ul className="mt-5 grid gap-2 border-y border-ws-border py-3">
+          {actions.map(action => (
+            <li key={action} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 text-[13px] font-bold leading-snug text-ws-black/70">
+              <span className="type-meta text-ws-accent">-</span>
+              <span>{action}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

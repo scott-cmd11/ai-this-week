@@ -60,6 +60,9 @@ export default async function SectionPage({ params }: Props) {
         {meta.label}
       </h1>
       <div className="section-rule mb-6" aria-hidden="true" />
+      <p className="type-lede mb-5 max-w-2xl">
+        {meta.description}
+      </p>
       <p className="type-meta mb-10">
         {articles.length} pick{articles.length === 1 ? '' : 's'} across all issues
       </p>
