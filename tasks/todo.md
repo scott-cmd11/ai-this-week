@@ -194,10 +194,11 @@
 - [x] Separate brand, disclosure, companion project, and credit/social areas.
 - [x] Keep the existing institutional editorial palette and links.
 - [x] Verify lint, build, and desktop/mobile footer rendering.
-- [ ] Commit, push, deploy, and verify live footer.
+- [x] Commit, push, deploy, and verify live footer.
 
 ## Review
 
 - The footer now has clearer editorial hierarchy, larger brand treatment, and better spacing between disclosure, companion project, and credit/social rows.
 - Desktop and mobile footer browser checks passed with no horizontal overflow.
 - Verification passed: `npm run lint`, `npm test`, `npm run build`, and footer-specific desktop/mobile smoke checks.
+- Deployed to production and verified the live footer on desktop and mobile.
