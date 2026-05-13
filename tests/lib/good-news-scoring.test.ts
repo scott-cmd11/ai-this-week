@@ -30,4 +30,34 @@ describe('AI Good News scoring', () => {
     expect(score.accepted).toBe(false)
     expect(score.rejection_reasons.join(' ')).toMatch(/Excluded framing/)
   })
+
+  it('accepts AI accessibility stories with practical human benefit', () => {
+    const score = scoreGoodNewsCandidate({
+      title: 'AI-powered captions help students follow classroom lessons',
+      source_name: 'Microsoft Accessibility Blog',
+      source_url: 'https://blogs.microsoft.com/accessibility/example',
+      summary: 'A deployed assistive tool improves accessibility for students with hearing loss.',
+      content_text: 'The accessibility team describes an implemented feature with inclusive design evidence.',
+      published_at: '2026-05-12T12:00:00.000Z',
+      category: 'Accessibility',
+    })
+
+    expect(score.accepted).toBe(true)
+    expect(score.category).toBe('Accessibility')
+    expect(score.evidence_notes).toMatch(/AI relevance signals/)
+  })
+
+  it('rejects broad positive stories when AI relevance is unclear', () => {
+    const score = scoreGoodNewsCandidate({
+      title: 'New accessibility guide helps local business owners',
+      source_name: 'Digital Main Street',
+      source_url: 'https://digitalmainstreet.ca/example',
+      summary: 'The guide shares inclusive design practices for storefront websites.',
+      published_at: '2026-05-12T12:00:00.000Z',
+      category: 'Small Business',
+    })
+
+    expect(score.accepted).toBe(false)
+    expect(score.rejection_reasons.join(' ')).toMatch(/No clear AI relevance signal/)
+  })
 })

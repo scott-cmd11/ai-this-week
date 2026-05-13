@@ -68,5 +68,77 @@
     "url": "https://aws.amazon.com/blogs/machine-learning/feed/",
     "default_category": "Work",
     "enabled": true
+  },
+  {
+    "name": "STAT AI in Health and Medicine",
+    "type": "rss",
+    "url": "https://www.statnews.com/tag/artificial-intelligence/feed/",
+    "default_category": "Health",
+    "focus": ["health care", "clinical use", "medical research", "patient benefit"],
+    "enabled": true
+  },
+  {
+    "name": "Microsoft Accessibility Blog",
+    "type": "rss",
+    "url": "https://blogs.microsoft.com/accessibility/feed/",
+    "default_category": "Accessibility",
+    "focus": ["assistive technology", "inclusive design", "disability access"],
+    "enabled": true
+  },
+  {
+    "name": "Google Accessibility",
+    "type": "rss",
+    "url": "https://blog.google/outreach-initiatives/accessibility/rss/",
+    "default_category": "Accessibility",
+    "focus": ["accessibility", "assistive tools", "human benefit"],
+    "enabled": true
+  },
+  {
+    "name": "Khan Academy Blog",
+    "type": "rss",
+    "url": "https://blog.khanacademy.org/feed/",
+    "default_category": "Education",
+    "focus": ["education", "teachers", "learners", "tutoring"],
+    "enabled": true
+  },
+  {
+    "name": "NIST News",
+    "type": "rss",
+    "url": "https://www.nist.gov/news-events/news/rss.xml",
+    "default_category": "Safety",
+    "focus": ["standards", "measurement", "public trust", "safety"],
+    "enabled": true
+  },
+  {
+    "name": "Vector Institute",
+    "type": "rss",
+    "url": "https://vectorinstitute.ai/feed/",
+    "default_category": "Science",
+    "focus": ["Canadian innovation", "research", "health", "public benefit"],
+    "enabled": true
+  },
+  {
+    "name": "Scale AI Canada",
+    "type": "rss",
+    "url": "https://www.scaleai.ca/feed/",
+    "default_category": "Small Business",
+    "focus": ["Canadian innovation", "small business", "supply chains", "productivity"],
+    "enabled": true
+  },
+  {
+    "name": "Digital Main Street",
+    "type": "rss",
+    "url": "https://digitalmainstreet.ca/feed/",
+    "default_category": "Small Business",
+    "focus": ["Canadian small business", "local business", "practical adoption"],
+    "enabled": true
+  },
+  {
+    "name": "Google Small Business",
+    "type": "rss",
+    "url": "https://blog.google/outreach-initiatives/small-business/rss/",
+    "default_category": "Small Business",
+    "focus": ["small business", "local business", "practical tools"],
+    "enabled": true
   }
 ]

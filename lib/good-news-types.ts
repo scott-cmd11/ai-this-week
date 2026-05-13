@@ -62,5 +62,6 @@ export interface GoodNewsSourceConfig {
   type: 'rss'
   url: string
   default_category?: GoodNewsCategory
+  focus?: string[]
   enabled: boolean
 }

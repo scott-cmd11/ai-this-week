@@ -69,6 +69,8 @@ The server writes with the service role. Public reads are limited to published A
 
 Editable RSS sources live in `config/ai-good-news-sources.json`. Prefer RSS feeds, public APIs, and openly available metadata. Do not add aggressive scraping targets.
 
+The positive-AI source mix intentionally looks for AI at its most useful: health care, accessibility, education, scientific discovery, climate and energy, public service, safety, small business productivity, creativity, and Canadian innovation. Broad feeds are allowed only when the scoring layer can still confirm clear AI relevance; a positive story about technology, accessibility, or small business is not enough unless AI is actually part of the benefit.
+
 Run a safe dry-run:
 
 ```bash

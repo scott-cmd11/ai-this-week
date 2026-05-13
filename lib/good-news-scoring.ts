@@ -7,17 +7,33 @@ import {
 import { normalizeUrl } from './url-normalize'
 
 const CATEGORY_SIGNALS: Record<GoodNewsCategory, string[]> = {
-  Health: ['health', 'healthcare', 'medical', 'patient', 'clinical', 'cancer', 'screening', 'hospital', 'diagnosis'],
-  Education: ['education', 'school', 'student', 'teacher', 'classroom', 'learning', 'tutor', 'khan', 'educator'],
-  Accessibility: ['accessibility', 'assistive', 'blind', 'low vision', 'disability', 'disabled', 'caption', 'screen reader'],
-  Science: ['science', 'research', 'researcher', 'biology', 'molecular', 'materials', 'laboratory', 'paper', 'study'],
+  Health: ['health', 'healthcare', 'health care', 'medical', 'medicine', 'patient', 'clinical', 'cancer', 'screening', 'hospital', 'diagnosis', 'care delivery'],
+  Education: ['education', 'school', 'student', 'teacher', 'classroom', 'learning', 'tutor', 'tutoring', 'khan', 'educator'],
+  Accessibility: ['accessibility', 'assistive', 'inclusive', 'blind', 'low vision', 'disability', 'disabled', 'caption', 'screen reader', 'speech recognition'],
+  Science: ['science', 'research', 'researcher', 'biology', 'molecular', 'materials', 'laboratory', 'paper', 'study', 'discovery'],
   Climate: ['climate', 'weather', 'energy', 'grid', 'emissions', 'renewable', 'wildfire', 'forecast', 'resilience'],
-  Work: ['productivity', 'workflow', 'worker', 'team', 'operations', 'developer', 'coding', 'assistant'],
+  Work: ['productivity', 'workflow', 'worker', 'team', 'operations', 'developer', 'coding', 'assistant', 'supply chain'],
   Creativity: ['creative', 'creator', 'artist', 'design', 'music', 'video', 'media', 'writing'],
-  Safety: ['safety', 'warning', 'emergency', 'forecasting', 'detection', 'risk reduction', 'resilience'],
-  'Public Good': ['public good', 'public service', 'government', 'civic', 'public-sector', 'public sector', 'agency'],
-  'Small Business': ['small business', 'smb', 'entrepreneur', 'local business', 'commerce', 'shop', 'owners'],
+  Safety: ['safety', 'warning', 'emergency', 'forecasting', 'detection', 'risk reduction', 'resilience', 'standards', 'measurement'],
+  'Public Good': ['public good', 'public service', 'government', 'civic', 'public-sector', 'public sector', 'agency', 'nonprofit', 'community'],
+  'Small Business': ['small business', 'smb', 'entrepreneur', 'local business', 'commerce', 'shop', 'owners', 'main street', 'startup'],
 }
+
+const AI_RELEVANCE_SIGNALS: Array<{ label: string; pattern: RegExp }> = [
+  { label: 'AI', pattern: /\bai\b/ },
+  { label: 'artificial intelligence', pattern: /\bartificial intelligence\b/ },
+  { label: 'generative AI', pattern: /\bgenerative ai\b/ },
+  { label: 'machine learning', pattern: /\bmachine learning\b/ },
+  { label: 'deep learning', pattern: /\bdeep learning\b/ },
+  { label: 'large language model', pattern: /\blarge language model\b/ },
+  { label: 'LLM', pattern: /\bllms?\b/ },
+  { label: 'neural network', pattern: /\bneural networks?\b/ },
+  { label: 'computer vision', pattern: /\bcomputer vision\b/ },
+  { label: 'foundation model', pattern: /\bfoundation models?\b/ },
+  { label: 'predictive model', pattern: /\bpredictive models?\b/ },
+  { label: 'AI-assisted', pattern: /\bai[- ]assisted\b/ },
+  { label: 'AI-powered', pattern: /\bai[- ]powered\b/ },
+]
 
 const BENEFIT_SIGNALS = [
   'help',
@@ -49,6 +65,17 @@ const BENEFIT_SIGNALS = [
   'free access',
   'researchers report',
   'clinical',
+  'assistive',
+  'inclusive',
+  'care',
+  'learning',
+  'tutoring',
+  'public service',
+  'small business',
+  'local business',
+  'main street',
+  'community',
+  'accessible',
 ]
 
 const EVIDENCE_SIGNALS = [
@@ -70,6 +97,14 @@ const EVIDENCE_SIGNALS = [
   'university',
   'research team',
   'study shows',
+  'standards',
+  'measurement',
+  'clinical trial',
+  'peer-reviewed',
+  'case study',
+  'deployment',
+  'deployed',
+  'implemented',
 ]
 
 const STRONG_SOURCE_SIGNALS = [
@@ -85,6 +120,12 @@ const STRONG_SOURCE_SIGNALS = [
   'deepmind.google',
   'microsoft.com/en-us/research',
   'blogs.microsoft.com/accessibility',
+  'statnews.com',
+  'nist.gov',
+  'vectorinstitute.ai',
+  'scaleai.ca',
+  'digitalmainstreet.ca',
+  'blog.khanacademy.org',
 ]
 
 const PROMOTIONAL_SIGNALS = [
@@ -141,6 +182,7 @@ export function scoreGoodNewsCandidate(input: GoodNewsCandidateInput): GoodNewsS
   const text = searchableText(input)
   const category = coerceGoodNewsCategory(input.category) ?? inferGoodNewsCategory(input)
   const categorySignals = CATEGORY_SIGNALS[category].filter(signal => text.includes(signal))
+  const aiSignals = AI_RELEVANCE_SIGNALS.filter(signal => signal.pattern.test(text)).map(signal => signal.label)
   const benefitSignals = BENEFIT_SIGNALS.filter(signal => text.includes(signal))
   const evidenceSignals = EVIDENCE_SIGNALS.filter(signal => text.includes(signal))
   const strongSource = STRONG_SOURCE_SIGNALS.some(signal => text.includes(signal))
@@ -150,6 +192,7 @@ export function scoreGoodNewsCandidate(input: GoodNewsCandidateInput): GoodNewsS
   let positivity = 34
   positivity += Math.min(30, benefitSignals.length * 7)
   positivity += Math.min(14, categorySignals.length * 4)
+  positivity += aiSignals.length > 0 ? 6 : 0
   positivity += input.summary?.trim() ? 8 : 0
   positivity -= promotionalSignals.length > 0 ? 12 : 0
   positivity -= excludedSignals.length > 0 ? 40 : 0
@@ -166,6 +209,7 @@ export function scoreGoodNewsCandidate(input: GoodNewsCandidateInput): GoodNewsS
   const credibility_score = clampScore(credibility)
   const rejection_reasons = [
     ...(excludedSignals.length > 0 ? [`Excluded framing: ${dedupeStrings(excludedSignals).join(', ')}`] : []),
+    ...(aiSignals.length === 0 ? ['No clear AI relevance signal.'] : []),
     ...(benefitSignals.length === 0 ? ['No clear beneficial AI use signal.'] : []),
     ...(credibility_score < 45 ? ['Credibility score below MVP threshold.'] : []),
     ...(promotionalSignals.length > 1 ? ['Likely promotional or market-news framing.'] : []),
@@ -180,6 +224,7 @@ export function scoreGoodNewsCandidate(input: GoodNewsCandidateInput): GoodNewsS
     evidence_notes: buildEvidenceNotes({
       sourceName: input.source_name,
       strongSource,
+      aiSignals,
       benefitSignals,
       evidenceSignals,
       promotionalSignals,
@@ -243,12 +288,14 @@ function searchableText(input: GoodNewsCandidateInput): string {
 function buildEvidenceNotes({
   sourceName,
   strongSource,
+  aiSignals,
   benefitSignals,
   evidenceSignals,
   promotionalSignals,
 }: {
   sourceName?: string | null
   strongSource: boolean
+  aiSignals: string[]
   benefitSignals: string[]
   evidenceSignals: string[]
   promotionalSignals: string[]
@@ -256,6 +303,7 @@ function buildEvidenceNotes({
   const parts = [
     sourceName ? `Source: ${sourceName}.` : 'Source name needs review.',
     strongSource ? 'Primary or high-credibility source signal found.' : 'Source credibility should be checked by an editor.',
+    aiSignals.length > 0 ? `AI relevance signals: ${dedupeStrings(aiSignals).slice(0, 3).join(', ')}.` : 'AI relevance should be confirmed before publication.',
     benefitSignals.length > 0 ? `Benefit signals: ${dedupeStrings(benefitSignals).slice(0, 4).join(', ')}.` : 'No strong benefit signal found.',
     evidenceSignals.length > 0 ? `Evidence signals: ${dedupeStrings(evidenceSignals).slice(0, 4).join(', ')}.` : 'Evidence should be strengthened before publication.',
     promotionalSignals.length > 0 ? `Promotional signals to review: ${dedupeStrings(promotionalSignals).join(', ')}.` : '',
