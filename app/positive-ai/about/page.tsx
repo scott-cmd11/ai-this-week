@@ -39,6 +39,29 @@ export default function GoodNewsAboutPage() {
             title="How claims are framed"
             body="The site avoids saying AI solves a problem unless the source proves it. Preferred wording includes may help, is being used to, early results suggest, and researchers report."
           />
+          <section id="scoring" className="scroll-mt-24 border-y border-ws-border py-6">
+            <p className="type-meta text-ws-accent">How the scores work</p>
+            <h2 className="mt-3 font-[family-name:var(--font-display)] text-[2rem] font-semibold leading-none text-ws-black">
+              The numbers are signals, not verdicts.
+            </h2>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <ScoreNote
+                label="Credibility"
+                body="A 0-100 signal based on source quality, a working source link, evidence language, named institutions, research, pilots, deployments, or measured outcomes."
+              />
+              <ScoreNote
+                label="Positivity"
+                body="A 0-100 signal for clear beneficial AI use: helping people, improving access, supporting discovery, reducing harm, or making useful work easier."
+              />
+              <ScoreNote
+                label="Evidence check"
+                body="A short note showing why the story qualified. It should make the human benefit and source basis visible before a reader opens the original article."
+              />
+            </div>
+            <p className="mt-5 max-w-3xl text-[15px] leading-[1.6] text-ws-muted">
+              Scores are deliberately conservative. Stories can be rejected when they are positive but not clearly about AI, when the source is too promotional, or when the framing is mainly about layoffs, fear, markets, lawsuits, surveillance, bias, misinformation, or military harm.
+            </p>
+          </section>
         </section>
 
         <aside className="border-y border-ws-border py-4">
@@ -65,5 +88,14 @@ function RuleBlock({ title, body }: { title: string; body: string }) {
       <p className="type-meta text-ws-accent">{title}</p>
       <p className="mt-3 max-w-3xl text-[17px] leading-[1.65] text-ws-muted">{body}</p>
     </section>
+  )
+}
+
+function ScoreNote({ label, body }: { label: string; body: string }) {
+  return (
+    <div className="border-t border-ws-border pt-4">
+      <p className="type-meta text-ws-accent">{label}</p>
+      <p className="mt-2 text-[15px] leading-[1.55] text-ws-muted">{body}</p>
+    </div>
   )
 }

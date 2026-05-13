@@ -238,11 +238,16 @@ function StoryCard({ story, index }: { story: GoodNewsStory; index: number }) {
           {story.credibility_score}
         </p>
         <p className="mt-2 text-[13px] leading-[1.45] text-ws-muted">
-          Positivity {story.positivity_score}. Source linked and evidence checked.
+          0-100 signal for source quality and evidence. Positivity {story.positivity_score} reflects clear human benefit.
         </p>
-        <Link href={`/positive-ai/stories/${story.id}`} className="type-button mt-4 inline-flex border-b border-ws-accent pb-1 text-ws-accent no-underline hover:text-ws-accent-hover">
-          Evidence check
-        </Link>
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+          <Link href={`/positive-ai/stories/${story.id}`} className="type-button inline-flex border-b border-ws-accent pb-1 text-ws-accent no-underline hover:text-ws-accent-hover">
+            Evidence check
+          </Link>
+          <Link href="/positive-ai/about#scoring" className="type-button inline-flex border-b border-ws-border pb-1 text-ws-muted no-underline hover:border-ws-accent hover:text-ws-accent">
+            How scoring works
+          </Link>
+        </div>
       </aside>
     </article>
   )

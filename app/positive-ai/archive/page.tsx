@@ -48,6 +48,12 @@ export default async function GoodNewsArchivePage({ searchParams }: Props) {
             <p className="mt-3 font-[family-name:var(--font-display)] text-[2rem] font-semibold leading-none text-ws-black">
               {stories.length}
             </p>
+            <p className="mt-3 text-[13px] leading-[1.5] text-ws-muted">
+              Credibility scores are 0-100 source and evidence signals.
+            </p>
+            <Link href="/positive-ai/about#scoring" className="type-button mt-3 inline-flex border-b border-ws-accent pb-1 text-ws-accent no-underline hover:text-ws-accent-hover">
+              How scoring works
+            </Link>
           </aside>
         </div>
       </section>

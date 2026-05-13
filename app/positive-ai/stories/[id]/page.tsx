@@ -60,6 +60,12 @@ export default async function GoodNewsStoryPage({ params }: Props) {
               <Metric label="Published" value={formatDate(story.published_at)} />
               <Metric label="Source" value={story.source_name} />
             </dl>
+            <p className="mt-4 text-[13px] leading-[1.5] text-ws-muted">
+              Credibility weighs source quality, source links, and evidence signals. Positivity weighs clear beneficial AI use and excludes fear, market, or job-loss framing.
+            </p>
+            <Link href="/positive-ai/about#scoring" className="type-button mt-3 inline-flex border-b border-ws-accent pb-1 text-ws-accent no-underline hover:text-ws-accent-hover">
+              How scoring works
+            </Link>
           </aside>
         </header>
 
