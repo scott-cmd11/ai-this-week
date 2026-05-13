@@ -1,3 +1,37 @@
+# Task: Strict AI Good News Relevance Gate
+
+- [x] Audit the live `/positive-ai` story set and identify weak or negative stories.
+- [x] Tighten deterministic scoring with a high-relevance good-news gate.
+- [x] Disable broad or noisy feeds that were filling the page with weak stories.
+- [x] Apply the strict gate to stored published stories, live supplements, and digest generation.
+- [x] Add regression tests for negative/mixed framing, regulation/compliance stories, generic AI research, and strong public-good stories.
+- [x] Update empty-state copy to prefer no story over weak filler.
+- [x] Complete local production build and smoke checks in a clean positive-AI validation worktree.
+
+## Strict AI Good News Audit
+
+- Bad live examples removed by the new gate:
+  - `Musk 'wanted 90%' of OpenAI, Altman tells feisty tech titan trial` - legal dispute / trial framing, not good news.
+  - `Navigating EU AI Act requirements for LLM fine-tuning on Amazon SageMaker AI` - compliance/vendor how-to, not human-benefit news.
+  - `How Amazon Finance streamlines regulatory inquiries by using generative AI on AWS` - internal finance/regulatory workflow, weak public benefit.
+  - `Automate schema generation for intelligent document processing` - generic vendor workflow, no clear human-benefit outcome.
+  - `Design tweaks promote responsible AI use for environmental protection` - mainly about AI energy-consumption harm and reducing AI use.
+  - `Is your AI chatbot manipulating you?` - manipulation/risk framing.
+  - `AI doesn't create bias, it inherits it` - bias/risk framing.
+  - `Touch dreaming helps humanoid robots...` - speculative robotics research without a clear human-benefit outcome.
+- Source changes: disabled `Tech Xplore AI`, `AWS Machine Learning Blog`, and blocked `NOAA Research` feed. The remaining feeds are more likely to produce primary, institutional, health, accessibility, education, science, public-good, or Canadian innovation stories.
+- New public rule: a story must have an AI relevance signal, a human-benefit domain, a positive impact signal, enough credibility/evidence, and no hard-excluded framing. Public pages re-score stored stories too, so already-published weak stories stop surfacing.
+
+## Strict AI Good News Validation
+
+- `node scripts/ingest-ai-good-news.mjs --dry-run` passed: 16 enabled sources, 4 raw last-24-hour candidates, 0 source errors.
+- `npm run test -- tests/lib/good-news-scoring.test.ts tests/lib/good-news-dedupe.test.ts tests/lib/good-news-digest.test.ts` passed after tightening fixture expectations: 3 files, 11 tests.
+- `npm run lint` passed.
+- `npx tsc --noEmit` passed.
+- `npm run build` in the main checkout is currently blocked by unrelated local publishing-preflight work (`lib/publishing-preflight.ts`) that is outside the positive-AI change. Build/smoke will be validated from a clean worktree containing only this fix.
+- `npm install` and `npm run build` passed in clean validation worktree `C:\Users\scott\AppData\Local\Temp\ai-this-week-positive-gate-d1b18a1` at commit `d1b18a1`.
+- Local production smoke on `http://localhost:3046` passed for `/positive-ai`, `/positive-ai/archive`, `/positive-ai/about`, and `/positive-ai/stories/seed-mattersim-materials-ai`; `/positive-ai/stories/seed-alphafold-3-server` correctly returned `404`.
+- Story-surface content check passed: the homepage, archive, and story detail showed 1 qualifying story and did not surface the rejected live examples, old AlphaFold seed story, or blocked themes.
 # Task: Publishing Desk Overhaul
 
 - [x] Audit the current admin UX, source intake, candidate counts, cron timing, issue edit paths, and publish gates before code changes.
