@@ -6,10 +6,11 @@ import {
   type GoodNewsCategory,
   type GoodNewsStory,
 } from '@/lib/good-news-types'
-import { getLatestGoodNewsDigest, listGoodNewsStories } from '@/lib/good-news-store'
+import { getLatestGoodNewsDigest } from '@/lib/good-news-store'
 import { coerceGoodNewsCategory } from '@/lib/good-news-scoring'
 import { generateDailyDigest } from '@/lib/good-news-digest'
-import { GOOD_NEWS_CURRENT_WINDOW_HOURS, goodNewsDateId } from '@/lib/good-news-recency'
+import { goodNewsDateId } from '@/lib/good-news-recency'
+import { listCurrentPublishedGoodNewsStories } from '@/lib/good-news-current'
 
 export const revalidate = 300
 
@@ -31,18 +32,18 @@ export default async function PositiveAiPage({ searchParams }: Props) {
   const selectedCategory = coerceGoodNewsCategory(params?.category)
   const now = new Date()
   const [stories, storedDigest] = await Promise.all([
-    listGoodNewsStories({
-      status: 'published',
+    listCurrentPublishedGoodNewsStories({
       category: selectedCategory,
-      publishedWithinHours: GOOD_NEWS_CURRENT_WINDOW_HOURS,
       now,
       limit: 60,
     }),
     getLatestGoodNewsDigest(),
   ])
   const currentStoryIds = new Set(stories.map(story => story.id))
+  const minimumDigestStories = Math.min(5, stories.length)
   const digest = storedDigest.date === goodNewsDateId(now)
     && storedDigest.story_ids.length > 0
+    && storedDigest.story_ids.length >= minimumDigestStories
     && storedDigest.story_ids.every(id => currentStoryIds.has(id))
     ? storedDigest
     : generateDailyDigest(stories, now)

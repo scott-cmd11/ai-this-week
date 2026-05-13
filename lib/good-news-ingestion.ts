@@ -1,7 +1,7 @@
 import 'server-only'
 
 import sourceConfig from '@/config/ai-good-news-sources.json'
-import type { GoodNewsCandidateInput, GoodNewsSourceConfig, GoodNewsStory } from './good-news-types'
+import type { GoodNewsCandidateInput, GoodNewsSourceConfig, GoodNewsStatus, GoodNewsStory } from './good-news-types'
 import { createGoodNewsSummarizer } from './good-news-summarizer'
 import { normalizeGoodNewsUrl } from './good-news-scoring'
 import { GOOD_NEWS_CURRENT_WINDOW_HOURS, isGoodNewsStoryCurrent } from './good-news-recency'
@@ -23,12 +23,18 @@ export interface GoodNewsIngestionResult {
   errors: string[]
 }
 
-export async function ingestConfiguredGoodNewsSources(options: { persist?: boolean } = {}): Promise<GoodNewsIngestionResult> {
+export async function ingestConfiguredGoodNewsSources(options: {
+  persist?: boolean
+  status?: GoodNewsStatus
+  limitPerSource?: number
+} = {}): Promise<GoodNewsIngestionResult> {
   const sources = (sourceConfig as GoodNewsSourceConfig[]).filter(source => source.enabled)
   const summarizer = createGoodNewsSummarizer()
   const stories: GoodNewsStory[] = []
   const errors: string[] = []
   const now = new Date()
+  const status = options.status ?? 'pending'
+  const limitPerSource = options.limitPerSource ?? 12
   let fetchedItems = 0
   let rejected = 0
 
@@ -36,7 +42,7 @@ export async function ingestConfiguredGoodNewsSources(options: { persist?: boole
     try {
       const items = await fetchRssItems(source)
       fetchedItems += items.length
-      for (const item of items.slice(0, 12)) {
+      for (const item of items.slice(0, limitPerSource)) {
         if (!isGoodNewsStoryCurrent({ published_at: item.publishedAt }, now, GOOD_NEWS_CURRENT_WINDOW_HOURS)) {
           rejected++
           continue
@@ -72,7 +78,7 @@ export async function ingestConfiguredGoodNewsSources(options: { persist?: boole
           positivity_score: summary.positivity_score,
           credibility_score: summary.credibility_score,
           evidence_notes: summary.evidence_notes,
-          status: 'pending',
+          status,
         })
       }
     } catch (err) {
@@ -140,6 +146,8 @@ function normalizeRssDate(value: string): string | null {
 
 function decodeXml(value: string): string {
   return value
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)))
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')

@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getGoodNewsStory, listGoodNewsStories } from '@/lib/good-news-store'
-import { GOOD_NEWS_CURRENT_WINDOW_HOURS, isGoodNewsStoryCurrent } from '@/lib/good-news-recency'
+import { getCurrentPublishedGoodNewsStory, listCurrentPublishedGoodNewsStories } from '@/lib/good-news-current'
 
 export const revalidate = 300
 
@@ -12,8 +11,8 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
-  const story = await getGoodNewsStory(id)
-  if (!story || story.status !== 'published' || !isGoodNewsStoryCurrent(story)) return {}
+  const story = await getCurrentPublishedGoodNewsStory(id)
+  if (!story) return {}
   return {
     title: story.title,
     description: story.summary,
@@ -25,13 +24,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function GoodNewsStoryPage({ params }: Props) {
   const { id } = await params
-  const story = await getGoodNewsStory(id)
-  if (!story || story.status !== 'published' || !isGoodNewsStoryCurrent(story)) notFound()
+  const story = await getCurrentPublishedGoodNewsStory(id)
+  if (!story) notFound()
 
-  const related = (await listGoodNewsStories({
-    status: 'published',
+  const related = (await listCurrentPublishedGoodNewsStories({
     category: story.category,
-    publishedWithinHours: GOOD_NEWS_CURRENT_WINDOW_HOURS,
     limit: 4,
   }))
     .filter(candidate => candidate.id !== story.id)

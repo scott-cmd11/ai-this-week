@@ -26,5 +26,47 @@
     "url": "https://research.noaa.gov/feed/",
     "default_category": "Climate",
     "enabled": true
+  },
+  {
+    "name": "MIT News AI",
+    "type": "rss",
+    "url": "https://news.mit.edu/rss/topic/artificial-intelligence2",
+    "default_category": "Education",
+    "enabled": true
+  },
+  {
+    "name": "Tech Xplore AI",
+    "type": "rss",
+    "url": "https://techxplore.com/rss-feed/machine-learning-ai-news/",
+    "default_category": "Science",
+    "enabled": true
+  },
+  {
+    "name": "ScienceDaily AI",
+    "type": "rss",
+    "url": "https://www.sciencedaily.com/rss/computers_math/artificial_intelligence.xml",
+    "default_category": "Science",
+    "enabled": true
+  },
+  {
+    "name": "Google AI Blog",
+    "type": "rss",
+    "url": "https://blog.google/technology/ai/rss/",
+    "default_category": "Public Good",
+    "enabled": true
+  },
+  {
+    "name": "Google Research Blog",
+    "type": "rss",
+    "url": "https://research.google/blog/rss/",
+    "default_category": "Science",
+    "enabled": true
+  },
+  {
+    "name": "AWS Machine Learning Blog",
+    "type": "rss",
+    "url": "https://aws.amazon.com/blogs/machine-learning/feed/",
+    "default_category": "Work",
+    "enabled": true
   }
 ]

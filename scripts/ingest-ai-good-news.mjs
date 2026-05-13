@@ -69,13 +69,14 @@ console.log(JSON.stringify({
 
 function parseItems(xml) {
   const matches = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)]
-  return matches.map(match => {
+  const entries = matches.length > 0 ? matches : [...xml.matchAll(/<entry\b[\s\S]*?<\/entry>/gi)]
+  return entries.map(match => {
     const raw = match[0]
     return {
       title: decodeXml(readTag(raw, 'title')),
-      link: decodeXml(readTag(raw, 'link')),
-      publishedAt: normalizeDate(readTag(raw, 'pubDate')),
-      description: stripHtml(decodeXml(readTag(raw, 'description'))),
+      link: decodeXml(readTag(raw, 'link') || readAtomLink(raw)),
+      publishedAt: normalizeDate(readTag(raw, 'pubDate') || readTag(raw, 'published') || readTag(raw, 'updated')),
+      description: stripHtml(decodeXml(readTag(raw, 'description') || readTag(raw, 'summary') || readTag(raw, 'content:encoded'))),
     }
   }).filter(item => item.title && item.link)
 }
@@ -83,6 +84,10 @@ function parseItems(xml) {
 function readTag(xml, tagName) {
   const match = xml.match(new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'i'))
   return match?.[1]?.replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, '').trim() || ''
+}
+
+function readAtomLink(xml) {
+  return xml.match(/<link[^>]+href=["']([^"']+)["'][^>]*>/i)?.[1]?.trim() || ''
 }
 
 function normalizeDate(value) {
@@ -100,6 +105,8 @@ function hoursSincePublished(value) {
 
 function decodeXml(value) {
   return value
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)))
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')

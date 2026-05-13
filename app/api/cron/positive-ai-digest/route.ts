@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
   }
 
-  const ingestion = await ingestConfiguredGoodNewsSources()
+  const ingestion = await ingestConfiguredGoodNewsSources({ status: 'published' })
   const digest = await generateAndSaveGoodNewsDigest()
   return NextResponse.json({ ingestion, digest })
 }

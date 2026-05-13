@@ -1,7 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { getPublishedIssues, SECTIONS } from '@/lib/issue-store'
-import { listGoodNewsStories } from '@/lib/good-news-store'
-import { GOOD_NEWS_CURRENT_WINDOW_HOURS } from '@/lib/good-news-recency'
+import { listCurrentPublishedGoodNewsStories } from '@/lib/good-news-current'
 import { SITE_URL } from '@/lib/site'
 
 export const revalidate = 300
@@ -10,9 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
   const [issues, goodNewsStories] = await Promise.all([
     getPublishedIssues(),
-    listGoodNewsStories({
-      status: 'published',
-      publishedWithinHours: GOOD_NEWS_CURRENT_WINDOW_HOURS,
+    listCurrentPublishedGoodNewsStories({
       now,
       limit: 200,
     }),

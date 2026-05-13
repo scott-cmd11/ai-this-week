@@ -3,8 +3,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { GOOD_NEWS_CATEGORIES } from '@/lib/good-news-types'
 import { coerceGoodNewsCategory } from '@/lib/good-news-scoring'
-import { listGoodNewsStories } from '@/lib/good-news-store'
-import { GOOD_NEWS_CURRENT_WINDOW_HOURS } from '@/lib/good-news-recency'
+import { listCurrentPublishedGoodNewsStories } from '@/lib/good-news-current'
 
 export const revalidate = 300
 
@@ -24,11 +23,9 @@ export default async function GoodNewsArchivePage({ searchParams }: Props) {
   const params = await searchParams
   const category = coerceGoodNewsCategory(params?.category)
   const now = new Date()
-  const stories = await listGoodNewsStories({
-    status: 'published',
+  const stories = await listCurrentPublishedGoodNewsStories({
     category,
     query: params?.q || params?.source || params?.tag || null,
-    publishedWithinHours: GOOD_NEWS_CURRENT_WINDOW_HOURS,
     now,
     limit: 200,
   })
