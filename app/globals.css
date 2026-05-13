@@ -190,6 +190,16 @@ a {
   border-color: var(--color-ws-border);
 }
 
+.good-news-theme .good-news-filter-active {
+  color: var(--color-ws-white);
+}
+
+.good-news-theme .good-news-filter-active:hover {
+  border-color: var(--color-ws-accent-hover);
+  background: var(--color-ws-accent-hover);
+  color: var(--color-ws-white);
+}
+
 .good-news-hero {
   position: relative;
   isolation: isolate;

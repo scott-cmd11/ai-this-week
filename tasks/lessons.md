@@ -13,3 +13,4 @@
 - Avoid public homepage copy that explains the daily publishing schedule as a status line. It can read like something is missing; keep publication timing out of the main issue ledger unless there is a clearly designed status treatment.
 - Duplicate-prevention fixes must cover both manual admin imports and scheduled assemble jobs. If only the visible import panel has the guardrail, repeats can already be in the draft before review.
 - Daily news surfaces must not use historical seed stories as public fallback content. Keep fixtures out of the reader view unless their `published_at` falls inside the explicit current-news window.
+- When a shared label class such as `type-meta` is used on filled buttons or chips, verify the active-state text color in the browser. Later custom CSS can override Tailwind text utilities and create poor contrast.

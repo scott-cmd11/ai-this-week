@@ -249,9 +249,9 @@ function StoryCard({ story, index }: { story: GoodNewsStory; index: number }) {
 
 function filterClass(active: boolean): string {
   return [
-    'type-meta inline-flex border px-2.5 py-1.5 no-underline transition-colors',
+    'type-meta good-news-filter-chip inline-flex border px-2.5 py-1.5 no-underline transition-colors',
     active
-      ? 'border-ws-accent bg-ws-accent text-ws-white'
+      ? 'good-news-filter-active border-ws-accent bg-ws-accent'
       : 'border-ws-border bg-ws-elevated text-ws-muted hover:border-ws-accent hover:bg-ws-accent-light hover:text-ws-accent',
   ].join(' ')
 }
