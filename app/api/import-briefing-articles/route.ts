@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { captureArticleToTodaysDraft, type CaptureArticleInput } from '@/lib/issue-store'
+import { captureArticleToTodaysDraft, getIssueTargetByDate, type CaptureArticleInput } from '@/lib/issue-store'
 import { generateAnnotation } from '@/lib/ai-annotation'
 import { fetchArticleMeta, isPublishedDateFreshForIssue } from '@/lib/article-fetcher'
 import { categoryForArticle, CATEGORY_ORDER } from '@/lib/category-mapping'
@@ -34,6 +34,10 @@ interface ArticleResult {
   error?: string
   skippedReason?: string
   warnings?: TitleQualityWarning[]
+  issueId?: string
+  issueNumber?: number
+  issueDate?: string
+  articleCount?: number
 }
 
 // ─── Route handler ──────────────────────────────────────────────────────────────
@@ -74,6 +78,19 @@ export async function POST(request: NextRequest) {
 
   const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null
   const issueDate = issueDateFor()
+  const existingIssue = await getIssueTargetByDate(issueDate, false)
+  if (existingIssue?.published) {
+    return NextResponse.json({
+      error: 'today_issue_already_published',
+      message: `Issue #${existingIssue.issueNumber} for ${existingIssue.issueDate} is already published. Use Issue Desk or Add to Issue to append late articles to the live issue.`,
+      issue: existingIssue,
+      appendAction: {
+        label: 'Append to published issue',
+        target: 'admin_issue_desk',
+      },
+    }, { status: 409 })
+  }
+
   const [knownUrls, knownTitles] = await Promise.all([
     buildKnownUrlMap(30),
     buildKnownTitleList(30),
@@ -212,7 +229,16 @@ export async function POST(request: NextRequest) {
       lastIssueId = result.issueId
       lastIssueNumber = result.issueNumber
       lastIssueDate = result.issueDate
-      results.push({ url: input.url, title: input.title, ok: true, warnings })
+      results.push({
+        url: input.url,
+        title: input.title,
+        ok: true,
+        warnings,
+        issueId: result.issueId,
+        issueNumber: result.issueNumber,
+        issueDate: result.issueDate,
+        articleCount: result.articleCount,
+      })
       importedTitlesThisBatch.push({ title: input.title })
     } catch (err) {
       results.push({

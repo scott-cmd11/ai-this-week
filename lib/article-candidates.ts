@@ -45,6 +45,13 @@ export interface ArticleCandidate extends NormalizedArticleCandidate {
   updatedAt: string
   reviewedAt: string | null
   importedAt: string | null
+  importedIssue?: {
+    id: string
+    issueNumber: number
+    issueDate: string
+    published: boolean
+    title: string
+  } | null
   rejectionReason: string | null
 }
 

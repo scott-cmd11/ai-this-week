@@ -4,6 +4,7 @@ import { buildIssueReadiness, getAdminRunSummaries } from '@/lib/admin-issue-rea
 import { issueDateFor } from '@/lib/issue-date'
 import { getIssueBlocks, getIssueByDate, publishIssue } from '@/lib/issue-store'
 import { buildIssuePublishSummary } from '@/lib/issue-publish-summary'
+import { MIN_DAILY_ISSUE_ARTICLES, splitShortIssueBlockers } from '@/lib/publish-policy'
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
@@ -34,6 +35,18 @@ export async function GET(request: NextRequest) {
 
     if (articleCount === 0) {
       return NextResponse.json({ skipped: true, reason: 'empty' })
+    }
+
+    const { hasShortIssueBlocker } = splitShortIssueBlockers(readiness.blockers)
+    if (hasShortIssueBlocker) {
+      return NextResponse.json({
+        skipped: true,
+        reason: 'low_article_count',
+        articleCount,
+        minimumArticleCount: MIN_DAILY_ISSUE_ARTICLES,
+        blockers: readiness.blockers,
+        warnings: readiness.warnings,
+      })
     }
 
     if (readiness.blockers.length > 0 || readiness.warnings.length > 0) {

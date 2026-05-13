@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { adminChecksFingerprint, type AdminCheckItem } from '@/lib/admin-readiness'
+import { SHORT_ISSUE_CONFIRMATION, splitShortIssueBlockers } from '@/lib/publish-policy'
 import type { TodayStatusPayload } from './_today-run-status'
 
 type PublishIssueResponse = {
@@ -29,19 +30,26 @@ export function PublishChecks({
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [shortIssueText, setShortIssueText] = useState('')
 
   const draft = status.draft
   const blockers = status.readiness.blockers
   const warnings = status.readiness.warnings
-  const hasBlockers = blockers.length > 0
+  const { otherBlockers, hasShortIssueBlocker } = useMemo(
+    () => splitShortIssueBlockers(blockers),
+    [blockers],
+  )
+  const hasBlockers = otherBlockers.length > 0
   const hasWarnings = warnings.length > 0
   const requiresWarningAcknowledgement = hasWarnings && !hasBlockers
   const checksFingerprint = useMemo(() => adminChecksFingerprint([...blockers, ...warnings]), [blockers, warnings])
   const warningsAcknowledged = acknowledgedFingerprint === checksFingerprint
+  const shortIssueConfirmed = !hasShortIssueBlocker || shortIssueText.trim().toUpperCase() === SHORT_ISSUE_CONFIRMATION
 
   useEffect(() => {
     setError(null)
     setMessage(null)
+    setShortIssueText('')
   }, [checksFingerprint, draft.issueId, draft.published])
 
   const disabledReason = useMemo(() => {
@@ -50,17 +58,20 @@ export function PublishChecks({
     if (!draft.exists) return 'No draft is available to publish.'
     if (draft.published) return 'This issue is already published.'
     if (!draft.issueId) return 'Draft is missing its issue ID.'
-    if (hasBlockers) return `Resolve ${blockers.length} blocker${blockers.length === 1 ? '' : 's'} before publishing.`
+    if (hasBlockers) return `Resolve ${otherBlockers.length} blocker${otherBlockers.length === 1 ? '' : 's'} before publishing.`
+    if (hasShortIssueBlocker && !shortIssueConfirmed) return `Type ${SHORT_ISSUE_CONFIRMATION} to publish a short issue.`
     if (requiresWarningAcknowledgement && !warningsAcknowledged) return 'Acknowledge warnings before publishing.'
     return null
   }, [
-    blockers.length,
     draft.exists,
     draft.issueId,
     draft.published,
     hasBlockers,
+    hasShortIssueBlocker,
+    otherBlockers.length,
     publishing,
     requiresWarningAcknowledgement,
+    shortIssueConfirmed,
     statusRefreshing,
     warningsAcknowledged,
   ])
@@ -70,6 +81,7 @@ export function PublishChecks({
       draft.issueId &&
       !draft.published &&
       !hasBlockers &&
+      shortIssueConfirmed &&
       (!hasWarnings || warningsAcknowledged) &&
       !statusRefreshing &&
       !publishing,
@@ -86,7 +98,13 @@ export function PublishChecks({
       const res = await fetch('/api/publish-issue', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ password, pageId: draft.issueId, checksFingerprint }),
+        body: JSON.stringify({
+          password,
+          pageId: draft.issueId,
+          checksFingerprint,
+          allowShortIssue: hasShortIssueBlocker && shortIssueConfirmed,
+          shortIssueConfirmation: hasShortIssueBlocker ? shortIssueText : undefined,
+        }),
       })
       const payload = (await res.json()) as PublishIssueResponse
 
@@ -114,8 +132,8 @@ export function PublishChecks({
             Publish readiness
           </h2>
           <p className="admin-copy mt-3 max-w-3xl">
-            Blockers must be fixed before publishing. Warnings do not stop the run, but they need a human acknowledgement
-            so the issue is not shipped by accident.
+            Blockers must be fixed before publishing. A short issue is blocked by default and requires its own deliberate
+            override. Warnings need a human acknowledgement so the issue is not shipped by accident.
           </p>
           {forcePublishView && (
             <p className="mt-2 max-w-3xl text-[14px] font-bold text-ws-black/60">
@@ -171,6 +189,26 @@ export function PublishChecks({
           />
           <span>I have reviewed the warnings and still want this issue to be eligible for publishing.</span>
         </label>
+      )}
+
+      {hasShortIssueBlocker && otherBlockers.length === 0 && !draft.published && (
+        <div className="mt-5 rounded-[0.6rem] border border-red-700 bg-red-50 px-4 py-3.5">
+          <p className="text-[14px] font-black text-red-900">Short issue override required</p>
+          <p className="mt-1 text-[13px] font-bold leading-[1.45] text-red-800">
+            This draft has {draft.articleCount} article{draft.articleCount === 1 ? '' : 's'}. Add more coverage first,
+            unless this is intentionally a short issue.
+          </p>
+          <label className="mt-3 block text-[12px] font-black uppercase tracking-[0.1em] text-red-900" htmlFor="short-issue-confirmation">
+            Type {SHORT_ISSUE_CONFIRMATION}
+          </label>
+          <input
+            id="short-issue-confirmation"
+            value={shortIssueText}
+            onChange={event => setShortIssueText(event.target.value)}
+            className="mt-1 w-full rounded-[0.35rem] border border-red-700 bg-ws-white px-3 py-2 text-[14px] font-bold text-ws-black"
+            autoComplete="off"
+          />
+        </div>
       )}
 
       <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">

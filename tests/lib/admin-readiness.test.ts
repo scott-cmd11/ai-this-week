@@ -12,6 +12,7 @@ function candidates(overrides: Partial<AdminCandidateSummary> = {}): AdminCandid
     held: 2,
     rejected: 3,
     imported: 4,
+    importedWithoutIssueContext: 0,
     ...overrides,
   }
 }
@@ -81,6 +82,20 @@ describe('buildAdminReadiness', () => {
     expect(result.primaryAction.step).toBe('check')
   })
 
+  it('blocks normal publishing when a draft has too few articles', () => {
+    const result = buildAdminReadiness({
+      issueDate: '2026-05-09',
+      automation: { lastRunAt: '2026-05-09T12:00:00.000Z', sourceCount: 4, failureCount: 0 },
+      candidates: candidates({ totalActive: 9 }),
+      draft: draft({ articleCount: 2, sections: ['Canada'], missingImageCount: 0, similarTopicCount: 0, staleSourceCount: 0 }),
+    })
+
+    expect(result.draftState).toBe('in_progress')
+    expect(result.blockers.map(item => item.code)).toContain('low_article_count')
+    expect(result.warnings.map(item => item.code)).not.toContain('low_article_count')
+    expect(result.nextBestAction).toContain('explicit short-issue override')
+  })
+
   it('marks a draft ready to check when it only has warnings', () => {
     const result = buildAdminReadiness({
       issueDate: '2026-05-09',
@@ -107,5 +122,30 @@ describe('buildAdminReadiness', () => {
     expect(result.draftState).toBe('published')
     expect(result.primaryAction.label).toBe('View published issue')
     expect(result.primaryAction.href).toBe('/issues/2026-05-09')
+  })
+
+  it('keeps a low-count published issue visible as a repair warning', () => {
+    const result = buildAdminReadiness({
+      issueDate: '2026-05-12',
+      automation: { lastRunAt: null, sourceCount: 0, failureCount: 0 },
+      candidates: candidates({ totalActive: 13, topPicks: 5, held: 0 }),
+      draft: draft({
+        published: true,
+        issueDate: '2026-05-12',
+        articleCount: 2,
+        sections: ['Canada'],
+        missingImageCount: 0,
+        similarTopicCount: 0,
+        staleSourceCount: 0,
+      }),
+    })
+
+    expect(result.draftState).toBe('published')
+    expect(result.blockers).toHaveLength(0)
+    expect(result.warnings.map(item => item.code)).toEqual([
+      'low_article_count',
+      'active_candidates_after_publish',
+    ])
+    expect(result.nextBestAction).toContain('13 candidates remain active')
   })
 })

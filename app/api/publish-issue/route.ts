@@ -4,6 +4,12 @@ import { adminChecksFingerprint } from '@/lib/admin-readiness'
 import { buildIssueReadiness, getAdminRunSummaries } from '@/lib/admin-issue-readiness'
 import { getIssueBlocks, getIssueById, publishIssue } from '@/lib/issue-store'
 import { buildIssuePublishSummary } from '@/lib/issue-publish-summary'
+import {
+  MIN_DAILY_ISSUE_ARTICLES,
+  SHORT_ISSUE_CONFIRMATION,
+  isShortIssueConfirmation,
+  splitShortIssueBlockers,
+} from '@/lib/publish-policy'
 
 export async function POST(request: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
@@ -15,7 +21,13 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  let body: { password: string; pageId: string; checksFingerprint?: string }
+  let body: {
+    password: string
+    pageId: string
+    checksFingerprint?: string
+    allowShortIssue?: boolean
+    shortIssueConfirmation?: string
+  }
   try {
     body = await request.json()
   } catch {
@@ -48,19 +60,43 @@ export async function POST(request: NextRequest) {
       automation,
     })
 
-    if (readiness.blockers.length > 0) {
+    const currentFingerprint = adminChecksFingerprint([...readiness.blockers, ...readiness.warnings])
+    const { shortIssueBlockers, otherBlockers, hasShortIssueBlocker } = splitShortIssueBlockers(readiness.blockers)
+
+    if (otherBlockers.length > 0) {
       return NextResponse.json(
         {
           error: 'Resolve publish blockers before publishing.',
-          blockers: readiness.blockers,
+          blockers: otherBlockers,
           warnings: readiness.warnings,
         },
         { status: 409 },
       )
     }
 
+    if (hasShortIssueBlocker) {
+      const overrideAccepted = body.allowShortIssue === true
+        && isShortIssueConfirmation(body.shortIssueConfirmation)
+        && body.checksFingerprint === currentFingerprint
+
+      if (!overrideAccepted) {
+        return NextResponse.json(
+          {
+            error: `This issue has fewer than ${MIN_DAILY_ISSUE_ARTICLES} articles. Add more coverage or use the explicit short-issue override.`,
+            blockers: shortIssueBlockers,
+            warnings: readiness.warnings,
+            checksFingerprint: currentFingerprint,
+            shortIssueOverride: {
+              requiredConfirmation: SHORT_ISSUE_CONFIRMATION,
+              minimumArticleCount: MIN_DAILY_ISSUE_ARTICLES,
+            },
+          },
+          { status: 409 },
+        )
+      }
+    }
+
     if (readiness.warnings.length > 0) {
-      const currentFingerprint = adminChecksFingerprint([...readiness.blockers, ...readiness.warnings])
       if (!body.checksFingerprint || body.checksFingerprint !== currentFingerprint) {
         return NextResponse.json(
           {

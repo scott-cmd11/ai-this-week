@@ -1,3 +1,5 @@
+import { isLowArticleCount } from './publish-policy'
+
 export type DailyRunStep = 'status' | 'intake' | 'choose' | 'edit' | 'check' | 'publish'
 
 export type DraftState = 'not_started' | 'in_progress' | 'ready_to_check' | 'published'
@@ -14,6 +16,7 @@ export interface AdminCandidateSummary {
   held: number
   rejected: number
   imported: number
+  importedWithoutIssueContext: number
 }
 
 export interface AdminDraftSummary {
@@ -50,6 +53,8 @@ export interface AdminCheckItem {
     | 'uneven_sections'
     | 'held_candidates'
     | 'low_article_count'
+    | 'active_candidates_after_publish'
+    | 'imported_without_issue_context'
     | 'automation_failure'
   label: string
   count: number
@@ -111,6 +116,7 @@ export function buildAdminReadiness(input: AdminReadinessInput): AdminReadiness 
     item('missing_summary', 'Missing summary', draft.missingSummaryCount, 'blocker'),
     item('broken_required_url', 'Broken required source URL', draft.brokenRequiredUrlCount, 'blocker'),
     item('publish_readiness_failed', 'Publish readiness failed', draft.publishReadinessFailed ? 1 : 0, 'blocker'),
+    item('low_article_count', 'Very low article count', draft.exists && !draft.published && isLowArticleCount(draft.articleCount) ? 1 : 0, 'blocker'),
   ])
 
   const warnings = compact([
@@ -120,17 +126,25 @@ export function buildAdminReadiness(input: AdminReadinessInput): AdminReadiness 
     item('missing_image', 'Missing image', draft.missingImageCount, 'warning'),
     item('uneven_sections', 'Uneven section balance', hasUnevenSections(draft) ? 1 : 0, 'warning'),
     item('held_candidates', 'Held candidates still unresolved', candidates.held, 'warning'),
-    item('low_article_count', 'Very low article count', draft.exists && draft.articleCount > 0 && draft.articleCount < 5 ? 1 : 0, 'warning'),
+    item('low_article_count', 'Very low article count', draft.exists && draft.published && isLowArticleCount(draft.articleCount) ? 1 : 0, 'warning'),
+    item('active_candidates_after_publish', 'Active candidates still waiting after publish', draft.published ? candidates.totalActive : 0, 'warning'),
+    item('imported_without_issue_context', 'Imported candidates missing issue match', candidates.importedWithoutIssueContext, 'warning'),
     item('automation_failure', 'Automation source failure', automation.failureCount, 'warning'),
   ])
 
   if (draft.published) {
+    const publishedLowWithCandidates = isLowArticleCount(draft.articleCount) && candidates.totalActive > 0
+    const publishedLow = isLowArticleCount(draft.articleCount)
     return {
       issueDate: input.issueDate,
       draftState: 'published',
       blockers: [],
       warnings,
-      nextBestAction: 'Issue is published. Use Issue Desk for corrections.',
+      nextBestAction: publishedLowWithCandidates
+        ? `Issue is published with only ${draft.articleCount} articles while ${candidates.totalActive} candidates remain active. Use Issue Desk to append more coverage.`
+        : publishedLow
+          ? `Issue is published with only ${draft.articleCount} articles. Use Issue Desk if this needs repair.`
+          : 'Issue is published. Use Issue Desk for corrections.',
       primaryAction: { label: 'View published issue', href: `/issues/${draft.issueDate}` },
     }
   }
@@ -149,12 +163,15 @@ export function buildAdminReadiness(input: AdminReadinessInput): AdminReadiness 
   }
 
   if (blockers.length > 0) {
+    const onlyLowArticleBlocker = blockers.length === 1 && blockers[0]?.code === 'low_article_count'
     return {
       issueDate: input.issueDate,
       draftState: 'in_progress',
       blockers,
       warnings,
-      nextBestAction: `Fix ${blockers.length} blocker${blockers.length === 1 ? '' : 's'} before publishing.`,
+      nextBestAction: onlyLowArticleBlocker
+        ? `Draft has only ${draft.articleCount} articles. Add more candidates before publishing, or use the explicit short-issue override.`
+        : `Fix ${blockers.length} blocker${blockers.length === 1 ? '' : 's'} before publishing.`,
       primaryAction: { label: 'Fix blockers first', step: 'check' },
     }
   }

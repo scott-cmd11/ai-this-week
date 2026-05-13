@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { CandidateStatus } from '@/lib/article-candidates'
 import { coerceCategory } from '@/lib/article-candidates'
-import { updateArticleCandidate } from '@/lib/article-candidate-store'
+import { getArticleCandidateById, updateArticleCandidate } from '@/lib/article-candidate-store'
+import { buildKnownUrlMap } from '@/lib/known-urls'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +12,8 @@ interface PatchBody {
   category?: string
   summary?: string
   rejectionReason?: string | null
+  importedIssueId?: string
+  importedIssueDate?: string
 }
 
 function isAuthorized(request: NextRequest, body?: { adminPassword?: string }): boolean {
@@ -41,6 +44,32 @@ export async function PATCH(
 
   try {
     const { id } = await context.params
+    if (body.status === 'imported') {
+      const candidate = await getArticleCandidateById(id)
+      if (!candidate) return NextResponse.json({ error: 'Candidate not found.' }, { status: 404 })
+      const knownUrls = await buildKnownUrlMap(90)
+      const importedIssue = knownUrls.get(candidate.canonicalUrl)
+      const issueMatches = importedIssue
+        && (!body.importedIssueId || importedIssue.pageId === body.importedIssueId)
+        && (!body.importedIssueDate || importedIssue.issueDate === body.importedIssueDate)
+
+      if (!body.importedIssueId || !body.importedIssueDate || !issueMatches) {
+        return NextResponse.json({
+          error: 'Candidate cannot be marked imported until its URL is found in the intended issue.',
+          expectedIssueId: body.importedIssueId ?? null,
+          expectedIssueDate: body.importedIssueDate ?? null,
+          matchedIssue: importedIssue
+            ? {
+                id: importedIssue.pageId,
+                issueNumber: importedIssue.issueNumber,
+                issueDate: importedIssue.issueDate,
+                published: importedIssue.published,
+              }
+            : null,
+        }, { status: 409 })
+      }
+    }
+
     const candidate = await updateArticleCandidate(id, {
       status: body.status,
       category: body.category ? coerceCategory(body.category) : undefined,

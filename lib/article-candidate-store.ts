@@ -69,6 +69,7 @@ function toCandidate(row: CandidateRow): ArticleCandidate {
     rejectionReason: row.rejection_reason,
     reviewedAt: row.reviewed_at,
     importedAt: row.imported_at,
+    importedIssue: null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -154,12 +155,23 @@ export async function listArticleCandidates(options: CandidateListOptions = {}):
   return rows.map(toCandidate).sort(compareArticleCandidates)
 }
 
+export async function getArticleCandidateById(id: string): Promise<ArticleCandidate | null> {
+  const params = new URLSearchParams({
+    select: '*',
+    id: `eq.${id}`,
+    limit: '1',
+  })
+  const rows = await supabaseRequest<CandidateRow[]>(`article_candidates?${params.toString()}`)
+  return rows[0] ? toCandidate(rows[0]) : null
+}
+
 export async function summarizeArticleCandidates(): Promise<{
   totalActive: number
   topPicks: number
   held: number
   rejected: number
   imported: number
+  importedWithoutIssueContext: number
 }> {
   const [totalActive, topPicks, held, rejected, imported] = await Promise.all([
     supabaseCount(candidateCountPath(['new', 'approved'])),
@@ -175,6 +187,7 @@ export async function summarizeArticleCandidates(): Promise<{
     held,
     rejected,
     imported,
+    importedWithoutIssueContext: 0,
   }
 }
 

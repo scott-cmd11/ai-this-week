@@ -61,6 +61,19 @@ describe('deriveIssueSummary', () => {
     ])
   })
 
+  it('decodes common HTML entities before homepage digest text is rendered', () => {
+    const digest = deriveIssueDigest([
+      block('heading_2', 'Public Safety &amp; Law Enforcement'),
+      block('heading_3', 'Health &amp; Human Services, Public Safety/Emergency Services/Law Enforcement, Technology, Transportation/Utilities/Infrastructure, Other.'),
+      block('paragraph', 'Health &amp; Human Services teams review public-sector AI tools before deployment.'),
+    ], { issueNumber: 12 })
+
+    expect(digest.keyDevelopments[0]).toBe(
+      'Health & Human Services teams review public-sector AI tools before deployment.',
+    )
+    expect(digest.sections[0]).toBe('Public Safety & Law Enforcement')
+  })
+
   it('returns an empty string when there are no articles to summarise', () => {
     expect(deriveIssueSummary([block('heading_2', 'Policy & Regulation')])).toBe('')
   })

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { CandidateStatus, IncomingArticleCandidate } from '@/lib/article-candidates'
+import type { ArticleCandidate } from '@/lib/article-candidates'
 import { normalizeArticleCandidates } from '@/lib/article-candidates'
 import {
   isArticleCandidateStoreConfigured,
   listArticleCandidates,
   upsertArticleCandidates,
 } from '@/lib/article-candidate-store'
+import { buildKnownUrlMap } from '@/lib/known-urls'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +40,27 @@ function statusesFromSearch(request: NextRequest): CandidateStatus[] | undefined
   return values.filter((value): value is CandidateStatus => allowed.has(value as CandidateStatus))
 }
 
+async function attachImportedIssueContext(candidates: ArticleCandidate[]): Promise<ArticleCandidate[]> {
+  if (!candidates.some(candidate => candidate.status === 'imported')) return candidates
+
+  const knownUrls = await buildKnownUrlMap(90)
+  return candidates.map(candidate => {
+    if (candidate.status !== 'imported') return candidate
+    const issue = knownUrls.get(candidate.canonicalUrl)
+    if (!issue) return { ...candidate, importedIssue: null }
+    return {
+      ...candidate,
+      importedIssue: {
+        id: issue.pageId,
+        issueNumber: issue.issueNumber,
+        issueDate: issue.issueDate,
+        published: issue.published,
+        title: issue.title,
+      },
+    }
+  })
+}
+
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
@@ -55,7 +78,7 @@ export async function GET(request: NextRequest) {
       statuses: statusesFromSearch(request),
       limit: Number(request.nextUrl.searchParams.get('limit') ?? 75),
     })
-    return NextResponse.json({ configured: true, candidates })
+    return NextResponse.json({ configured: true, candidates: await attachImportedIssueContext(candidates) })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: message }, { status: 500 })

@@ -325,7 +325,7 @@ function IntakeStatusPanel({
         <IntakeMetric
           label="Candidate queue"
           value={`${status.candidates.totalActive} active`}
-          detail={`${status.candidates.topPicks} top picks / ${status.candidates.held} held / ${status.candidates.imported} imported`}
+          detail={`${status.candidates.topPicks} top picks / ${status.candidates.held} held / ${status.candidates.imported} imported / ${status.candidates.importedWithoutIssueContext} untraced`}
           tone={hasCandidates ? 'good' : 'neutral'}
         />
         <IntakeMetric

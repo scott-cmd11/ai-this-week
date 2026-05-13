@@ -120,9 +120,9 @@ export function extractIssueArticles(blocks: NotionBlock[]): IssueDigestArticle[
   const flush = () => {
     if (!current?.title.trim()) return
     articles.push({
-      section: current.section.trim(),
-      title: current.title.trim(),
-      summary: current.summary.trim(),
+      section: cleanText(current.section),
+      title: cleanText(current.title),
+      summary: cleanText(current.summary),
     })
   }
 
@@ -130,7 +130,7 @@ export function extractIssueArticles(blocks: NotionBlock[]): IssueDigestArticle[
     if (block.type === 'heading_2') {
       flush()
       current = null
-      section = block.content.trim()
+      section = cleanText(block.content)
       continue
     }
 
@@ -138,7 +138,7 @@ export function extractIssueArticles(blocks: NotionBlock[]): IssueDigestArticle[
       flush()
       current = {
         section,
-        title: block.content.trim(),
+        title: cleanText(block.content),
         summary: '',
       }
       continue
@@ -250,7 +250,17 @@ function articleScore(article: IssueDigestArticle) {
 }
 
 function cleanText(text: string) {
-  return text.replace(/\s+/g, ' ').trim()
+  return decodeHtmlEntities(text).replace(/\s+/g, ' ').trim()
+}
+
+function decodeHtmlEntities(text: string) {
+  return text
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&apos;/gi, "'")
 }
 
 function isGenericSection(section: string) {

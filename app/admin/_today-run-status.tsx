@@ -5,7 +5,14 @@ import type { AdminReadiness } from '@/lib/admin-readiness'
 export interface TodayStatusPayload {
   issueDate: string
   automation: { lastRunAt: string | null; sourceCount: number; failureCount: number }
-  candidates: { totalActive: number; topPicks: number; held: number; rejected: number; imported: number }
+  candidates: {
+    totalActive: number
+    topPicks: number
+    held: number
+    rejected: number
+    imported: number
+    importedWithoutIssueContext: number
+  }
   candidateError?: string | null
   draft: {
     exists: boolean
@@ -78,7 +85,8 @@ export function TodayRunStatus({
         <StatusCard
           label="Candidates"
           value={String(status.candidates.totalActive)}
-          detail={`${status.candidates.topPicks} top picks / ${status.candidates.held} held`}
+          detail={`${status.candidates.topPicks} top picks / ${status.candidates.held} held / ${status.candidates.importedWithoutIssueContext} untraced`}
+          accent={status.candidates.importedWithoutIssueContext > 0}
         />
         <StatusCard
           label="Draft"

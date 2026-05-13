@@ -45,7 +45,7 @@ export function CandidateInbox({ password }: { password: string }) {
       })
       const payload = await res.json()
       if (!res.ok) {
-        setError(payload.error ?? `Error ${res.status}`)
+        setError(payload.message ?? payload.error ?? `Error ${res.status}`)
         return
       }
       setConfigured(payload.configured !== false)
@@ -77,7 +77,10 @@ export function CandidateInbox({ password }: { password: string }) {
     })
   }
 
-  async function patchCandidate(id: string, update: { status?: CandidateStatus; category?: Category; summary?: string }) {
+  async function patchCandidate(
+    id: string,
+    update: { status?: CandidateStatus; category?: Category; summary?: string; importedIssueId?: string; importedIssueDate?: string },
+  ) {
     setWorking(id)
     setError(null)
     setMessage(null)
@@ -126,20 +129,31 @@ export function CandidateInbox({ password }: { password: string }) {
         return
       }
 
-      const importedUrls = new Set(
+      const importedResults = new Map<string, { issueId?: string; issueDate?: string }>(
         (payload.results ?? [])
-          .filter((result: { ok: boolean }) => result.ok)
-          .map((result: { url: string }) => result.url),
+          .filter((result: { ok: boolean; issueId?: string; issueDate?: string }) => result.ok && result.issueId && result.issueDate)
+          .map((result: { url: string; issueId?: string; issueDate?: string }) => [result.url, {
+            issueId: result.issueId,
+            issueDate: result.issueDate,
+          }]),
       )
       const importedIds = candidatesToImport
-        .filter(candidate => importedUrls.has(candidate.url))
-        .map(candidate => candidate.id)
+        .filter(candidate => importedResults.has(candidate.url))
+        .map(candidate => ({
+          id: candidate.id,
+          issue: importedResults.get(candidate.url)!,
+        }))
 
-      await Promise.all(importedIds.map(id =>
+      await Promise.all(importedIds.map(({ id, issue }) =>
         fetch(`/api/article-candidates/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ adminPassword: password, status: 'imported' }),
+          body: JSON.stringify({
+            adminPassword: password,
+            status: 'imported',
+            importedIssueId: issue.issueId,
+            importedIssueDate: issue.issueDate,
+          }),
         }),
       ))
 
@@ -281,6 +295,11 @@ export function CandidateInbox({ password }: { password: string }) {
                   {candidate.scoreReasons.length > 0 && (
                     <p className="text-[12px] text-ws-black/45 mt-1">
                       {candidate.scoreReasons.slice(0, 3).join(' / ')}
+                    </p>
+                  )}
+                  {candidate.importedIssue && (
+                    <p className="text-[12px] font-bold text-ws-black/55 mt-1">
+                      Imported into Issue #{candidate.importedIssue.issueNumber} ({candidate.importedIssue.issueDate})
                     </p>
                   )}
                 </div>

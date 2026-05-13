@@ -1,7 +1,7 @@
 import type { AdminAutomationSummary, AdminCandidateSummary } from './admin-readiness'
 import { buildAdminReadiness } from './admin-readiness'
 import { isPublishedDateFreshForIssue } from './article-fetcher'
-import { isArticleCandidateStoreConfigured, summarizeArticleCandidates } from './article-candidate-store'
+import { isArticleCandidateStoreConfigured, listArticleCandidates, summarizeArticleCandidates } from './article-candidate-store'
 import { parseDailyArticles } from './draft-articles'
 import { findIssueMemoryWarnings } from './issue-memory'
 import { buildKnownTitleList, buildKnownUrlMap } from './known-urls'
@@ -15,6 +15,7 @@ const EMPTY_CANDIDATES: AdminCandidateSummary = {
   held: 0,
   rejected: 0,
   imported: 0,
+  importedWithoutIssueContext: 0,
 }
 
 const EMPTY_AUTOMATION: AdminAutomationSummary = {
@@ -34,6 +35,14 @@ export async function getAdminRunSummaries(): Promise<{
   if (candidateStoreConfigured) {
     try {
       candidates = await summarizeArticleCandidates()
+      const importedCandidates = await listArticleCandidates({ statuses: ['imported'], limit: 150 })
+      if (importedCandidates.length > 0) {
+        const knownUrls = await buildKnownUrlMap(90)
+        candidates = {
+          ...candidates,
+          importedWithoutIssueContext: importedCandidates.filter(candidate => !knownUrls.has(candidate.canonicalUrl)).length,
+        }
+      }
     } catch (err) {
       candidateError = err instanceof Error ? err.message : 'Candidate summary failed.'
     }

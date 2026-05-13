@@ -12,6 +12,9 @@ interface ImportResult {
   ok: boolean
   error?: string
   skippedReason?: string
+  issueId?: string
+  issueNumber?: number
+  issueDate?: string
 }
 
 const FILTERS: Array<{ key: Filter; label: string; status: string }> = [
@@ -48,6 +51,7 @@ function findCandidateImportResult(candidate: ArticleCandidate, results: ImportR
 
 function failedImportMessage(result: ImportResult | null): string {
   if (!result) return 'The import did not return a result for this candidate.'
+  if (result.ok && (!result.issueId || !result.issueDate)) return 'The import did not return the issue it wrote to, so the candidate was not marked imported.'
   return result.skippedReason ?? result.error ?? 'The import skipped this candidate.'
 }
 
@@ -101,7 +105,7 @@ export function CandidateTriage({
 
   async function patchCandidate(
     id: string,
-    update: { status?: CandidateStatus; category?: Category },
+    update: { status?: CandidateStatus; category?: Category; importedIssueId?: string; importedIssueDate?: string },
   ): Promise<ArticleCandidate | null> {
     setWorking(id)
     setError(null)
@@ -155,21 +159,25 @@ export function CandidateTriage({
       })
       const payload = await res.json()
       if (!res.ok) {
-        setError(payload.error ?? `Could not keep candidate (${res.status}).`)
+        setError(payload.message ?? payload.error ?? `Could not keep candidate (${res.status}).`)
         return
       }
 
       const result = findCandidateImportResult(candidate, payload.results ?? [])
-      if (!result?.ok) {
+      if (!result?.ok || !result.issueId || !result.issueDate) {
         setError(failedImportMessage(result))
         return
       }
 
-      const updated = await patchCandidate(candidate.id, { status: 'imported' })
+      const updated = await patchCandidate(candidate.id, {
+        status: 'imported',
+        importedIssueId: result.issueId,
+        importedIssueDate: result.issueDate,
+      })
       if (!updated) return
       window.dispatchEvent(new CustomEvent('aitoday:refresh-draft'))
       await load({ preserveMessage: true })
-      setMessage(`Kept "${candidate.title}" and added it to today's draft.`)
+      setMessage(`Kept "${candidate.title}" and added it to Issue #${result.issueNumber ?? 'new'} (${result.issueDate}).`)
     } catch {
       setError('Could not keep candidate.')
     } finally {
@@ -254,6 +262,11 @@ export function CandidateTriage({
               {candidate.scoreReasons.length > 0 && (
                 <p className="mt-2 text-[12px] text-ws-black/45">
                   {candidate.scoreReasons.slice(0, 3).join(' / ')}
+                </p>
+              )}
+              {candidate.importedIssue && (
+                <p className="mt-2 text-[12px] font-bold text-ws-black/55">
+                  Imported into Issue #{candidate.importedIssue.issueNumber} ({candidate.importedIssue.issueDate})
                 </p>
               )}
             </div>

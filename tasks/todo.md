@@ -1,3 +1,102 @@
+# Task: AI Good News Daily Story Volume Fix
+
+- [x] Verify production was only showing one public AI Good News story.
+- [x] Trace the cause through the positive AI store, RSS source list, ingestion status, and digest logic.
+- [x] Broaden the editable RSS source list with additional current AI/science/education feeds.
+- [x] Add a current-story supplement path so public pages do not collapse to a single seed story when the Good News table is empty or unavailable.
+- [x] Keep public pages restricted to published, positive-scored, last-24-hour stories.
+- [x] Make the scheduled digest ingestion publish accepted high-confidence stories instead of leaving everything pending.
+- [x] Regenerate the homepage digest when the current story set is larger than the saved digest.
+- [x] Validate lint, TypeScript, focused tests, build, local smoke, negative-term scan, and screenshot.
+
+## AI Good News Daily Story Volume Review
+
+- Root cause: `/positive-ai` only had one current published fallback story, the configured RSS list was too narrow, and accepted RSS ingestion saved stories as `pending` while the public page only renders `published`.
+- Added `lib/good-news-current.ts` to merge stored published stories with a short-lived live RSS supplement when fewer than the target daily count is available.
+- Expanded `config/ai-good-news-sources.json` from 4 to 10 RSS feeds, including MIT News AI, Tech Xplore AI, ScienceDaily AI, Google AI Blog, Google Research Blog, and AWS Machine Learning Blog.
+- Tightened negative exclusions for manipulation, nuclear/bomb, hate-speech, and criminal-justice framing, while adding grounded benefit/evidence signals for detection, earlier intervention, reduced harm, longer life, laboratories, universities, and research teams.
+- Updated `/positive-ai`, `/positive-ai/archive`, story detail, and sitemap to use the current published story helper.
+- Local production smoke showed 6 last-24-hour public stories and no AlphaFold or excluded negative terms.
+- Screenshot saved at `tasks/screenshots/ai-good-news-multi-story-desktop.png`.
+
+## AI Good News Daily Story Volume Validation
+
+- `node scripts/ingest-ai-good-news.mjs --dry-run` checked 10 sources and found 18 current raw candidates; NOAA Research still returned HTTP 403.
+- `npm run lint` passed.
+- `npm run test -- tests/lib/good-news-scoring.test.ts tests/lib/good-news-dedupe.test.ts tests/lib/good-news-digest.test.ts` passed.
+- `npx tsc --noEmit` passed.
+- `npm run build` passed after clearing a stale locked `.next` build artifact.
+- Local production smoke on `http://localhost:3041/positive-ai` confirmed the digest says `A concise scan of 6 positive, source-linked AI stories` and old AlphaFold content is absent.
+
+# Task: Prevent Thin Daily Issue Publishing
+
+- [x] Read AGENTS.md, task notes, package/build config, cron config, admin status/readiness, candidate store, candidate APIs, import, publish, append, issue-date, issue-store, and tests.
+- [x] Gather read-only live evidence for the May 12, 2026 issue and candidate inbox.
+- [x] Write root-cause evidence and implementation plan before code changes.
+- [x] Make low article count a normal publish blocker with an explicit editor override path.
+- [x] Keep cron publish conservative: no short-issue override for scheduled publishing.
+- [x] Prevent candidate imports from being marked imported unless a write actually lands in the intended issue.
+- [x] Expose imported issue/date context for imported candidates without requiring a schema change.
+- [x] Make admin readiness clearly call out low-count published issues and active candidates still waiting.
+- [x] Add focused regression tests and run the release validation.
+
+## Root Cause Evidence
+
+- Live read-only status for `/api/admin/today-status?date=2026-05-12` reported the May 12 issue as `published: true` with `articleCount: 2`, one section (`Canada`), no blockers, and warnings `missing_image` plus `low_article_count`.
+- Live read-only issue item lookup confirmed the production issue `1e1e7ebe-0928-4fc0-8f0f-7fc58bd0f96f` / Issue 12 / `2026-05-12` has exactly two stored article items:
+  - `Government of Canada supports 44 Canadian companies using AI to transform industries and create jobs`
+  - `Vendasta expands AI workforce product via European-scale rollout`
+- The live candidate inbox still had 13 active candidates and 5 top picks while the May 12 issue was already published. That means the publishing gate did not block a thin issue even though more candidate material was available.
+- The publish readiness model currently treats `low_article_count` as a warning, not a blocker. The manual publish API allows publishing with warnings when the current checks fingerprint is acknowledged.
+- Vercel production logs showed a successful `POST /api/publish-issue` shortly before the live checks, so the May 12 issue was published through the manual admin path rather than proven to be a cron publish.
+- Candidate status only stores `imported_at`; it does not store an issue id, issue date, or issue number. The admin can say "imported" without showing where the article actually landed.
+- Cross-checking imported candidate titles against live issue items showed several imported candidates are in the May 11 issue, not May 12. The `imported_at` timestamp alone is therefore not a reliable source of truth for the target issue/date.
+- The code uses `issueDateFor()` in `America/Winnipeg`. A timestamp such as `2026-05-12T02:44Z` is still May 11 in Winnipeg, so late-evening import work can legitimately land in the prior local issue. The admin needs to show that target issue context, not just "imported."
+- `/api/import-briefing-articles` writes to `captureArticleToTodaysDraft()` and returns per-article success/failure, but per-result payloads do not include the issue/date written. The client then separately patches candidate status to `imported`.
+- If today's issue is already published, `captureArticleToTodaysDraft()` throws, but the route still returns HTTP 200 with per-item errors. That protects data, but the UI message can still be too weak and the workflow does not direct the editor to the live issue append path.
+
+## Implementation Plan
+
+- [x] Add a shared minimum daily article threshold and short-issue override policy.
+- [x] Move `low_article_count` from warning to blocker for unpublished drafts below the minimum. Keep it as a warning for already-published issues so repair visibility remains.
+- [x] Require a deliberate short-issue override in manual publish: exact confirmation text plus current checks fingerprint. Do not allow the override to bypass any other blockers.
+- [x] Update Publish Checks UI so a short issue has a separate visible confirmation flow and cannot be published by the generic warning acknowledgement.
+- [x] Keep cron publish blocking on low article count and return a clear `low_article_count` skip reason.
+- [x] Add issue/date/number to successful import result payloads.
+- [x] Add issue/date context to imported candidate API responses by matching candidate canonical URLs against recent issue blocks.
+- [x] Update candidate inbox/triage UI to show imported issue context and only patch status after a successful import with issue context.
+- [x] Improve import API errors when today's issue is already published, pointing editors to the live issue append workflow.
+- [x] Add tests for low-count blocker/override policy, cron refusal, and imported candidate issue context.
+
+## Thin Publish Fix Review
+
+- Added `lib/publish-policy.ts` with the shared minimum count of 5 articles and the exact override phrase `PUBLISH SHORT ISSUE`.
+- Admin readiness now treats a low-count unpublished draft as a blocker, keeps low-count published issues visible as warnings, and shows active candidates after publish plus imported candidates that cannot be matched back to an issue.
+- Manual publish now fails closed on short issues unless the editor sends the current checks fingerprint and exact short-issue confirmation. The override cannot bypass other blockers.
+- Cron publish has no override path and returns a clear skipped response with reason `low_article_count`, current count, minimum count, blockers, and warnings.
+- Candidate import now refuses to import into an already-published target issue and points editors toward the live issue append workflow.
+- Successful import responses now include the issue id, issue number, issue date, and article count written. Candidate inbox and triage only mark a candidate `imported` after that successful write context exists.
+- Imported candidate API responses now expose inferred issue/date context by matching canonical URLs against recent published/draft issue items, which makes "imported where?" answerable without a database migration.
+- Added regression coverage for publish policy, admin readiness, cron publish refusal, manual short-issue blocking/override, published-issue import rejection, and imported-candidate issue matching.
+- Browser smoke screenshot saved at `tasks/screenshots/thin-publish-override-ui.png`.
+
+## Thin Publish Validation Results
+
+- `npm run test -- tests/lib/admin-readiness.test.ts tests/lib/publish-policy.test.ts tests/api/publishing-pipeline.test.ts` passed: 3 files, 15 tests.
+- `npm run test -- tests/api/publishing-pipeline.test.ts` passed: 1 file, 5 tests.
+- `npm run test -- tests/lib/admin-readiness.test.ts tests/lib/issue-summary.test.ts tests/lib/article-candidates.test.ts tests/lib/publish-policy.test.ts tests/api/publishing-pipeline.test.ts` passed: 5 files, 27 tests.
+- `npm test` passed: 19 files, 78 tests.
+- `npm run lint` passed.
+- `npm run build` passed after clearing a stale locked `.next` build artifact inside this workspace.
+- `npx tsc --noEmit` passed after the production build.
+- Local read-only smoke on `http://localhost:3042/admin` passed.
+- Local read-only API smoke on `http://localhost:3042/api/admin/today-status?date=2026-05-12` and `http://localhost:3042/api/article-candidates` passed against the local environment, which currently has no May 12 local draft/candidate data.
+- Live read-only smoke on `https://aitoday.vercel.app/issues/2026-05-12` returned 200. Live read-only admin status still shows the production May 12 issue as published with 2 articles, 13 active candidates, and warnings `missing_image,low_article_count`.
+- Local production `/issues/2026-05-12` returned 404 because the local build did not have that live issue in its generated static params; the live page check was used for that route.
+- No live data was mutated, no secrets were changed, and nothing was pushed or deployed.
+- Residual risk: imported issue/date context is inferred from canonical URL matches because preserving the Supabase schema was requested. If a source URL is missing or reused, a future schema field would be more authoritative.
+- Follow-up recommendation for the already-published May 12 issue: after this fix is deployed, use the admin Issue Desk append workflow to add the strongest remaining May 12 candidates to Issue 12, then verify the public page, RSS/feed, sitemap, and metadata. Do not republish or edit production data from tests.
+
 # Task: Cloud Google Alerts Candidate Import
 
 - [x] Confirm the current local Codex automation shape and existing repo cron/workflow options.
