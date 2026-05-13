@@ -30,6 +30,7 @@ export function Header() {
 
         <nav aria-label="Main navigation">
           <ul className="flex gap-4 sm:gap-6 list-none m-0 p-0">
+            <li><Link href="/positive-ai" className={navLinkClass}>AI Good News</Link></li>
             <li><Link href="/issues" className={navLinkClass}>Issues</Link></li>
             <li><Link href="/about" className={navLinkClass}>About</Link></li>
           </ul>

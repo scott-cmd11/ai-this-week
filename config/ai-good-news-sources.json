@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Google DeepMind Blog",
+    "type": "rss",
+    "url": "https://deepmind.google/blog/rss.xml",
+    "default_category": "Science",
+    "enabled": true
+  },
+  {
+    "name": "Microsoft Research",
+    "type": "rss",
+    "url": "https://www.microsoft.com/en-us/research/feed/",
+    "default_category": "Science",
+    "enabled": true
+  },
+  {
+    "name": "NSF Science Matters",
+    "type": "rss",
+    "url": "https://new.nsf.gov/rss/rss_www_news.xml",
+    "default_category": "Public Good",
+    "enabled": true
+  },
+  {
+    "name": "NOAA Research",
+    "type": "rss",
+    "url": "https://research.noaa.gov/feed/",
+    "default_category": "Climate",
+    "enabled": true
+  }
+]

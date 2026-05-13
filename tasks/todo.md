@@ -1,3 +1,147 @@
+# Task: Cloud Google Alerts Candidate Import
+
+- [x] Confirm the current local Codex automation shape and existing repo cron/workflow options.
+- [x] Add a cloud-safe Google Alerts fetch, filter, output, dry-run, and import script.
+- [x] Add a GitHub Actions schedule for the evening candidate import.
+- [x] Verify the new script and workflow wiring locally without mutating production data.
+- [x] Document remaining setup requirements, including required GitHub secrets and push status.
+
+## Plan
+
+Use GitHub Actions instead of another Vercel cron because the repo already has multiple Vercel cron entries and this job is an external RSS import rather than an app-internal route. Schedule the workflow at the two UTC offsets that can represent 7:15 PM in America/Winnipeg, then gate the job on the runner's Winnipeg local hour so daylight saving time does not create two imports.
+
+Keep the job read-mostly until the final candidate API POST. It should fetch RSS feeds from a GitHub secret, save a reviewable run artifact, dry-run the existing candidate importer, import only when candidates exist, and verify the candidate API is reachable.
+
+## Review
+
+- Added `scripts/google-alerts-candidate-import.mjs` as the cloud-friendly equivalent of the local Codex automation. It reads feed URLs from `GOOGLE_ALERTS_FEED_URLS` in CI, falls back to local `tmp/` artifacts outside CI, fetches Atom/RSS feeds, filters noise, writes timestamped review files, dry-runs the existing importer, and imports only when `--import` is passed.
+- Updated `scripts/import-candidates-from-automation-output.mjs` so cloud imports can authenticate with `ARTICLE_CANDIDATE_INGEST_TOKEN`, `CRON_SECRET`, or `ADMIN_PASSWORD`.
+- Added `.github/workflows/evening-google-alerts-candidates.yml`, scheduled at `15 0 * * *` and `15 1 * * *` UTC with an America/Winnipeg hour gate so the cloud run tracks 7:15 PM across daylight and standard time.
+- Added `npm run import:google-alerts` for local dry-runs.
+- Verification passed: script syntax checks, `npm run lint`, a safe local Google Alerts dry-run with 13 feeds / 254 raw entries / 8 curated candidates at test limit, `npm run test -- tests/lib/article-candidates.test.ts`, `npm run build`, and `git diff --check` for the touched paths with line-ending warnings only.
+- GitHub Actions secrets configured for `scott-cmd11/ai-this-week`: `GOOGLE_ALERTS_FEED_URLS` and `ADMIN_PASSWORD`. The local `CRON_SECRET` value was effectively empty, so the workflow uses the supported admin-password auth path.
+- Remaining setup: the workflow file will not actually run in GitHub cloud until these repo changes are pushed.
+
+# Task: AI Good News High-End Meadow Design Pass
+
+- [x] Read project instructions, README, positive AI route files, shared header, current global styles, relevant Next.js App Router/public asset docs, and the frontend-design skill.
+- [x] Copy the generated optimistic Meadow image into `public/images/ai-good-news/` as a project asset.
+- [x] Make Meadow the default positive AI visual direction without a palette query string.
+- [x] Integrate the image into `/positive-ai` as a polished responsive editorial masthead.
+- [x] Keep archive, about, and story detail pages visually consistent with the positive section.
+- [x] Validate lint, build, TypeScript, tests, smoke checks, old seed exclusion, and desktop/mobile screenshots.
+- [x] Review the diff for unrelated changes and document results.
+
+## AI Good News Meadow Design Notes
+
+Use a warm paper, fresh green, and restrained golden palette. The page should feel like a credible daily newspaper for useful AI progress: optimistic, human, source-linked, and easy to scan. Preserve the current last-24-hours-only article rule, ingestion/data model, admin flow, and sitemap behaviour.
+
+## AI Good News Meadow Design Review
+
+- Copied the generated optimistic image into `public/images/ai-good-news/meadow-human-progress.png`.
+- Set the positive AI layout to `good-news-theme-meadow` and removed the homepage palette query handling so `/positive-ai` opens in Meadow by default.
+- Reworked the `/positive-ai` hero into an editorial masthead with the image as a responsive art-directed background, a warm green overlay, source-linked positioning, and a compact story-file strip.
+- Tuned the scoped Meadow tokens, category chips, archive rows, story tags, and related-story hover states so archive, about, and story detail pages stay consistent with the positive section.
+- Preserved the current story recency, data model, ingestion, admin, and sitemap behaviour.
+
+## AI Good News Meadow Validation Results
+
+- `npm run lint` passed.
+- `npm run test -- tests/lib/good-news-scoring.test.ts tests/lib/good-news-dedupe.test.ts tests/lib/good-news-digest.test.ts` passed: 3 files, 5 tests.
+- `npm test` passed: 17 files, 68 tests.
+- `npx tsc --noEmit` passed.
+- `npm run build` passed and included the positive AI public/admin/API routes.
+- Local smoke checks passed for `/positive-ai`, `/positive-ai/archive`, `/positive-ai/about`, `/positive-ai/stories/seed-mattersim-materials-ai`, and `/positive-ai/stories/seed-alphafold-3-server` returning `404`.
+- Confirmed `/positive-ai` and `/positive-ai/archive` show MatterSim and do not show AlphaFold; `/sitemap.xml` also does not surface AlphaFold.
+- Clean production-build screenshots saved at `tasks/screenshots/ai-good-news-meadow-desktop.png` and `tasks/screenshots/ai-good-news-meadow-mobile.png`.
+- `git diff --check` passed with line-ending warnings only.
+
+# Task: AI Good News MVP
+
+- [x] Inspect the existing AI Today repo, positive AI route, admin auth pattern, source ingestion paths, and Supabase-oriented storage conventions.
+- [x] Add the AI Good News data model, seed data, scoring, dedupe, summarizer, digest, store, and ingestion modules.
+- [x] Build the public AI Good News homepage, story detail page, archive page, and about page.
+- [x] Build the password-protected MVP admin review page with pending review, approve/reject/edit, manual URL add, ingestion trigger, and digest trigger.
+- [x] Add API routes, a Vercel cron hook, editable source config, Supabase schema, ingestion script, README instructions, and focused tests.
+- [x] Validate with scoring/dedupe/digest tests, full tests, lint, build, local smoke checks, and visual QA captures.
+
+## AI Good News MVP Plan
+
+Fold the stronger `AI Good News` concept into the existing `/positive-ai` branch of AI Today. Keep the rest of the site and daily issue workflow intact. The MVP should have its own story model, seed stories, source config, scoring rules, daily digest generation, archive/detail pages, and a lightweight admin desk protected by `AI_GOOD_NEWS_ADMIN_PASSWORD` or the existing `ADMIN_PASSWORD`.
+
+Use Supabase REST persistence when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are configured and the new tables exist. Fall back to seeded in-memory data for local MVP review so the public pages work without live credentials. Do not push, deploy, mutate production data, or touch the pre-existing issue-summary work.
+
+## AI Good News MVP Review
+
+- Added a dedicated AI Good News story model, seed data set, scoring rules, deduplication, digest ranking, mock summarizer interface, RSS ingestion module, and Supabase/in-memory store.
+- Rebuilt `/positive-ai` as the AI Good News homepage, with category filters, today's digest, source-linked story rows, credibility signals, and a calm positive-only reader tone.
+- Added `/positive-ai/stories/[id]`, `/positive-ai/archive`, and `/positive-ai/about`.
+- Added `/positive-ai/admin` with password-protected pending/published review, publish/approve/reject actions, summary edit, manual URL add, ingestion trigger, and digest generation trigger.
+- Added admin APIs, cron route, editable RSS source config, Supabase schema, dry-run ingestion script, sitemap entries, README setup notes, and tests for scoring, dedupe, and digest generation.
+- Saved visual QA captures at `tasks/screenshots/ai-good-news-desktop.png` and `tasks/screenshots/ai-good-news-mobile.png`.
+- Follow-up correction: the public AI Good News surfaces now enforce a 24-hour current-news window. Older seed examples no longer appear on the homepage, archive, story detail pages, digest, or sitemap. The local fallback now includes one source-linked May 12, 2026 Microsoft Research story so the page shows a genuinely current item.
+- Follow-up colour exploration: positive pages now have a scoped warmer colour system. `/positive-ai` defaults to `sunrise`, with homepage preview URLs for `?palette=meadow` and `?palette=sky` so the colour direction can be compared without changing the rest of AI Today.
+
+## AI Good News MVP Validation Results
+
+- `npm run test -- tests/lib/good-news-scoring.test.ts tests/lib/good-news-dedupe.test.ts tests/lib/good-news-digest.test.ts` passed: 3 files, 5 tests.
+- `npm test` passed: 17 files, 68 tests.
+- `npm run lint` passed after cleanup.
+- `npm run build` passed and included `/positive-ai`, `/positive-ai/archive`, `/positive-ai/about`, `/positive-ai/admin`, `/positive-ai/stories/[id]`, and the positive AI API/cron routes.
+- `npx tsc --noEmit` passed.
+- `node scripts/ingest-ai-good-news.mjs --dry-run` checked 4 sources, found 34 candidates, and reported one source-level RSS block from NOAA Research with HTTP 403.
+- Local smoke checks passed for `http://localhost:3036/positive-ai`, `/positive-ai/archive`, `/positive-ai/about`, `/positive-ai/stories/seed-alphafold-3-server`, `/positive-ai/admin`, and `/sitemap.xml`.
+- Admin API without a password returned `401`.
+- Reader-facing positive AI content was scanned for excluded negative phrases after the final copy pass; no matches were found in `app/positive-ai` or the seed story data.
+- Follow-up validation after the current-news correction:
+  - `npm run test -- tests/lib/good-news-digest.test.ts tests/lib/good-news-scoring.test.ts tests/lib/good-news-dedupe.test.ts` passed.
+  - `npm test` passed: 17 files, 68 tests.
+  - `npm run lint`, `npm run build`, and `npx tsc --noEmit` passed.
+  - `node scripts/ingest-ai-good-news.mjs --dry-run` now reports 1 candidate inside the 24-hour window and still reports NOAA Research HTTP 403 as a source-level warning.
+  - Local smoke checks confirm `/positive-ai`, `/positive-ai/archive`, `/positive-ai/stories/seed-mattersim-materials-ai`, and `/sitemap.xml` include MatterSim, while `/positive-ai/stories/seed-alphafold-3-server` returns `404`.
+  - Updated visual capture saved at `tasks/screenshots/ai-good-news-current-only-desktop.png`.
+- Colour preview validation:
+  - `npm run lint`, `npm run build`, and `npx tsc --noEmit` passed after adding the scoped palette styles.
+  - Local palette captures saved at `tasks/screenshots/ai-good-news-palette-sunrise.png`, `tasks/screenshots/ai-good-news-palette-meadow.png`, and `tasks/screenshots/ai-good-news-palette-sky.png`.
+
+# Task: Positive AI Stories Section
+
+- [x] Read `AGENTS.md`, `README.md`, `package.json`, `docs/visual-system.md`, public route files, issue-store parsing, and existing task lessons.
+- [x] Confirm existing dirty files and avoid unrelated edits.
+- [x] Add a documented positive-only story filter with explicit allowed and excluded editorial signals.
+- [x] Add a public positive AI stories route that uses the existing AI Today visual system.
+- [x] Make the new section clearly discoverable from the main website.
+- [x] Add focused tests for positive inclusion, negative exclusion, and issue-story parsing.
+- [x] Validate with lint, tests, build, and local route smoke checks.
+
+## Positive Stories Plan
+
+Build a new reader-facing route for constructive AI stories using the existing published issue store. The route should only show stories that pass a strict positive-benefit filter, and it should skip anything with job-loss, fear, safety-failure, lawsuit, surveillance, misinformation, military, displacement, or other negative framing signals. Keep the route calm, source-linked, and editorial rather than hype-driven.
+
+## Positive Stories Non-Goals
+
+- No production deploy, git push, Vercel change, secret change, or live data mutation.
+- No broad redesign of AI Today.
+- No changes to the existing issue summary work in `lib/issue-summary.ts` or its test, which were already dirty at task start.
+
+## Positive Stories Review
+
+- Added `lib/positive-stories.ts` with one strict editorial gate for constructive AI coverage. The filter requires at least one positive theme and blocks job-loss, risk, scam, lawsuit, bias, misinformation, surveillance, military, safety-failure, and fear-framed stories.
+- Added `/positive-ai` as a new public route using the existing AI Today ruled editorial layout, source-linked story rows, theme labels, and a constructive empty state for environments without issue data.
+- Added the Positive AI link to the main header and included `/positive-ai` in the sitemap.
+- Added `tests/lib/positive-stories.test.ts` for positive inclusion, excluded framing, and parsing published issue blocks.
+- Saved desktop and mobile visual QA captures in `tasks/screenshots/positive-ai-desktop.png` and `tasks/screenshots/positive-ai-mobile.png`.
+
+## Positive Stories Validation Results
+
+- `npm run test -- tests/lib/positive-stories.test.ts` passed.
+- `npm run lint` passed.
+- `npm test` passed: 14 test files, 63 tests.
+- `npm run build` passed and included `/positive-ai` as a static route with 5 minute revalidation.
+- `npx tsc --noEmit` passed.
+- Local smoke checks passed for `http://localhost:3036/positive-ai`, `/`, and `/sitemap.xml`.
+- Playwright visual checks passed at desktop `1440x1100` and mobile `390x844`. The dev-only Next toolbar was removed from the saved screenshots.
+
 # Task: Expert Site and Publishing Flow Audit
 
 ## Audit Status

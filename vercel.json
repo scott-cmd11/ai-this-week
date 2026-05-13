@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/daily-publish",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/positive-ai-digest",
+      "schedule": "30 22 * * *"
     }
   ]
 }

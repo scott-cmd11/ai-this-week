@@ -34,3 +34,49 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## AI Good News MVP
+
+`/positive-ai` is a self-contained AI Good News MVP inside the AI Today app. It publishes positive, evidence-based AI stories with source links, dates, categories, summaries, why-it-matters notes, credibility scores, positivity scores, and evidence checks. Public reader surfaces only show stories published in the last 24 hours; historical seed examples must stay out of the daily view.
+
+### Local development
+
+```bash
+npm install
+npm run dev -- --port 3036
+```
+
+Open `http://localhost:3036/positive-ai`.
+
+### Environment variables
+
+- `AI_GOOD_NEWS_ADMIN_PASSWORD` - password for `/positive-ai/admin`. Falls back to `ADMIN_PASSWORD` if unset.
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` - optional for local review, required for deployed persistence.
+- `CRON_SECRET` - protects `/api/cron/positive-ai-digest`.
+
+Without Supabase, the MVP uses seeded in-memory data so public pages can be reviewed locally. The public seed includes a current source-linked story and keeps older examples out of current reader surfaces.
+
+### Database setup
+
+Apply `docs/supabase/ai_good_news.sql` in Supabase to create:
+
+- `public.ai_good_news_stories`
+- `public.ai_good_news_digests`
+
+The server writes with the service role. Public reads are limited to published AI Good News stories and digest rows.
+
+### Sources and ingestion
+
+Editable RSS sources live in `config/ai-good-news-sources.json`. Prefer RSS feeds, public APIs, and openly available metadata. Do not add aggressive scraping targets.
+
+Run a safe dry-run:
+
+```bash
+node scripts/ingest-ai-good-news.mjs --dry-run
+```
+
+The admin page can also trigger ingestion and daily digest generation manually. Ingestion and digest generation filter to the last 24 hours.
+
+### Editorial rules
+
+AI Good News highlights positive, verifiable AI stories. It avoids hype, stock-market news, unsupported claims, pure product marketing, fear-led coverage, duplicate syndicated articles, and generic funding announcements without a public-good angle. Use cautious wording such as "may help," "is being used to," "early results suggest," and "researchers report" unless the source proves a stronger claim.

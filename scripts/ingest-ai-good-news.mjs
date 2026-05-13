@@ -1,0 +1,114 @@
+import fs from 'node:fs/promises'
+import path from 'node:path'
+
+const root = process.cwd()
+const configPath = path.join(root, 'config', 'ai-good-news-sources.json')
+const outDir = path.join(root, 'tmp', 'ai-good-news-ingest')
+
+const args = new Set(process.argv.slice(2))
+const dryRun = args.has('--dry-run') || !process.env.AI_GOOD_NEWS_INGEST_URL
+const currentWindowHours = 24
+
+const config = JSON.parse(await fs.readFile(configPath, 'utf8'))
+const sources = config.filter(source => source.enabled)
+const candidates = []
+const errors = []
+
+for (const source of sources) {
+  try {
+    const res = await fetch(source.url, {
+      headers: {
+        'User-Agent': 'AI Good News MVP RSS reader (respectful RSS fetch)',
+        Accept: 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.1',
+      },
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const xml = await res.text()
+    for (const item of parseItems(xml).slice(0, 12)) {
+      if (hoursSincePublished(item.publishedAt) > currentWindowHours) continue
+      candidates.push({
+        title: item.title,
+        url: item.link,
+        source: source.name,
+        publishedAt: item.publishedAt,
+        summary: item.description,
+        category: source.default_category,
+      })
+    }
+  } catch (err) {
+    errors.push(`${source.name}: ${err instanceof Error ? err.message : String(err)}`)
+  }
+}
+
+await fs.mkdir(outDir, { recursive: true })
+const outputPath = path.join(outDir, `${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
+await fs.writeFile(outputPath, JSON.stringify({ generatedAt: new Date().toISOString(), candidates, errors }, null, 2))
+
+if (!dryRun) {
+  const res = await fetch(process.env.AI_GOOD_NEWS_INGEST_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-password': process.env.AI_GOOD_NEWS_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || '',
+    },
+    body: JSON.stringify({}),
+  })
+  if (!res.ok) {
+    throw new Error(`Ingest API failed: ${res.status} ${await res.text()}`)
+  }
+}
+
+console.log(JSON.stringify({
+  checkedSources: sources.length,
+  candidates: candidates.length,
+  currentWindowHours,
+  errors,
+  outputPath,
+  dryRun,
+}, null, 2))
+
+function parseItems(xml) {
+  const matches = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)]
+  return matches.map(match => {
+    const raw = match[0]
+    return {
+      title: decodeXml(readTag(raw, 'title')),
+      link: decodeXml(readTag(raw, 'link')),
+      publishedAt: normalizeDate(readTag(raw, 'pubDate')),
+      description: stripHtml(decodeXml(readTag(raw, 'description'))),
+    }
+  }).filter(item => item.title && item.link)
+}
+
+function readTag(xml, tagName) {
+  const match = xml.match(new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'i'))
+  return match?.[1]?.replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, '').trim() || ''
+}
+
+function normalizeDate(value) {
+  if (!value) return null
+  const parsed = new Date(decodeXml(value))
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
+}
+
+function hoursSincePublished(value) {
+  if (!value) return Number.POSITIVE_INFINITY
+  const published = new Date(value)
+  if (Number.isNaN(published.getTime())) return Number.POSITIVE_INFINITY
+  return Math.max(0, (Date.now() - published.getTime()) / 3_600_000)
+}
+
+function decodeXml(value) {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .trim()
+}
+
+function stripHtml(value) {
+  return value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
