@@ -110,7 +110,7 @@ export default async function PositiveAiPage({ searchParams }: Props) {
             </ol>
           ) : (
             <p className="text-[15px] leading-[1.55] text-ws-muted">
-              No source-linked AI Good News stories from the last 24 hours are ready yet.
+              No high-confidence positive AI stories from the last 24 hours are ready yet.
             </p>
           )}
         </div>
@@ -120,9 +120,9 @@ export default async function PositiveAiPage({ searchParams }: Props) {
 
       {visibleStories.length === 0 ? (
         <div className="border-y border-ws-border py-6">
-          <p className="type-card-title">No AI Good News stories from the last 24 hours match this filter yet.</p>
+          <p className="type-card-title">No high-confidence positive AI stories from the last 24 hours match this filter yet.</p>
           <p className="type-body mt-2 max-w-2xl">
-            Try another category or run ingestion from the review desk. Older seed examples are kept out of this daily view.
+            The desk is holding the line: fewer stories are better than weak, mixed, or fear-framed AI coverage.
           </p>
         </div>
       ) : (

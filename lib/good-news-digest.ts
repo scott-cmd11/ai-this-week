@@ -1,11 +1,15 @@
 import type { GoodNewsDigest, GoodNewsStory } from './good-news-types'
 import { dedupeGoodNewsStories } from './good-news-dedupe'
-import { storyQualityScore } from './good-news-scoring'
+import { isHighRelevanceGoodNewsStory, storyQualityScore } from './good-news-scoring'
 import { goodNewsDateId, isGoodNewsStoryCurrent } from './good-news-recency'
 
 export function generateDailyDigest(stories: GoodNewsStory[], now = new Date()): GoodNewsDigest {
   const date = goodNewsDateId(now)
-  const currentStories = stories.filter(story => story.status === 'published' && isGoodNewsStoryCurrent(story, now))
+  const currentStories = stories.filter(story =>
+    story.status === 'published'
+    && isGoodNewsStoryCurrent(story, now)
+    && isHighRelevanceGoodNewsStory(story)
+  )
   const topStories = rankDigestStories(currentStories, now).slice(0, 10)
   const categories = Array.from(new Set(topStories.map(story => story.category)))
 

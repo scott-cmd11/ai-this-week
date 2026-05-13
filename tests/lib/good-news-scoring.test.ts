@@ -60,4 +60,65 @@ describe('AI Good News scoring', () => {
     expect(score.accepted).toBe(false)
     expect(score.rejection_reasons.join(' ')).toMatch(/No clear AI relevance signal/)
   })
+
+  it('rejects mixed or negative AI-risk framing even when a source mentions research', () => {
+    const score = scoreGoodNewsCandidate({
+      title: 'Is your AI chatbot manipulating you?',
+      source_name: 'Tech Xplore AI',
+      source_url: 'https://techxplore.com/example',
+      summary: 'Researchers warn that AI systems may manipulate users and reshape their opinions.',
+      content_text: 'The article focuses on manipulation, user risk, and concern about AI systems.',
+      published_at: '2026-05-13T12:00:00.000Z',
+      category: 'Safety',
+    })
+
+    expect(score.accepted).toBe(false)
+    expect(score.rejection_reasons.join(' ')).toMatch(/misinformation or manipulation framing/)
+  })
+
+  it('rejects regulation and compliance how-to stories as weak good news', () => {
+    const score = scoreGoodNewsCandidate({
+      title: 'Navigating EU AI Act requirements for LLM fine-tuning',
+      source_name: 'AWS Machine Learning Blog',
+      source_url: 'https://aws.amazon.com/blogs/machine-learning/example',
+      summary: 'The post shows how to track FLOPs and generate audit-ready documentation for compliance status.',
+      content_text: 'This is a vendor how-to about EU AI Act compliance, fine-tuning, and audit-ready documentation.',
+      published_at: '2026-05-13T12:00:00.000Z',
+      category: 'Work',
+    })
+
+    expect(score.accepted).toBe(false)
+    expect(score.rejection_reasons.join(' ')).toMatch(/regulation or compliance fight/)
+  })
+
+  it('rejects generic AI research without a clear human-benefit outcome', () => {
+    const score = scoreGoodNewsCandidate({
+      title: 'AI agents can do amazing things while knowing nothing',
+      source_name: 'Tech Xplore AI',
+      source_url: 'https://techxplore.com/example-agents',
+      summary: 'A research paper explores AI agent behavior in laboratory tasks.',
+      content_text: 'Researchers study AI agents and describe their behavior in benchmark tasks.',
+      published_at: '2026-05-13T12:00:00.000Z',
+      category: 'Science',
+    })
+
+    expect(score.accepted).toBe(false)
+    expect(score.rejection_reasons.join(' ')).toMatch(/No clear positive good-news impact signal/)
+  })
+
+  it('accepts public-good AI with concrete safety benefit and evidence', () => {
+    const score = scoreGoodNewsCandidate({
+      title: 'AI model helps city engineers detect bridge cracks earlier',
+      source_name: 'University engineering lab',
+      source_url: 'https://example.edu/ai-bridge-cracks',
+      summary: 'A university pilot used computer vision to detect infrastructure cracks earlier and support safer bridge inspections.',
+      content_text: 'The study reports measured detection results from a named university lab and a city public works pilot.',
+      published_at: '2026-05-13T12:00:00.000Z',
+      category: 'Public Good',
+    })
+
+    expect(score.accepted).toBe(true)
+    expect(score.category).toBe('Public Good')
+    expect(score.evidence_notes).toMatch(/Positive impact signals/)
+  })
 })

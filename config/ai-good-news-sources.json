@@ -25,7 +25,7 @@
     "type": "rss",
     "url": "https://research.noaa.gov/feed/",
     "default_category": "Climate",
-    "enabled": true
+    "enabled": false
   },
   {
     "name": "MIT News AI",
@@ -39,7 +39,7 @@
     "type": "rss",
     "url": "https://techxplore.com/rss-feed/machine-learning-ai-news/",
     "default_category": "Science",
-    "enabled": true
+    "enabled": false
   },
   {
     "name": "ScienceDaily AI",
@@ -67,7 +67,7 @@
     "type": "rss",
     "url": "https://aws.amazon.com/blogs/machine-learning/feed/",
     "default_category": "Work",
-    "enabled": true
+    "enabled": false
   },
   {
     "name": "STAT AI in Health and Medicine",

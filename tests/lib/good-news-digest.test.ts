@@ -6,9 +6,9 @@ function story(overrides: Partial<GoodNewsStory>): GoodNewsStory {
   return {
     id: overrides.id ?? 'story',
     title: overrides.title ?? 'AI helps a public-service team improve access',
-    source_name: overrides.source_name ?? 'Public source',
-    source_url: overrides.source_url ?? `https://example.com/${overrides.id ?? 'story'}`,
-    canonical_url: overrides.canonical_url ?? `https://example.com/${overrides.id ?? 'story'}`,
+    source_name: overrides.source_name ?? 'U.S. National Science Foundation',
+    source_url: overrides.source_url ?? `https://nsf.gov/${overrides.id ?? 'story'}`,
+    canonical_url: overrides.canonical_url ?? `https://nsf.gov/${overrides.id ?? 'story'}`,
     published_at: overrides.published_at ?? '2026-05-12T10:00:00.000Z',
     discovered_at: overrides.discovered_at ?? '2026-05-12T11:00:00.000Z',
     summary: overrides.summary ?? 'A named organization used AI in a measured, beneficial workflow.',
@@ -25,11 +25,19 @@ function story(overrides: Partial<GoodNewsStory>): GoodNewsStory {
 describe('AI Good News digest generation', () => {
   it('selects recent published stories and avoids duplicate syndicated items', () => {
     const digest = generateDailyDigest([
-      story({ id: 'health', title: 'AI helps clinical teams review scans', category: 'Health', credibility_score: 90, positivity_score: 86 }),
+      story({
+        id: 'health',
+        title: 'AI helps clinical teams review scans',
+        summary: 'A clinical pilot used AI to support patient screening and improve diagnosis review.',
+        category: 'Health',
+        credibility_score: 90,
+        positivity_score: 86,
+      }),
       story({ id: 'climate', title: 'AI model improves regional weather forecasts', category: 'Climate', credibility_score: 88, positivity_score: 83 }),
       story({ id: 'climate-copy', title: 'Regional weather forecasts improve with AI model', category: 'Climate', canonical_url: 'https://mirror.example/weather', source_url: 'https://mirror.example/weather' }),
       story({ id: 'education', title: 'AI tutor supports teachers with practice feedback', category: 'Education', credibility_score: 80, positivity_score: 81 }),
       story({ id: 'accessibility', title: 'AI accessibility tool helps people find objects', category: 'Accessibility', credibility_score: 86, positivity_score: 88 }),
+      story({ id: 'compliance', title: 'Navigating EU AI Act requirements for LLM fine-tuning', summary: 'A vendor how-to describes compliance status and audit-ready documentation.', credibility_score: 95, positivity_score: 95 }),
       story({ id: 'old-evergreen', title: 'AI research fixture from an earlier year', published_at: '2024-05-12T10:00:00.000Z', credibility_score: 99, positivity_score: 99 }),
       story({ id: 'rejected', title: 'AI tool enters review', status: 'pending' }),
     ], new Date('2026-05-12T18:00:00.000Z'))
@@ -37,7 +45,8 @@ describe('AI Good News digest generation', () => {
     expect(digest.id).toBe('digest-2026-05-12')
     expect(digest.story_ids).toContain('health')
     expect(digest.story_ids).not.toContain('rejected')
-    expect(digest.story_ids).not.toContain('climate-copy')
+    expect(digest.story_ids.filter(id => id === 'climate' || id === 'climate-copy')).toHaveLength(1)
+    expect(digest.story_ids).not.toContain('compliance')
     expect(digest.story_ids).not.toContain('old-evergreen')
     expect(digest.story_ids.length).toBeGreaterThanOrEqual(4)
     expect(digest.headline).toMatch(/AI Good News/)
