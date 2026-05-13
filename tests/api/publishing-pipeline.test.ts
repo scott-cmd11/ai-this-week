@@ -85,6 +85,45 @@ function lowCountEveningBriefing() {
   })
 }
 
+function readyEveningBriefing() {
+  return buildEveningBriefingSummary({
+    issueDate: '2026-05-12',
+    automation: { lastRunAt: '2026-05-13T00:30:00.000Z', sourceCount: 2, failureCount: 0 },
+    candidates: {
+      totalActive: 40,
+      topPicks: 12,
+      held: 0,
+      rejected: 4,
+      imported: 8,
+      importedWithoutIssueContext: 0,
+      totalVisible: 52,
+      latestCandidateAt: '2026-05-13T00:30:00.000Z',
+      sourceBreakdown: [
+        { name: 'Google Alerts Current RSS', count: 24, newestAt: '2026-05-13T00:30:00.000Z' },
+        { name: 'Daily AI Briefing', count: 16, newestAt: '2026-05-12T23:20:00.000Z' },
+      ],
+    },
+    draft: {
+      exists: true,
+      published: false,
+      issueId: 'issue-12',
+      issueNumber: 12,
+      issueDate: '2026-05-12',
+      articleCount: 8,
+      sections: ['Canada', 'Research', 'Policy'],
+      missingSummaryCount: 0,
+      missingTitleCount: 0,
+      exactDuplicateUrlCount: 0,
+      similarTopicCount: 0,
+      staleSourceCount: 0,
+      weakTitleCount: 0,
+      missingImageCount: 0,
+      brokenRequiredUrlCount: 0,
+      publishReadinessFailed: false,
+    },
+  })
+}
+
 describe('publishing pipeline guardrails', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -151,6 +190,73 @@ describe('publishing pipeline guardrails', () => {
       reason: 'low_article_count',
       articleCount: 2,
       minimumArticleCount: 5,
+    })
+    expect(issueStore.publishIssue).not.toHaveBeenCalled()
+  })
+
+  it('cron publish dry-run reports readiness without publishing', async () => {
+    vi.mocked(issueStore.getIssueByDate).mockResolvedValue({
+      id: 'issue-12',
+      title: 'AI Today - May 12, 2026',
+      issueDate: '2026-05-12',
+      issueNumber: 12,
+      published: false,
+      summary: '',
+      aiAssisted: true,
+      slug: '2026-05-12',
+    })
+    vi.mocked(issueStore.getIssueBlocks).mockResolvedValue([])
+    vi.mocked(readiness.getAdminRunSummaries).mockResolvedValue({
+      candidates: { totalActive: 40, topPicks: 12, held: 0, rejected: 4, imported: 8, importedWithoutIssueContext: 0 },
+      automation: { lastRunAt: '2026-05-13T00:30:00.000Z', sourceCount: 2, failureCount: 0 },
+      candidateError: null,
+    })
+    vi.mocked(readiness.buildIssueReadiness).mockResolvedValue({
+      articles: [],
+      draftSummary: {
+        exists: true,
+        published: false,
+        issueId: 'issue-12',
+        issueNumber: 12,
+        issueDate: '2026-05-12',
+        articleCount: 8,
+        sections: ['Canada', 'Research', 'Policy'],
+        missingSummaryCount: 0,
+        missingTitleCount: 0,
+        exactDuplicateUrlCount: 0,
+        similarTopicCount: 0,
+        staleSourceCount: 0,
+        weakTitleCount: 0,
+        missingImageCount: 0,
+        brokenRequiredUrlCount: 0,
+        publishReadinessFailed: false,
+      },
+      readiness: {
+        issueDate: '2026-05-12',
+        draftState: 'ready_to_check',
+        blockers: [],
+        warnings: [],
+        nextBestAction: 'Draft has 8 articles and no blockers.',
+        primaryAction: { label: 'Publish issue', step: 'publish' },
+      },
+      eveningBriefing: readyEveningBriefing(),
+    })
+
+    const response = await cronRoute.POST(jsonRequest('https://example.test/api/cron/daily-publish', {
+      adminPassword: 'test-admin',
+      dryRun: true,
+      date: '2026-05-12',
+    }) as never)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject({
+      dryRun: true,
+      publishable: true,
+      reason: 'ready',
+      issueId: 'issue-12',
+      issueDate: '2026-05-12',
+      articleCount: 8,
     })
     expect(issueStore.publishIssue).not.toHaveBeenCalled()
   })

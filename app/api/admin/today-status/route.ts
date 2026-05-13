@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { buildIssueReadiness, getAdminRunSummaries } from '@/lib/admin-issue-readiness'
 import { issueDateFor } from '@/lib/issue-date'
 import { getIssueByDate, getIssueBlocks } from '@/lib/issue-store'
+import { buildPublishingPreflight } from '@/lib/publishing-preflight'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +31,14 @@ export async function GET(request: NextRequest) {
     candidates,
     automation,
   })
+  const preflight = buildPublishingPreflight({
+    issueDate: today,
+    automation,
+    candidates,
+    draft: draftSummary,
+    readiness,
+    eveningBriefing,
+  })
 
   return NextResponse.json({
     issueDate: today,
@@ -39,5 +48,6 @@ export async function GET(request: NextRequest) {
     draft: draftSummary,
     readiness,
     eveningBriefing,
+    preflight,
   })
 }

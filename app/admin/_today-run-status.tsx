@@ -1,6 +1,7 @@
 'use client'
 
 import type { AdminEveningBriefingSummary, AdminReadiness, AdminSourceBreakdownItem } from '@/lib/admin-readiness'
+import type { PublishingPreflightSummary } from '@/lib/publishing-preflight'
 
 export interface TodayStatusPayload {
   issueDate: string
@@ -38,6 +39,7 @@ export interface TodayStatusPayload {
   }
   readiness: AdminReadiness
   eveningBriefing: AdminEveningBriefingSummary
+  preflight?: PublishingPreflightSummary
 }
 
 export function TodayRunStatus({
@@ -65,6 +67,11 @@ export function TodayRunStatus({
           <p className="admin-copy mt-3 max-w-2xl">
             {status.eveningBriefing.headline}. {status.eveningBriefing.nextAction}
           </p>
+          {status.preflight && status.preflight.state !== 'ready' && (
+            <p className="mt-3 border border-ws-accent/30 bg-ws-accent-light/35 px-3 py-2 text-[13px] font-bold text-ws-black/75">
+              {status.preflight.headline}: {status.preflight.nextAction}
+            </p>
+          )}
           {status.candidateError && (
             <p className="mt-3 border border-red-300 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-700">
               Candidate inbox needs attention: {status.candidateError}
@@ -82,6 +89,14 @@ export function TodayRunStatus({
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {status.preflight && (
+          <StatusCard
+            label="Preflight"
+            value={preflightStateLabel(status.preflight.state)}
+            detail={status.preflight.nextAction}
+            accent={status.preflight.state !== 'ready'}
+          />
+        )}
         <StatusCard
           label="8 PM briefing"
           value={briefingStateLabel(status.eveningBriefing.state)}
@@ -124,6 +139,13 @@ function briefingStateLabel(state: AdminEveningBriefingSummary['state']): string
   if (state === 'published') return 'Live'
   if (state === 'published_needs_repair') return 'Repair'
   return 'Check sources'
+}
+
+function preflightStateLabel(state: PublishingPreflightSummary['state']): string {
+  if (state === 'ready') return 'Ready'
+  if (state === 'repair') return 'Repair'
+  if (state === 'blocked') return 'Blocked'
+  return 'Hold'
 }
 
 function StatusCard({

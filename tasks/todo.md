@@ -32,6 +32,83 @@
 - `npm install` and `npm run build` passed in clean validation worktree `C:\Users\scott\AppData\Local\Temp\ai-this-week-positive-gate-d1b18a1` at commit `d1b18a1`.
 - Local production smoke on `http://localhost:3046` passed for `/positive-ai`, `/positive-ai/archive`, `/positive-ai/about`, and `/positive-ai/stories/seed-mattersim-materials-ai`; `/positive-ai/stories/seed-alphafold-3-server` correctly returned `404`.
 - Story-surface content check passed: the homepage, archive, and story detail showed 1 qualifying story and did not surface the rejected live examples, old AlphaFold seed story, or blocked themes.
+
+# Task: Publishing Prevention Guardrails
+
+- [x] Audit how recent publishing failures became possible before code changes.
+- [x] Confirm whether the evening Google Alerts workflow is active on the default GitHub branch.
+- [x] Add a durable daily publishing preflight model for source jobs, candidate freshness, volume, draft state, and next editor action.
+- [x] Add a read-only operator check for default-branch workflow drift and publishing health.
+- [x] Keep admin-facing prevention language visible without making the daily flow more technical.
+- [x] Add regression tests for stale/low-volume readiness, source-health summary, publish blocking, and post-publish repair guidance.
+- [x] Add the 8 PM Winnipeg operator runbook and deploy verification checklist.
+- [x] Run validation and document results, live-data actions avoided, residual risks, and the next evening handoff.
+
+## Prevention Audit
+
+- The evening Google Alerts candidate workflow exists locally on this branch as `.github/workflows/evening-google-alerts-candidates.yml`, but read-only GitHub/default-branch checks showed `origin/main` only has `.github/workflows/daily-briefing.yml`.
+- `gh workflow list --repo scott-cmd11/ai-this-week --all` showed only `Daily AI Briefing` as active. The evening Google Alerts workflow is therefore branch-side/local code, not an active scheduled workflow on the default branch.
+- Scheduled GitHub Actions only run from the repository default branch. A direct Vercel deployment from a feature branch can make app code live, but it does not activate a missing GitHub scheduled workflow on `main`.
+- Candidate volume became stale/too small because the admin inferred source health from candidate rows after the fact. The desk could show candidates, but it did not clearly gate publishing on "did tonight's source run actually happen in America/Winnipeg time?"
+- May 12 stayed live with 2 articles while active candidates remained available because the published issue needed a post-publish repair path and a stronger operator signal. The current guardrail blocks future thin publishes, but the live repair state still needs to stay impossible to miss.
+- Source health was inferred late from candidate counts instead of treated as a preflight operating gate. A normal editor should see source freshness, candidate totals, strong candidates, draft count, and the next safe action before reaching publish.
+- The admin flow had improved into a single desk, but "is the whole pipeline healthy enough to publish?" still needs a plain-language preflight result that can be used before publishing and after deployment.
+- Production deploy verification previously checked page/admin availability, but it did not include default-branch GitHub workflow presence, active scheduled workflow state, cron schedule clarity, source freshness, candidate-volume gates, and dry-run publish safety in one repeatable checklist.
+- Existing unrelated Positive AI files are dirty in the working tree and must be left untouched: `config/ai-good-news-sources.json`, `lib/good-news-current.ts`, `lib/good-news-scoring.ts`, and `tasks/screenshots/ai-good-news-multi-story-desktop.png`.
+
+## Prevention Implementation Plan
+
+- [x] Add a shared publishing preflight helper that turns existing admin status, evening briefing, and optional workflow checks into a clear state: ready, hold, repair, or blocked.
+- [x] Add a workflow guard that warns/fails when required scheduled workflow files exist locally but are missing or inactive on the default GitHub branch.
+- [x] Add a read-only `npm run preflight:publishing` operator script that checks admin status, candidate health, Vercel cron shape, and GitHub default-branch workflow state without mutating data.
+- [x] Add a dry-run/read-only cron publish evaluation path so deploy checks can verify publish gates without publishing.
+- [x] Surface the preflight/runbook language in the admin Health tools area so editors know the daily check exists.
+- [x] Add focused tests for workflow drift, stale evening readiness, low-volume hold states, published repair guidance, and dry-run cron refusal.
+- [x] Add a concise 8 PM Winnipeg publishing runbook and deploy verification checklist.
+
+## Prevention Review
+
+- Added `lib/publishing-preflight.ts` as a shared prevention model. It turns source freshness, candidate volume, draft/publish readiness, published repair state, imported candidate traceability, and optional workflow checks into one state: `ready`, `hold`, `repair`, or `blocked`.
+- `/api/admin/today-status` now returns `preflight` alongside `eveningBriefing`, `readiness`, candidates, automation, and draft status. This keeps the daily desk focused on the editor question: can I publish, should I hold, or do I need repair work?
+- The admin `Today's Run Status` now shows a visible Preflight card and a plain-language blocked/hold/repair note when publishing should not quietly continue.
+- Added a read-only dry-run path to `/api/cron/daily-publish`: `POST` with `dryRun: true` and the admin password evaluates cron publish readiness without publishing. Normal cron `GET` behaviour remains protected by `CRON_SECRET`.
+- Added `scripts/publishing-preflight.mjs` and `npm run preflight:publishing`. It checks the admin status shape, candidate API, dry-run cron publish, `vercel.json` cron entries, and required scheduled workflows on the GitHub default branch.
+- The preflight script correctly flags the known current gap: `.github/workflows/evening-google-alerts-candidates.yml` exists locally but is missing from default branch `main`, so GitHub will not schedule the evening Google Alerts source run.
+- Added `docs/publishing-runbook.md` with the normal 8 PM Winnipeg publishing routine, low-volume recovery path, Issue Desk repair guidance, deploy verification checklist, and do-not-publish conditions.
+- Updated `tasks/lessons.md` with the durable rule: scheduled publishing automation must be verified on the default branch, not trusted because it exists locally or was deployed from a feature branch.
+
+## Prevention Validation Results
+
+- `npm run test -- tests/lib/publishing-preflight.test.ts` passed: 1 file, 5 tests.
+- `npm run test -- tests/api/publishing-pipeline.test.ts` passed: 1 file, 6 tests.
+- `npm run test -- tests/lib/admin-readiness.test.ts tests/lib/article-candidates.test.ts tests/api/publishing-pipeline.test.ts tests/lib/publishing-preflight.test.ts` passed: 4 files, 28 tests.
+- `npm test` passed: 20 files, 93 tests.
+- `npm run lint` passed before and after the final script polish.
+- `npm run build` initially caught a TypeScript narrowing issue in the new workflow guard, then passed after the fix.
+- `npx tsc --noEmit` passed after the build.
+- `node --check scripts/publishing-preflight.mjs` passed.
+- Local browser smoke on `http://localhost:3044/admin` passed at 1280x900 desktop and 390x844 mobile after signing in locally. It verified the Publishing Desk, Preflight card, `Tonight's Issue`, `Issue Desk`, and `Tools`.
+- Screenshots saved:
+  - `tasks/screenshots/publishing-prevention-admin-desktop.png`
+  - `tasks/screenshots/publishing-prevention-admin-mobile.png`
+- Local read-only API smoke:
+  - `/api/admin/today-status?date=2026-05-13` returned 200 with `preflight = blocked` and `eveningBriefing = source_error` because the local environment has no candidate inbox configured.
+  - `/api/article-candidates?status=new,approved,shortlisted&limit=5` returned 200 with 0 local candidates.
+  - `/api/cron/daily-publish` dry-run POST returned 200 with `reason = no_draft` and `dryRun = true`; it did not publish.
+  - Local `/issues/2026-05-12` returned 404 because the local static build does not contain the live production issue.
+  - Live read-only `https://aitoday.vercel.app/issues/2026-05-12` returned 200.
+- `npm run preflight:publishing -- --api-base http://localhost:3044 --date 2026-05-13 --warn-only` passed as an executable check and reported attention needed: local source intake blocked, candidate API reachable, dry-run publish reachable, Vercel crons present, and the evening Google Alerts workflow missing from `main`.
+- No live production data was mutated. No Supabase schema changes, secrets, push, deploy, destructive live actions, or production write-path tests were performed.
+
+## Residual Risks And Next Evening Checklist
+
+- This branch still needs to be pushed and deployed later before production `/api/admin/today-status` and `/api/cron/daily-publish` expose the new preflight/dry-run behaviour.
+- The evening Google Alerts workflow must be present and active on `main`; otherwise the 7:15 PM Winnipeg source run will remain branch-only and will not run on schedule.
+- Source run history is still inferred from candidate rows. The new guardrails make stale/low-volume states visible, but a future source-run registry would make per-source success/failure history more authoritative.
+- Normal daily routine: around 8:00 PM Winnipeg, run `npm run preflight:publishing -- --api-base https://aitoday.vercel.app --strict`, then open `/admin`, confirm the preflight and evening briefing are understandable, review/import candidates, edit the draft, and publish only through the checklist.
+- If volume is low: do not publish by default. Check the preflight output, confirm default-branch workflow health, retry source intake in Tools, refresh the desk, and use Issue Desk for already-published repairs.
+- Do not use the intentional short-issue override unless the source pipeline is understood and the short issue is a deliberate editorial decision.
+
 # Task: Publishing Desk Overhaul
 
 - [x] Audit the current admin UX, source intake, candidate counts, cron timing, issue edit paths, and publish gates before code changes.
