@@ -16,7 +16,7 @@ Options:
   --dry-run    Print normalized candidates without posting.
 
 Environment:
-  ARTICLE_CANDIDATE_INGEST_TOKEN is required unless --dry-run is used.
+  ARTICLE_CANDIDATE_INGEST_TOKEN, CRON_SECRET, or ADMIN_PASSWORD is required unless --dry-run is used.
 `)
 }
 
@@ -32,6 +32,19 @@ function readAllArgs(name) {
     if (process.argv[i] === name && process.argv[i + 1]) values.push(process.argv[i + 1])
   }
   return values
+}
+
+function authHeaders() {
+  const token = process.env.ARTICLE_CANDIDATE_INGEST_TOKEN || process.env.CRON_SECRET
+  const adminPassword = process.env.ADMIN_PASSWORD
+  const headers = {
+    'Content-Type': 'application/json',
+  }
+
+  if (token) headers.Authorization = `Bearer ${token}`
+  if (adminPassword) headers['x-admin-password'] = adminPassword
+
+  return headers
 }
 
 function guessCategory(item, sourceType) {
@@ -84,15 +97,15 @@ async function main() {
   const sourceType = readArg('--type') ?? 'other'
   const apiBase = (readArg('--api-base') ?? DEFAULT_API_BASE).replace(/\/$/, '')
   const dryRun = process.argv.includes('--dry-run')
-  const token = process.env.ARTICLE_CANDIDATE_INGEST_TOKEN
+  const hasApiAuth = Boolean(process.env.ARTICLE_CANDIDATE_INGEST_TOKEN || process.env.CRON_SECRET || process.env.ADMIN_PASSWORD)
 
   if (files.length === 0 || !source) {
     usage()
     process.exitCode = 1
     return
   }
-  if (!dryRun && !token) {
-    console.error('ARTICLE_CANDIDATE_INGEST_TOKEN is required unless --dry-run is used.')
+  if (!dryRun && !hasApiAuth) {
+    console.error('ARTICLE_CANDIDATE_INGEST_TOKEN, CRON_SECRET, or ADMIN_PASSWORD is required unless --dry-run is used.')
     process.exitCode = 1
     return
   }
@@ -114,10 +127,7 @@ async function main() {
 
   const response = await fetch(`${apiBase}/api/article-candidates`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: authHeaders(),
     body: JSON.stringify({ candidates }),
   })
   const body = await response.json().catch(async () => ({ text: await response.text() }))

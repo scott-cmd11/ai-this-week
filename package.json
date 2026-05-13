@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "import:candidates": "node scripts/import-candidates-from-automation-output.mjs",
+    "import:google-alerts": "node scripts/google-alerts-candidate-import.mjs",
     "migrate:notion-issues": "node scripts/migrate-notion-issues-to-supabase.mjs",
     "new-issue": "node --env-file=.env.local scripts/new-issue.js"
   },

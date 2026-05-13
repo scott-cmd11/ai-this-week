@@ -1,0 +1,81 @@
+name: Evening Google Alerts Candidate Import
+
+on:
+  schedule:
+    # GitHub cron is UTC. These two slots cover 7:15 PM America/Winnipeg
+    # across daylight and standard time; the gate step lets only the local
+    # 7 PM run continue.
+    - cron: '15 0 * * *'
+    - cron: '15 1 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run immediately instead of waiting for the 7 PM Winnipeg gate.
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evening-google-alerts-candidates
+  cancel-in-progress: false
+
+jobs:
+  import-candidates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check Winnipeg schedule
+        id: gate
+        shell: bash
+        env:
+          FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.force == 'true' }}
+        run: |
+          winnipeg_time="$(TZ=America/Winnipeg date '+%Y-%m-%d %H:%M:%S %Z')"
+          winnipeg_hour="$(TZ=America/Winnipeg date '+%H')"
+          echo "winnipeg_time=$winnipeg_time"
+
+          if [ "$FORCE_RUN" = "true" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Forced manual run."
+          elif [ "$winnipeg_hour" = "19" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Scheduled run is inside the 7 PM Winnipeg hour."
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping because this UTC slot is not 7 PM in Winnipeg."
+          fi
+
+      - name: Fetch and import Google Alerts candidates
+        if: steps.gate.outputs.run == 'true'
+        env:
+          AI_TODAY_API_BASE: ${{ vars.AI_TODAY_API_BASE }}
+          GOOGLE_ALERTS_FEED_URLS: ${{ secrets.GOOGLE_ALERTS_FEED_URLS }}
+          GOOGLE_ALERTS_CANDIDATE_LIMIT: 35
+          ARTICLE_CANDIDATE_INGEST_TOKEN: ${{ secrets.ARTICLE_CANDIDATE_INGEST_TOKEN }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: node scripts/google-alerts-candidate-import.mjs --import --verify --write-github-output
+
+      - name: Upload candidate run artifact
+        if: always() && steps.gate.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: google-alerts-candidate-run
+          path: tmp/google-alerts-current/**
+          if-no-files-found: ignore
+          retention-days: 14
