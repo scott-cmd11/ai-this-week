@@ -1,5 +1,10 @@
-import type { AdminAutomationSummary, AdminCandidateSummary } from './admin-readiness'
-import { buildAdminReadiness } from './admin-readiness'
+import type {
+  AdminAutomationSummary,
+  AdminCandidateSummary,
+  AdminEveningBriefingSummary,
+  AdminSourceBreakdownItem,
+} from './admin-readiness'
+import { buildAdminReadiness, buildEveningBriefingSummary } from './admin-readiness'
 import { isPublishedDateFreshForIssue } from './article-fetcher'
 import { isArticleCandidateStoreConfigured, listArticleCandidates, summarizeArticleCandidates } from './article-candidate-store'
 import { parseDailyArticles } from './draft-articles'
@@ -16,6 +21,10 @@ const EMPTY_CANDIDATES: AdminCandidateSummary = {
   rejected: 0,
   imported: 0,
   importedWithoutIssueContext: 0,
+  totalVisible: 0,
+  latestCandidateAt: null,
+  latestActiveCandidateAt: null,
+  sourceBreakdown: [],
 }
 
 const EMPTY_AUTOMATION: AdminAutomationSummary = {
@@ -35,13 +44,24 @@ export async function getAdminRunSummaries(): Promise<{
   if (candidateStoreConfigured) {
     try {
       candidates = await summarizeArticleCandidates()
+      const activeCandidates = await listArticleCandidates({ statuses: ['new', 'approved', 'shortlisted'], limit: 150 })
       const importedCandidates = await listArticleCandidates({ statuses: ['imported'], limit: 150 })
+      const rejectedCandidates = await listArticleCandidates({ statuses: ['rejected'], limit: 150 })
+      const visibleCandidates = [...activeCandidates, ...importedCandidates, ...rejectedCandidates]
+      const sourceBreakdown = buildSourceBreakdown(visibleCandidates)
       if (importedCandidates.length > 0) {
         const knownUrls = await buildKnownUrlMap(90)
         candidates = {
           ...candidates,
           importedWithoutIssueContext: importedCandidates.filter(candidate => !knownUrls.has(candidate.canonicalUrl)).length,
         }
+      }
+      candidates = {
+        ...candidates,
+        totalVisible: candidates.totalActive + candidates.held + candidates.rejected + candidates.imported,
+        latestCandidateAt: newestCandidateTimestamp(visibleCandidates),
+        latestActiveCandidateAt: newestCandidateTimestamp(activeCandidates),
+        sourceBreakdown,
       }
     } catch (err) {
       candidateError = err instanceof Error ? err.message : 'Candidate summary failed.'
@@ -52,11 +72,42 @@ export async function getAdminRunSummaries(): Promise<{
     candidates,
     candidateError,
     automation: {
-      lastRunAt: null,
-      sourceCount: 0,
+      lastRunAt: candidates.latestCandidateAt ?? null,
+      sourceCount: candidates.sourceBreakdown?.length ?? 0,
       failureCount: candidateError ? 1 : 0,
     },
   }
+}
+
+function newestCandidateTimestamp(candidates: Array<{ createdAt: string; updatedAt?: string | null }>): string | null {
+  let newest: string | null = null
+  for (const candidate of candidates) {
+    const timestamp = candidate.createdAt || candidate.updatedAt
+    if (!timestamp) continue
+    if (!newest || new Date(timestamp).getTime() > new Date(newest).getTime()) {
+      newest = timestamp
+    }
+  }
+  return newest
+}
+
+function buildSourceBreakdown(
+  candidates: Array<{ source: string; createdAt: string; updatedAt?: string | null }>,
+): AdminSourceBreakdownItem[] {
+  const sources = new Map<string, AdminSourceBreakdownItem>()
+  for (const candidate of candidates) {
+    const name = candidate.source?.trim() || 'Unknown source'
+    const current = sources.get(name) ?? { name, count: 0, newestAt: null }
+    const timestamp = candidate.createdAt || candidate.updatedAt || null
+    current.count += 1
+    if (timestamp && (!current.newestAt || new Date(timestamp).getTime() > new Date(current.newestAt).getTime())) {
+      current.newestAt = timestamp
+    }
+    sources.set(name, current)
+  }
+  return [...sources.values()]
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, 8)
 }
 
 function blockText(block: NotionBlock): string {
@@ -156,16 +207,19 @@ export async function buildIssueReadiness({
     publishReadinessFailed: false,
   }
 
-  const readiness = buildAdminReadiness({
+  const readinessInput = {
     issueDate,
     automation,
     candidates,
     draft: draftSummary,
-  })
+  }
+  const readiness = buildAdminReadiness(readinessInput)
+  const eveningBriefing: AdminEveningBriefingSummary = buildEveningBriefingSummary(readinessInput)
 
   return {
     articles,
     draftSummary,
     readiness,
+    eveningBriefing,
   }
 }

@@ -569,7 +569,7 @@ a {
 
 .admin-step-track {
   width: 100%;
-  min-width: 42rem !important;
+  min-width: 0;
 }
 
 .admin-button-primary {

@@ -1,3 +1,84 @@
+# Task: Publishing Desk Overhaul
+
+- [x] Audit the current admin UX, source intake, candidate counts, cron timing, issue edit paths, and publish gates before code changes.
+- [x] Document why the current workflow feels too complex and why the May 12 candidate pool looked too small.
+- [x] Add an 8 PM evening briefing/readiness model with candidate volume and source-health diagnostics.
+- [x] Replace the guided/full split with one primary "Tonight's Issue" desk and a top-level Issue Desk.
+- [x] Keep candidate review, draft editing, preview/readiness, and publish checks in one coherent daily flow.
+- [x] Make published-issue add/edit/remove/correction controls first-class.
+- [x] Add/update tests for candidate volume status, daily readiness, publish gates, and issue editing visibility.
+- [x] Run focused tests, full tests, lint, build, TypeScript if needed, and local browser smoke checks.
+- [x] Document final results, live-data actions avoided, residual risks, and next-run operator handoff.
+
+## Publishing Desk Audit
+
+- Product root cause: the admin currently asks an editor to understand a six-step rail (`Status`, `Intake`, `Choose`, `Edit`, `Check`, `Publish`) plus a separate `Full desk` mode. That splits one mental task, "make tonight's issue good enough and publish it," into several technical surfaces.
+- Candidate review, draft review, publish readiness, and live issue repair are real capabilities, but they are distributed across separate panels. The editor has to remember where a thing lives rather than being led through a single issue desk.
+- Issue editing after publication exists and is useful, but it is buried under `Full desk > Issue Desk`. That makes add/edit/remove/correction work feel like a workaround even though it is a normal publishing need.
+- The admin status panel reports `Automations` using placeholder-like data: `lastRunAt: null`, `sourceCount: 0`, and only candidate-store errors as failures. It does not tell the editor whether the evening source run actually happened.
+- Live read-only May 12 evidence showed the issue was already published with 2 articles while 13 active candidates and 5 top picks still existed. The active candidates were all from `Google Alerts Current RSS`.
+- The 13 active candidates were not a full daily supply; they were the leftover active slice after earlier import/reject decisions. The broader visible pool included imported and rejected candidates, but the admin did not present source totals, rejected counts, imported counts, or stale-run context together.
+- The latest active candidate timestamp was from the previous evening run, not a fresh May 12 evening run. That made the pool look like "today's supply" when it was really an old candidate state.
+- The intended Google Alerts candidate workflow exists in this branch, but read-only GitHub checks found it is not active on the repository default branch. Scheduled GitHub workflows only run from the default branch, so the 7:15 PM candidate import is not currently a dependable cloud job until the workflow is on `main`.
+- Vercel cron runs daily assemble around 6:00 PM Winnipeg and daily publish around 9:00 PM Winnipeg. The assemble job writes draft material from configured briefing sources; it is not the same thing as filling the candidate inbox from Google Alerts/RSS.
+- Current source-health data is not persisted. The app can infer candidate freshness and source mix from the candidate store, but it cannot yet report a durable "last source job succeeded/failed" record without adding a registry or storage layer.
+- The thin-issue guardrail now blocks low-count normal publishing, but the user-facing path still feels like blocker management rather than a calm checklist: add selected candidates, retry sources, append to published issue, or intentionally short-publish.
+
+## Publishing Desk Implementation Plan
+
+- [x] Extend admin readiness with an `eveningBriefing` summary: 8 PM target, candidate target, publish-ready target, latest candidate timestamp, total visible candidate pool, source mix, stale-run state, low-volume reasons, and next editor action.
+- [x] Keep the first implementation schema-free by deriving source health from existing candidate rows and known imported issue context.
+- [x] Update `/api/admin/today-status` to return the richer summary without changing auth, URLs, Supabase schema, or public rendering.
+- [x] Rework the admin shell into three obvious modes: `Tonight's Issue`, `Issue Desk`, and `Tools`.
+- [x] Make `Tonight's Issue` show the readiness banner, source health, candidate triage, draft editor, and publish checks together so normal publishing happens on one scrollable desk.
+- [x] Put the existing live issue editor and append controls directly under top-level `Issue Desk`.
+- [x] Keep fallback/import/capture/settings utilities under `Tools` so they are available without being mistaken for the normal path.
+- [x] Add friendly low-volume copy and clear actions: refresh status, review candidates, edit draft, retry/check source tools, publish checks, or open Issue Desk for already-published repair.
+- [x] Add focused tests for the derived evening briefing state, stale/low candidate volume, and published low-count repair guidance.
+- [x] Smoke check `/admin` at desktop and mobile widths without mutating live production data.
+
+## Publishing Desk Review
+
+- Added a schema-free evening briefing/readiness model in `lib/admin-readiness.ts` and `lib/admin-issue-readiness.ts`. It now reports the 8:00 PM America/Winnipeg target, candidate target, strong-candidate target, publish article target, total visible candidate pool, source mix, latest candidate timestamp, stale-run state, low-volume reasons, and next editor action.
+- `/api/admin/today-status` now returns `eveningBriefing` alongside the existing readiness payload. Existing URLs, auth boundaries, Supabase schema, public rendering, RSS/feed, sitemap, metadata, Vercel config, and lockfiles were preserved.
+- Replaced the old guided/full split with three editor-facing admin areas: `Tonight's Issue`, `Issue Desk`, and `Tools`.
+- `Tonight's Issue` now keeps the daily work on one desk: briefing status, source health, candidate triage, draft editor, and publish checks are visible in one scrollable flow.
+- `Issue Desk` is now top-level and contains the existing add/edit/remove published issue controls, so post-publish fixes are treated as normal editorial work instead of a secondary workaround.
+- `Tools` now holds source/import fallback, future queue notes, health notes, and capture settings. The source tools are still available, but they no longer look like the default publishing path.
+- Mobile polish: removed the old forced 42rem admin step rail width and wrapped candidate filter controls so the primary desk navigation and candidate views are readable on narrow screens.
+- Added tests for stale evening intake, healthy evening readiness, and low-count published repair guidance. Updated publishing-pipeline test mocks for the richer readiness payload.
+
+## Publishing Desk Validation Results
+
+- `npm run test -- tests/lib/admin-readiness.test.ts tests/lib/article-candidates.test.ts tests/api/publishing-pipeline.test.ts` passed: 3 files, 22 tests.
+- `npm test` passed: 19 files, 83 tests.
+- `npm run lint` passed.
+- `npm run build` first hit a local Windows/OneDrive `.next` file lock (`EPERM unlink`). After verifying and clearing only the workspace `.next` build cache, `npm run build` passed.
+- `npx tsc --noEmit` passed.
+- Local browser smoke on `http://localhost:3043/admin` passed at desktop and mobile widths using local Chrome. It verified `Tonight's Issue`, `Issue Desk`, and `Tools`, with no write actions.
+- Screenshots saved:
+  - `tasks/screenshots/publishing-desk-desktop.png`
+  - `tasks/screenshots/publishing-desk-mobile.png`
+- Local read-only API/page smoke:
+  - `/admin` returned 200.
+  - `/api/admin/today-status?date=2026-05-12` returned 200 with local `eveningBriefing.state = source_error` because this local environment does not have the article candidate inbox configured.
+  - `/api/article-candidates?status=new,approved,shortlisted&limit=25` returned 200 with 0 local candidates for the same reason.
+  - `/issues/2026-05-12` returned 200 locally.
+- Live read-only checks avoided all writes and confirmed production still has the old May 12 state until this branch is deployed:
+  - `https://aitoday.vercel.app/api/admin/today-status?date=2026-05-12` returned 200 with `published = true`, `articleCount = 2`, `activeCandidates = 13`, and `topPicks = 5`.
+  - `https://aitoday.vercel.app/api/article-candidates?status=new,approved,shortlisted&limit=25` returned 200 with 13 candidates.
+  - `https://aitoday.vercel.app/issues/2026-05-12` returned 200.
+- No live production data was mutated. No secrets, Supabase schema, production config, lockfiles, push, deploy, or destructive production actions were changed.
+
+## Residual Risks And Operator Handoff
+
+- Source health is currently inferred from candidate rows. That is enough to make stale/low-volume states visible, but it is not a durable source-run registry. A later small migration or log table would make per-source failure history more authoritative.
+- The evening Google Alerts GitHub Actions workflow exists in this branch but read-only GitHub checks showed it is not active on the repository default branch. Scheduled GitHub workflows will not run reliably until that workflow is on `main`.
+- The next safe operational move is to deploy this admin desk, make sure the evening Google Alerts workflow is present on `main`, then open `/admin` around 8:00 PM Winnipeg. The desk should show whether the briefing is ready, stale, low-volume, or source-error before any publish decision.
+- For a normal daily run: use `Tonight's Issue`, review candidates, keep enough strong items to reach an 8-article target when possible, edit the draft, then run the publish checklist.
+- If candidate volume is low: use `Tools` to check source/import fallback first; do not use the intentional short-issue override unless it is an explicit editorial decision.
+- For the already-published May 12 issue: after this branch is deployed, use top-level `Issue Desk` to append the strongest remaining candidates, edit/remove anything needed, then verify the public issue page.
+
 # Task: AI Good News Daily Story Volume Fix
 
 - [x] Verify production was only showing one public AI Good News story.

@@ -207,7 +207,7 @@ export function CandidateTriage({
         </button>
       </div>
 
-      <div className="mt-6 flex gap-2 overflow-x-auto">
+      <div className="mt-6 flex flex-wrap gap-2">
         {FILTERS.map(item => (
           <button
             key={item.key}

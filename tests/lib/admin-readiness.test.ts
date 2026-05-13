@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildEveningBriefingSummary,
   buildAdminReadiness,
   type AdminCandidateSummary,
   type AdminDraftSummary,
@@ -147,5 +148,83 @@ describe('buildAdminReadiness', () => {
       'active_candidates_after_publish',
     ])
     expect(result.nextBestAction).toContain('13 candidates remain active')
+  })
+})
+
+describe('buildEveningBriefingSummary', () => {
+  it('flags stale evening intake when the latest candidates belong to a prior Winnipeg date', () => {
+    const result = buildEveningBriefingSummary({
+      issueDate: '2026-05-12',
+      automation: { lastRunAt: '2026-05-12T02:29:43.000Z', sourceCount: 1, failureCount: 0 },
+      candidates: candidates({
+        totalActive: 13,
+        topPicks: 5,
+        held: 0,
+        rejected: 48,
+        imported: 12,
+        totalVisible: 73,
+        latestCandidateAt: '2026-05-12T02:29:43.000Z',
+        sourceBreakdown: [{ name: 'Google Alerts Current RSS', count: 73, newestAt: '2026-05-12T02:29:43.000Z' }],
+      }),
+      draft: draft({
+        issueDate: '2026-05-12',
+        articleCount: 2,
+        sections: ['Canada'],
+        missingImageCount: 0,
+        similarTopicCount: 0,
+        staleSourceCount: 0,
+      }),
+    })
+
+    expect(result.state).toBe('stale')
+    expect(result.latestCandidateLocalDate).toBe('2026-05-11')
+    expect(result.lowVolumeReasons).toContain('13 usable candidates are available; target is 35.')
+    expect(result.nextAction).toContain('source intake')
+  })
+
+  it('marks the evening desk ready when candidate volume and draft coverage are healthy', () => {
+    const result = buildEveningBriefingSummary({
+      issueDate: '2026-05-12',
+      automation: { lastRunAt: '2026-05-12T20:30:00.000Z', sourceCount: 5, failureCount: 0 },
+      candidates: candidates({
+        totalActive: 42,
+        topPicks: 12,
+        held: 2,
+        rejected: 18,
+        imported: 6,
+        totalVisible: 68,
+        latestCandidateAt: '2026-05-12T20:30:00.000Z',
+        sourceBreakdown: [
+          { name: 'Google Alerts Current RSS', count: 35, newestAt: '2026-05-12T20:30:00.000Z' },
+          { name: 'AI Voices', count: 12, newestAt: '2026-05-12T19:00:00.000Z' },
+        ],
+      }),
+      draft: draft({ issueDate: '2026-05-12', articleCount: 8 }),
+    })
+
+    expect(result.state).toBe('ready')
+    expect(result.usableCandidateCount).toBe(44)
+    expect(result.sourceCount).toBe(5)
+    expect(result.lowVolumeReasons).toHaveLength(0)
+  })
+
+  it('routes a low-count published issue to live repair instead of normal publish', () => {
+    const result = buildEveningBriefingSummary({
+      issueDate: '2026-05-12',
+      automation: { lastRunAt: '2026-05-12T20:30:00.000Z', sourceCount: 2, failureCount: 0 },
+      candidates: candidates({ totalActive: 13, topPicks: 5, held: 0 }),
+      draft: draft({
+        published: true,
+        issueDate: '2026-05-12',
+        articleCount: 2,
+        sections: ['Canada'],
+        missingImageCount: 0,
+        similarTopicCount: 0,
+        staleSourceCount: 0,
+      }),
+    })
+
+    expect(result.state).toBe('published_needs_repair')
+    expect(result.nextAction).toContain('Issue Desk')
   })
 })

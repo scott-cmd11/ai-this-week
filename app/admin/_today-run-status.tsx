@@ -1,6 +1,6 @@
 'use client'
 
-import type { AdminReadiness } from '@/lib/admin-readiness'
+import type { AdminEveningBriefingSummary, AdminReadiness, AdminSourceBreakdownItem } from '@/lib/admin-readiness'
 
 export interface TodayStatusPayload {
   issueDate: string
@@ -12,6 +12,10 @@ export interface TodayStatusPayload {
     rejected: number
     imported: number
     importedWithoutIssueContext: number
+    totalVisible?: number
+    latestCandidateAt?: string | null
+    latestActiveCandidateAt?: string | null
+    sourceBreakdown?: AdminSourceBreakdownItem[]
   }
   candidateError?: string | null
   draft: {
@@ -33,6 +37,7 @@ export interface TodayStatusPayload {
     publishReadinessFailed: boolean
   }
   readiness: AdminReadiness
+  eveningBriefing: AdminEveningBriefingSummary
 }
 
 export function TodayRunStatus({
@@ -53,12 +58,12 @@ export function TodayRunStatus({
     <section className="admin-panel bg-ws-white p-5 sm:p-6">
       <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
         <div>
-          <p className="admin-eyebrow">Today&apos;s run status</p>
+          <p className="admin-eyebrow">Tonight&apos;s briefing</p>
           <h1 className="admin-page-title mt-2">
             {displayDate}
           </h1>
           <p className="admin-copy mt-3 max-w-2xl">
-            {status.readiness.nextBestAction}
+            {status.eveningBriefing.headline}. {status.eveningBriefing.nextAction}
           </p>
           {status.candidateError && (
             <p className="mt-3 border border-red-300 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-700">
@@ -78,15 +83,22 @@ export function TodayRunStatus({
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatusCard
-          label="Automations"
-          value={status.automation.lastRunAt ? 'Ran' : 'Needs check'}
-          detail={`${status.automation.sourceCount} sources / ${status.automation.failureCount} failures`}
+          label="8 PM briefing"
+          value={briefingStateLabel(status.eveningBriefing.state)}
+          detail={`Ready target: ${status.eveningBriefing.readyAtLocal}`}
+          accent={status.eveningBriefing.state !== 'ready' && status.eveningBriefing.state !== 'published'}
         />
         <StatusCard
           label="Candidates"
-          value={String(status.candidates.totalActive)}
-          detail={`${status.candidates.topPicks} top picks / ${status.candidates.held} held / ${status.candidates.importedWithoutIssueContext} untraced`}
-          accent={status.candidates.importedWithoutIssueContext > 0}
+          value={`${status.eveningBriefing.usableCandidateCount}/${status.eveningBriefing.candidateTarget}`}
+          detail={`${status.candidates.topPicks} strong / ${status.candidates.rejected} rejected / ${status.candidates.imported} imported`}
+          accent={status.eveningBriefing.usableCandidateCount < status.eveningBriefing.candidateTarget}
+        />
+        <StatusCard
+          label="Sources"
+          value={String(status.eveningBriefing.sourceCount)}
+          detail={status.eveningBriefing.latestCandidateLocalDate ? `Latest run: ${status.eveningBriefing.latestCandidateLocalDate}` : 'No run detected'}
+          accent={status.eveningBriefing.state === 'stale' || status.eveningBriefing.state === 'source_error'}
         />
         <StatusCard
           label="Draft"
@@ -102,6 +114,16 @@ export function TodayRunStatus({
       </div>
     </section>
   )
+}
+
+function briefingStateLabel(state: AdminEveningBriefingSummary['state']): string {
+  if (state === 'ready') return 'Ready'
+  if (state === 'waiting') return 'Waiting'
+  if (state === 'stale') return 'Stale'
+  if (state === 'low_volume') return 'Low volume'
+  if (state === 'published') return 'Live'
+  if (state === 'published_needs_repair') return 'Repair'
+  return 'Check sources'
 }
 
 function StatusCard({

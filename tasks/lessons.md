@@ -16,3 +16,4 @@
 - When a shared label class such as `type-meta` is used on filled buttons or chips, verify the active-state text color in the browser. Later custom CSS can override Tailwind text utilities and create poor contrast.
 - Positive daily-news pages need enough current source volume and a live current-story supplement path. Do not rely on one seed story or pending-only ingestion for reader-facing output.
 - Daily issue publishing must fail closed on article volume. A two-article issue is not a warning state; cron and normal manual publish should block it unless an editor completes a deliberately labelled short-issue override.
+- Publishing admin must lead with a single editor mental model, not a technical wizard. Daily candidates, draft editing, publish checks, and live-issue repair should be visible from the same desk, with source-health and low-volume reasons shown before an editor reaches the publish button.

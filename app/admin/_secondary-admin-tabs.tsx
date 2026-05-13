@@ -1,36 +1,32 @@
 'use client'
 
 import { useState } from 'react'
-import { AddToIssue } from './_add-to-issue'
 import { BriefingImport } from './_briefing-import'
 import { CaptureSettings } from './_capture-settings'
-import { PublishedIssueEditor } from './_published-issue-editor'
 
-type SecondaryTab = 'issue-desk' | 'future-queue' | 'health' | 'settings'
+type SecondaryTab = 'source-tools' | 'future-queue' | 'health' | 'settings'
 
 const TABS: Array<{ key: SecondaryTab; label: string }> = [
-  { key: 'issue-desk', label: 'Issue Desk' },
+  { key: 'source-tools', label: 'Source Tools' },
   { key: 'future-queue', label: 'Future Queue' },
   { key: 'health', label: 'Health' },
   { key: 'settings', label: 'Settings' },
 ]
 
 export function SecondaryAdminTabs({ password }: { password: string }) {
-  const [activeTab, setActiveTab] = useState<SecondaryTab>('issue-desk')
-  const [legacyImportOpen, setLegacyImportOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<SecondaryTab>('source-tools')
 
   return (
     <section className="admin-panel overflow-hidden bg-ws-white">
       <header className="border-b border-ws-border p-5 sm:p-6">
-        <p className="admin-eyebrow">Secondary areas</p>
+        <p className="admin-eyebrow">Source and utility tools</p>
         <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="admin-page-title">
-              Full desk
+              Tools
             </h2>
             <p className="admin-copy mt-3 max-w-3xl">
-              Work outside today&apos;s guided publishing run: append to issues, review follow-up queues, check health notes,
-              and adjust capture settings without disturbing the daily path.
+              Retry source intake, review follow-up queues, check health notes, and adjust capture settings without cluttering the normal publishing path.
             </p>
           </div>
         </div>
@@ -54,11 +50,8 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
       </div>
 
       <div className="flex flex-col gap-5 p-5 sm:p-6">
-        {activeTab === 'issue-desk' && (
-          <>
-            <AddToIssue password={password} />
-            <PublishedIssueEditor password={password} />
-          </>
+        {activeTab === 'source-tools' && (
+          <BriefingImport password={password} />
         )}
 
         {activeTab === 'future-queue' && (
@@ -88,32 +81,7 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
         )}
 
         {activeTab === 'settings' && (
-          <>
-            <CaptureSettings />
-
-            <div className="admin-subpanel">
-              <button
-                type="button"
-                onClick={() => setLegacyImportOpen(open => !open)}
-                aria-expanded={legacyImportOpen}
-                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-ws-white"
-              >
-                <div>
-                  <p className="admin-eyebrow">Legacy import</p>
-                  <p className="mt-1 text-[15px] font-bold text-ws-black">Briefing import fallback</p>
-                </div>
-                <span className="shrink-0 text-[12px] font-black uppercase tracking-[0.08em] text-ws-black/60">
-                  {legacyImportOpen ? 'Hide' : 'Show'}
-                </span>
-              </button>
-
-              {legacyImportOpen && (
-                <div className="border-t border-ws-border p-5">
-                  <BriefingImport password={password} />
-                </div>
-              )}
-            </div>
-          </>
+          <CaptureSettings />
         )}
       </div>
     </section>

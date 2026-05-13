@@ -45,7 +45,7 @@ const cronRoute = await import('@/app/api/cron/daily-publish/route')
 const importRoute = await import('@/app/api/import-briefing-articles/route')
 const publishRoute = await import('@/app/api/publish-issue/route')
 const candidateRoute = await import('@/app/api/article-candidates/[id]/route')
-const { adminChecksFingerprint } = await import('@/lib/admin-readiness')
+const { adminChecksFingerprint, buildEveningBriefingSummary } = await import('@/lib/admin-readiness')
 const { SHORT_ISSUE_CONFIRMATION } = await import('@/lib/publish-policy')
 
 function jsonRequest(url: string, body: unknown, headers: Record<string, string> = {}) {
@@ -56,6 +56,32 @@ function jsonRequest(url: string, body: unknown, headers: Record<string, string>
       ...headers,
     },
     body: JSON.stringify(body),
+  })
+}
+
+function lowCountEveningBriefing() {
+  return buildEveningBriefingSummary({
+    issueDate: '2026-05-12',
+    automation: { lastRunAt: null, sourceCount: 0, failureCount: 0 },
+    candidates: { totalActive: 13, topPicks: 5, held: 0, rejected: 0, imported: 0, importedWithoutIssueContext: 0 },
+    draft: {
+      exists: true,
+      published: false,
+      issueId: 'issue-12',
+      issueNumber: 12,
+      issueDate: '2026-05-12',
+      articleCount: 2,
+      sections: ['Canada'],
+      missingSummaryCount: 0,
+      missingTitleCount: 0,
+      exactDuplicateUrlCount: 0,
+      similarTopicCount: 0,
+      staleSourceCount: 0,
+      weakTitleCount: 0,
+      missingImageCount: 0,
+      brokenRequiredUrlCount: 0,
+      publishReadinessFailed: false,
+    },
   })
 }
 
@@ -111,6 +137,7 @@ describe('publishing pipeline guardrails', () => {
         nextBestAction: 'Add more articles.',
         primaryAction: { label: 'Fix blockers first', step: 'check' },
       },
+      eveningBriefing: lowCountEveningBriefing(),
     })
 
     const response = await cronRoute.GET(new Request('https://example.test/api/cron/daily-publish', {
@@ -174,6 +201,7 @@ describe('publishing pipeline guardrails', () => {
         nextBestAction: 'Add more articles.',
         primaryAction: { label: 'Fix blockers first', step: 'check' },
       },
+      eveningBriefing: lowCountEveningBriefing(),
     })
 
     const rejected = await publishRoute.POST(jsonRequest('https://example.test/api/publish-issue', {

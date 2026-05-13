@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   const { candidates, automation, candidateError } = await getAdminRunSummaries()
 
-  const { draftSummary, readiness } = await buildIssueReadiness({
+  const { draftSummary, readiness, eveningBriefing } = await buildIssueReadiness({
     issueDate: today,
     draft,
     blocks,
@@ -38,5 +38,6 @@ export async function GET(request: NextRequest) {
     candidateError,
     draft: draftSummary,
     readiness,
+    eveningBriefing,
   })
 }
