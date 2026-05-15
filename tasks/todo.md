@@ -88,6 +88,19 @@
 - `npm run build` passed after clearing a local `.next` file lock.
 - Local production smoke on `http://localhost:3052` passed for `/positive-ai`, `/positive-ai/archive`, `/positive-ai/about`, and a story detail. The old AlphaFold seed route returned `404`.
 - Local story-surface check passed: 2 qualifying stories rendered and blocked negative/story terms did not appear.
+
+## Daily Discovery Follow-Up
+
+- User challenged the low count: two stories is honest under the strict gate, but too thin for the product experience.
+- Added outcome-shaped discovery feeds for `AI helps`, `AI improves`, `AI detects`, health outcomes, wildfire/weather/disaster outcomes, and accessibility outcomes.
+- Tightened scoring so configured discovery categories no longer count as editorial evidence by themselves.
+- Added acceptance coverage for credible health detection and wildfire detection stories, while keeping market/data-center stories rejected.
+- Follow-up dry-run passed with 34 sources, 213 recent raw candidates, 0 source errors, and no 48-hour expansion needed.
+- Follow-up scoring found 4 unique accepted current stories: Reuters/Gates Foundation health-education partnership, Phys.org rainfall forecasting, Xcel wildfire detection, and Heart Foundation heart-disease detection.
+- Follow-up tests passed: 4 files, 19 tests.
+- `npm run lint`, `npx tsc --noEmit`, and `npm run build` passed.
+- Local production smoke on `http://localhost:3056/positive-ai` rendered 4 story links, kept the old AlphaFold seed route at `404`, and passed the blocked negative-term check.
+
 # Task: Publishing Prevention Guardrails
 
 - [x] Audit how recent publishing failures became possible before code changes.

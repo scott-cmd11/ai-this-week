@@ -151,4 +151,47 @@ describe('AI Good News scoring', () => {
     expect(score.accepted).toBe(true)
     expect(score.category).toBe('Public Good')
   })
+
+  it('accepts source-linked AI health detection from a credible health nonprofit', () => {
+    const score = scoreGoodNewsCandidate({
+      title: 'AI detects heart disease using DEXA bone scans',
+      source_name: 'Heart Foundation',
+      source_url: 'https://www.heartfoundation.org.au/example-ai-dexa',
+      summary: 'Researchers report an AI model that detects heart disease using existing bone scans and may help identify patients earlier.',
+      content_text: 'The health research team describes measured screening results and a patient benefit.',
+      published_at: '2026-05-14T17:01:35.000Z',
+      category: 'Health',
+    })
+
+    expect(score.accepted).toBe(true)
+    expect(score.evidence_notes).toMatch(/heart disease|health care/i)
+  })
+
+  it('accepts concrete AI wildfire detection deployments from an original source', () => {
+    const score = scoreGoodNewsCandidate({
+      title: 'Xcel Energy brings AI-driven wildfire detection to Wisconsin',
+      source_name: 'Xcel Energy Newsroom',
+      source_url: 'https://xcelenergy.com/example-wildfire-ai',
+      summary: 'The utility deployed AI-driven wildfire detection cameras to support earlier warnings and safer emergency response.',
+      content_text: 'The deployment uses AI detection for wildfire safety and community resilience.',
+      published_at: '2026-05-14T16:04:36.000Z',
+      category: 'Climate',
+    })
+
+    expect(score.accepted).toBe(true)
+  })
+
+  it('does not let configured category make market coverage look accessible', () => {
+    const score = scoreGoodNewsCandidate({
+      title: 'BofA hikes NVIDIA price target on AI data center forecast',
+      source_name: '24/7 Wall St.',
+      source_url: 'https://example.com/nvidia-price-target',
+      summary: 'The article is about stock price expectations and AI data center demand.',
+      published_at: '2026-05-14T17:01:35.000Z',
+      category: 'Accessibility',
+    })
+
+    expect(score.accepted).toBe(false)
+    expect(score.rejection_reasons.join(' ')).toMatch(/No clear human-benefit domain|market/)
+  })
 })
