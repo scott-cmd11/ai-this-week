@@ -131,7 +131,7 @@
     "url": "https://digitalmainstreet.ca/feed/",
     "default_category": "Small Business",
     "focus": ["Canadian small business", "local business", "practical adoption"],
-    "enabled": true
+    "enabled": false
   },
   {
     "name": "Google Small Business",
