@@ -920,3 +920,29 @@ The backend is structurally healthier than the old Notion publishing model: Supa
 - Previous/next links use smaller type and tighter spacing.
 - Related archive links now render as compact rows with issue number, date, and a shortened summary.
 - Verification passed: `npm run lint`, `npm run build`, and `npm test`. The first build attempt hit a local Windows/OneDrive `.next` file lock; clearing the local build cache and rerunning passed.
+# Task: Nightly Autopublish Controller
+
+- [x] Add a safe autopublish controller that can assemble, fill from candidates, and publish the daily issue automatically.
+- [x] Make the autopublish decision explicit and inspectable in dry-run mode.
+- [x] Schedule the nightly autopublish job after evening candidate intake instead of relying on a manual publishing night.
+- [x] Keep stale source runs, missing drafts, and very thin drafts as hard stops.
+- [x] Add regression tests for autopublish safety and publishability decisions.
+- [x] Validate locally before the approved push/deploy.
+
+## Autopublish Plan
+
+- Use the existing guarded building blocks: `/api/cron/daily-assemble`, `/api/import-briefing-articles`, candidate imported-state verification, admin readiness, and `publishIssue`.
+- Add an authenticated `/api/cron/autopublish` endpoint with a read-only dry-run mode. Cron `GET` uses `CRON_SECRET`; admin `POST` supports dry-run checks and deliberate manual autopilot runs.
+- Nightly flow: skip if already published, assemble if no draft or below target, import high-score active candidates into today's draft if needed, re-check readiness, then publish only when the draft has the minimum article count, fresh source signal, no blockers, and only autopilot-safe warnings.
+- Schedule Vercel to run the new controller after the evening Google Alerts source run. Keep existing public URLs and manual admin publish paths.
+- Update the preflight script/runbook so deploy verification checks the autopublish dry run, not just the old manual-style publish dry run.
+
+## Autopublish Validation
+
+- Focused autopublish tests passed: `npm run test -- tests/lib/autopublish-policy.test.ts tests/api/autopublish.test.ts`.
+- Publishing guardrail tests passed: `npm run test -- tests/lib/admin-readiness.test.ts tests/lib/article-candidates.test.ts tests/api/publishing-pipeline.test.ts tests/lib/autopublish-policy.test.ts tests/api/autopublish.test.ts`.
+- Full test suite passed: `npm test` (22 files, 101 tests).
+- `npm run lint` passed.
+- `npm run build` passed after clearing a local Windows/OneDrive `.next` file lock and rerunning.
+- `npx tsc --noEmit` passed.
+- `node --check scripts/publishing-preflight.mjs` passed.

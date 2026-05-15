@@ -151,9 +151,9 @@ export function coerceCategory(value: string | null | undefined): Category {
 }
 
 function candidateText(
-  input: Pick<IncomingArticleCandidate, 'title' | 'summary' | 'source' | 'sourceType' | 'category'>,
+  input: Pick<IncomingArticleCandidate, 'title' | 'summary' | 'source' | 'sourceType' | 'category'> & { url?: string | null },
 ): string {
-  return `${input.title ?? ''} ${input.summary ?? ''} ${input.source ?? ''} ${input.sourceType ?? ''} ${input.category ?? ''}`.toLowerCase()
+  return `${input.title ?? ''} ${input.summary ?? ''} ${input.source ?? ''} ${input.sourceType ?? ''} ${input.category ?? ''} ${input.url ?? ''}`.toLowerCase()
 }
 
 function hasAnySignal(text: string, signals: string[]): boolean {
@@ -223,7 +223,7 @@ export function scoreArticleCandidate(
     reasons.push('Primary or high-credibility source')
   }
 
-  if (text.includes('policy') || text.includes('regulation') || text.includes('public sector') || text.includes('governance')) {
+  if (hasAnySignal(text, POLICY_SIGNALS) || hasAnySignal(text, GOVERNMENT_SIGNALS)) {
     score += 6
     reasons.push('Policy, governance, or public-sector relevance')
   }

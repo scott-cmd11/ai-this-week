@@ -71,10 +71,11 @@ export function SecondaryAdminTabs({ password }: { password: string }) {
           <SecondaryNote
             title="Health"
             eyebrow="Diagnostics"
-            body="Health is centred on the daily preflight, Today's Run Status, and publish readiness. Use it before publishing and after deploy to catch stale sources, low candidate volume, and missing scheduled workflows."
+            body="Health is centred on the daily preflight, Today's Run Status, nightly autopublish, and publish readiness. Use it after deploy or before a manual publish to catch stale sources, low candidate volume, and missing scheduled workflows."
             actions={[
-              'Run npm run preflight:publishing before publishing or after deploy when you need a full read-only health check.',
+              'Run npm run preflight:publishing after deploy when you need the full read-only health and autopublish dry-run check.',
               "Use Today's Run Status for source count, candidate inbox, draft state, blockers, warnings, and preflight state.",
+              'Nightly autopublish assembles, fills from candidates, and posts only when the guardrails say the issue is safe.',
               'Use Publish readiness for the final blocker and warning list before any manual publish.',
               'If source-specific failures become frequent, move them into a read-only diagnostics board here.',
             ]}

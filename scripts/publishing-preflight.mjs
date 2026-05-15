@@ -15,7 +15,7 @@ const REQUIRED_WORKFLOWS = [
 
 const REQUIRED_CRONS = [
   { path: '/api/cron/daily-assemble', schedule: '0 23 * * *', label: 'Daily assemble' },
-  { path: '/api/cron/daily-publish', schedule: '0 2 * * *', label: 'Daily publish' },
+  { path: '/api/cron/autopublish', schedule: '30 2 * * *', label: 'Nightly autopublish' },
 ]
 
 function parseArgs(argv) {
@@ -389,6 +389,7 @@ async function inspectAdminApi(args) {
       status: null,
       candidateApi: null,
       dryRunPublish: null,
+      dryRunAutopublish: null,
       warnings: ['ADMIN_PASSWORD is not available locally; admin API checks were skipped.'],
     }
   }
@@ -415,13 +416,23 @@ async function inspectAdminApi(args) {
       ...(args.date ? { date: args.date } : {}),
     }),
   })
+  const dryRunAutopublish = await fetchJson(`${args.apiBase}/api/cron/autopublish`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      adminPassword,
+      dryRun: true,
+      ...(args.date ? { date: args.date } : {}),
+    }),
+  })
 
   return {
-    ok: status.ok && candidateApi.ok && dryRunAssemble.ok && dryRunPublish.ok,
+    ok: status.ok && candidateApi.ok && dryRunAssemble.ok && dryRunPublish.ok && dryRunAutopublish.ok,
     status,
     candidateApi,
     dryRunAssemble,
     dryRunPublish,
+    dryRunAutopublish,
     warnings: [],
   }
 }
@@ -500,6 +511,17 @@ function summarizeAdminChecks(admin) {
       ? `dry-run publish returned ${admin.dryRunPublish.status}: ${admin.dryRunPublish.body?.reason || admin.dryRunPublish.body?.published || 'checked'}.`
       : `dry-run publish returned ${admin.dryRunPublish?.status ?? 'not checked'}.`,
     nextAction: admin.dryRunPublish?.ok ? 'Use the dry-run response as the deploy publishing-health check.' : 'Deploy the dry-run route or fix publish-readiness errors before publishing.',
+  })
+
+  checks.push({
+    label: 'Dry-run autopublish',
+    status: admin.dryRunAutopublish?.ok ? 'pass' : 'fail',
+    detail: admin.dryRunAutopublish?.ok
+      ? `dry-run autopublish returned ${admin.dryRunAutopublish.status}: ${admin.dryRunAutopublish.body?.reason || (admin.dryRunAutopublish.body?.publishable ? 'publishable' : 'checked')}.`
+      : `dry-run autopublish returned ${admin.dryRunAutopublish?.status ?? 'not checked'}.`,
+    nextAction: admin.dryRunAutopublish?.ok
+      ? 'Use the dry-run autopublish response as the main vacation-mode deploy health check.'
+      : 'Deploy or fix the autopublish controller before relying on unattended nightly publishing.',
   })
 
   return checks
@@ -586,6 +608,7 @@ async function main() {
     adminStatus: admin.status?.body || null,
     dryRunAssemble: admin.dryRunAssemble?.body || null,
     dryRunPublish: admin.dryRunPublish?.body || null,
+    dryRunAutopublish: admin.dryRunAutopublish?.body || null,
     warnings,
   }
 

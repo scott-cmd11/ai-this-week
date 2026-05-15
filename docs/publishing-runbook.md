@@ -2,6 +2,8 @@
 
 ## Normal 8 PM Winnipeg Routine
 
+The site now has a nightly autopublish controller for nights when no editor is available. The manual routine is still useful when you want editorial review.
+
 1. Run the read-only preflight:
 
    ```powershell
@@ -17,6 +19,18 @@
    - Normal publish blocks below the minimum article count unless the deliberate short-issue override is used.
 4. Review candidates, import/select the strongest items, edit the draft, and read the publish checklist.
 5. Publish only when preflight, source freshness, candidate volume, and publish gates are understandable and acceptable.
+
+## Nightly Autopublish
+
+- Vercel runs `/api/cron/autopublish` at `30 2 * * *`, after the evening candidate intake window.
+- Autopublish assembles the draft, fills it with high-score active candidates when needed, rechecks readiness, and publishes only when source freshness is current and the draft has at least the minimum article count.
+- It fails closed for missing drafts, stale or missing source runs, very thin drafts, readiness blockers, stale source warnings, weak titles, and similar-topic warnings.
+- It can tolerate normal editorial polish warnings such as missing images, uneven section balance, held candidates, or old imported-candidate traceability warnings when the issue is otherwise publishable.
+- Use the dry-run check when you want to see what vacation mode would do without writing data:
+
+  ```powershell
+  npm run preflight:publishing -- --strict
+  ```
 
 ## If Candidate Volume Is Low
 
@@ -51,7 +65,8 @@ Run these checks after a deploy and before trusting the daily publishing flow:
 - `/api/admin/today-status` returns a `preflight`, `eveningBriefing`, candidate counts, draft state, blockers, and warnings.
 - `/api/article-candidates` is reachable in read-only mode.
 - `/api/cron/daily-publish` dry-run POST returns a skipped or publishable result without publishing.
-- `vercel.json` still contains daily assemble and daily publish cron entries.
+- `/api/cron/autopublish` dry-run POST returns a skipped or publishable result without publishing.
+- `vercel.json` still contains daily assemble and nightly autopublish cron entries.
 - Required scheduled GitHub workflows are present and active on the default branch, not only on a feature branch.
 - A current or recent `/issues/YYYY-MM-DD` page renders.
 

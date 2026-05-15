@@ -5,8 +5,8 @@
       "schedule": "0 23 * * *"
     },
     {
-      "path": "/api/cron/daily-publish",
-      "schedule": "0 2 * * *"
+      "path": "/api/cron/autopublish",
+      "schedule": "30 2 * * *"
     },
     {
       "path": "/api/cron/positive-ai-digest",
