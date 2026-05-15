@@ -397,6 +397,15 @@ async function inspectAdminApi(args) {
   const headers = { 'x-admin-password': adminPassword }
   const status = await fetchJson(`${args.apiBase}/api/admin/today-status${query}`, { headers })
   const candidateApi = await fetchJson(`${args.apiBase}/api/article-candidates?status=new,approved,shortlisted&limit=5`, { headers })
+  const dryRunAssemble = await fetchJson(`${args.apiBase}/api/cron/daily-assemble`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      adminPassword,
+      dryRun: true,
+      ...(args.date ? { date: args.date } : {}),
+    }),
+  })
   const dryRunPublish = await fetchJson(`${args.apiBase}/api/cron/daily-publish`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -408,9 +417,10 @@ async function inspectAdminApi(args) {
   })
 
   return {
-    ok: status.ok && candidateApi.ok && dryRunPublish.ok,
+    ok: status.ok && candidateApi.ok && dryRunAssemble.ok && dryRunPublish.ok,
     status,
     candidateApi,
+    dryRunAssemble,
     dryRunPublish,
     warnings: [],
   }
@@ -461,6 +471,26 @@ function summarizeAdminChecks(admin) {
       ? `article-candidates returned ${admin.candidateApi.status}.`
       : `article-candidates returned ${admin.candidateApi?.status ?? 'not checked'}.`,
     nextAction: admin.candidateApi?.ok ? 'No candidate API action needed.' : 'Fix candidate API access before publishing.',
+  })
+
+  const draftExists = admin.status?.body?.draft?.exists === true
+  const published = admin.status?.body?.draft?.published === true
+  const assembleImportable = Number(admin.dryRunAssemble?.body?.imported ?? 0)
+  checks.push({
+    label: 'Dry-run daily assemble',
+    status: admin.dryRunAssemble?.ok
+      ? (!draftExists && !published && assembleImportable > 0 ? 'fail' : assembleImportable > 0 ? 'pass' : 'warn')
+      : 'fail',
+    detail: admin.dryRunAssemble?.ok
+      ? `dry-run assemble returned ${admin.dryRunAssemble.status}: ${assembleImportable} importable article${assembleImportable === 1 ? '' : 's'} from ${admin.dryRunAssemble.body?.parsed ?? 0} parsed source item${admin.dryRunAssemble.body?.parsed === 1 ? '' : 's'}.`
+      : `dry-run assemble returned ${admin.dryRunAssemble?.status ?? 'not checked'}.`,
+    nextAction: admin.dryRunAssemble?.ok
+      ? (!draftExists && !published && assembleImportable > 0
+          ? 'Daily assemble has material but no draft exists. Check Vercel cron execution or run assemble intentionally before publish.'
+          : assembleImportable > 0
+            ? 'Assembly source material is available.'
+            : 'No assemble-ready source material was found; check briefing sources before publish.')
+      : 'Fix or deploy the daily assemble dry-run route before relying on cron publishing.',
   })
 
   checks.push({
@@ -554,6 +584,7 @@ async function main() {
     github,
     groups,
     adminStatus: admin.status?.body || null,
+    dryRunAssemble: admin.dryRunAssemble?.body || null,
     dryRunPublish: admin.dryRunPublish?.body || null,
     warnings,
   }

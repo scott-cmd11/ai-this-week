@@ -44,20 +44,40 @@ jobs:
         shell: bash
         env:
           FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.force == 'true' }}
+          SCHEDULED_CRON: ${{ github.event.schedule }}
         run: |
-          winnipeg_time="$(TZ=America/Winnipeg date '+%Y-%m-%d %H:%M:%S %Z')"
-          winnipeg_hour="$(TZ=America/Winnipeg date '+%H')"
-          echo "winnipeg_time=$winnipeg_time"
+          runner_winnipeg_time="$(TZ=America/Winnipeg date '+%Y-%m-%d %H:%M:%S %Z')"
+          runner_winnipeg_hour="$(TZ=America/Winnipeg date '+%H')"
+          echo "runner_winnipeg_time=$runner_winnipeg_time"
+          echo "scheduled_cron=$SCHEDULED_CRON"
+
+          scheduled_winnipeg_hour=""
+          scheduled_winnipeg_time=""
+          utc_day="$(date -u '+%Y-%m-%d')"
+          if [ "$SCHEDULED_CRON" = "15 0 * * *" ]; then
+            scheduled_winnipeg_time="$(TZ=America/Winnipeg date -d "$utc_day 00:15 UTC" '+%Y-%m-%d %H:%M:%S %Z')"
+            scheduled_winnipeg_hour="$(TZ=America/Winnipeg date -d "$utc_day 00:15 UTC" '+%H')"
+          elif [ "$SCHEDULED_CRON" = "15 1 * * *" ]; then
+            scheduled_winnipeg_time="$(TZ=America/Winnipeg date -d "$utc_day 01:15 UTC" '+%Y-%m-%d %H:%M:%S %Z')"
+            scheduled_winnipeg_hour="$(TZ=America/Winnipeg date -d "$utc_day 01:15 UTC" '+%H')"
+          fi
+
+          if [ -n "$scheduled_winnipeg_time" ]; then
+            echo "scheduled_winnipeg_time=$scheduled_winnipeg_time"
+          fi
 
           if [ "$FORCE_RUN" = "true" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
             echo "Forced manual run."
-          elif [ "$winnipeg_hour" = "19" ]; then
+          elif [ "$scheduled_winnipeg_hour" = "19" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
-            echo "Scheduled run is inside the 7 PM Winnipeg hour."
+            echo "Scheduled UTC slot maps to the 7 PM Winnipeg hour, even if GitHub started the runner late."
+          elif [ -z "$SCHEDULED_CRON" ] && [ "$runner_winnipeg_hour" = "19" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Manual non-forced run is inside the 7 PM Winnipeg hour."
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping because this UTC slot is not 7 PM in Winnipeg."
+            echo "Skipping because this scheduled UTC slot is not the 7 PM Winnipeg import slot."
           fi
 
       - name: Fetch and import Google Alerts candidates

@@ -33,6 +33,32 @@
 - Local production smoke on `http://localhost:3046` passed for `/positive-ai`, `/positive-ai/archive`, `/positive-ai/about`, and `/positive-ai/stories/seed-mattersim-materials-ai`; `/positive-ai/stories/seed-alphafold-3-server` correctly returned `404`.
 - Story-surface content check passed: the homepage, archive, and story detail showed 1 qualifying story and did not surface the rejected live examples, old AlphaFold seed story, or blocked themes.
 
+# Task: May 13 Missed Publish Incident
+
+- [x] Verify the live May 13 issue state before changing anything.
+- [x] Inspect admin status, candidate freshness, GitHub source workflow runs, and dry-run assemble/publish checks.
+- [x] Patch the evening Google Alerts workflow so delayed GitHub scheduled runners do not skip the intended 7 PM Winnipeg import.
+- [x] Extend the publishing preflight script so it catches "assemble has source material, but no draft exists."
+- [ ] Push the workflow/preflight fix to GitHub.
+- [ ] Decide whether to mutate live data to backfill the May 13 issue.
+
+## May 13 Incident Evidence
+
+- `https://aitoday.vercel.app/issues/2026-05-13` returned 404.
+- Live `/api/admin/today-status?date=2026-05-13` returned no draft, not published, 0 articles, `preflight = blocked`, and `eveningBriefing = stale`.
+- The live candidate pool still showed 13 active candidates and 5 top picks, but the newest candidate activity was `2026-05-12T02:29:43Z`, which is May 11 in America/Winnipeg time.
+- GitHub Actions showed the `Evening Google Alerts Candidate Import` workflow active on `main`, but both May 13 scheduled runs logged success while skipping import because the runner actually started around 11 PM Winnipeg. The old gate checked runner wall-clock hour instead of the intended scheduled UTC slot.
+- A read-only dry run of `/api/cron/daily-assemble` for `2026-05-13` found 17 parsed source items and 7 importable articles. So there was source material; the draft was not written.
+- A read-only dry run of `/api/cron/daily-publish` for `2026-05-13` returned `no_draft`, matching the missing issue.
+- Vercel cron config still lists `/api/cron/daily-assemble` at `0 23 * * *` and `/api/cron/daily-publish` at `0 2 * * *`, but Vercel logs did not show matching daily assemble/publish entries for the incident window.
+
+## May 13 Prevention Fix
+
+- Updated `.github/workflows/evening-google-alerts-candidates.yml` so schedule gating uses the intended scheduled cron slot mapped into America/Winnipeg time. If GitHub starts the runner late, the correct 7 PM slot still imports.
+- Kept the two UTC cron slots for DST coverage: `15 0 * * *` maps to 7:15 PM Winnipeg during daylight time, and `15 1 * * *` maps to 7:15 PM during standard time.
+- Updated `scripts/publishing-preflight.mjs` to call daily assemble in read-only dry-run mode. It now fails the preflight when assemble has importable source material but no draft exists, which is exactly the May 13 failure shape.
+- Validation: `node --check scripts/publishing-preflight.mjs`, `git diff --check`, and `npm run preflight:publishing -- --api-base https://aitoday.vercel.app --date 2026-05-13 --warn-only` passed as executable checks. The preflight now explicitly reports: `Daily assemble has material but no draft exists.`
+
 # Task: Publishing Prevention Guardrails
 
 - [x] Audit how recent publishing failures became possible before code changes.
