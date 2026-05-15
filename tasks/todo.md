@@ -115,6 +115,8 @@
 - Production was later overwritten by the `main` deployment, which did not include the OpenAI Good News summarizer fix.
 - Cherry-picked the Good News outcome-discovery and OpenAI summarizer commits onto the current production branch.
 - Added an admin-only ingest option to save accepted current stories as `published`, so already-visible Good News stories can be regenerated and persisted with OpenAI-written summaries instead of only appearing as live supplements.
+- Live logs showed the Supabase project is missing `public.ai_good_news_stories` and `public.ai_good_news_digests`; the migration in `docs/supabase/ai_good_news.sql` still needs to be applied for durable database persistence.
+- Added the current four source-linked AI Good News stories to the fallback seed with generated summaries so the public page and story detail routes stay stable until the Supabase tables exist.
 # Task: Publishing Prevention Guardrails
 
 - [x] Audit how recent publishing failures became possible before code changes.

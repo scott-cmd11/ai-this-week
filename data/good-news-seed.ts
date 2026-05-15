@@ -2,6 +2,92 @@ import type { GoodNewsStory } from '@/lib/good-news-types'
 
 export const GOOD_NEWS_SEED_STORIES: GoodNewsStory[] = [
   {
+    id: 'rss-edi442',
+    title: 'Anthropic, Gates Foundation launch $200 million partnership for AI in health, education',
+    source_name: 'Reuters',
+    source_url:
+      'https://news.google.com/rss/articles/CBMi1AFBVV95cUxPZmFZS3BkVlpLam83ekJJNVQ2N0ZBVERuU2R3Y0R5VWZMZzgtdk0zaHZPdWoyc1hpVTNOZElZdGRma0lIeFZWWGpjaFIzUG5ORUtnWFVpUmFEazkyblRiVHNLVlpXTFdKaVZrS3Q5LXdGeEg4QW9ycDV4M0pNNEpCb2xVNjRVdV9XNDVnYXFram9QRWg1YTNGZ193bE44UzR2QUdPamV3Z0JSb285c0M0U09RN29ZdGR0TTdvcEZkcmNJeHFmOENrLXNkMjJzUHFBc2NaSA?oc=5',
+    canonical_url:
+      'https://news.google.com/rss/articles/CBMi1AFBVV95cUxPZmFZS3BkVlpLam83ekJJNVQ2N0ZBVERuU2R3Y0R5VWZMZzgtdk0zaHZPdWoyc1hpVTNOZElZdGRma0lIeFZWWGpjaFIzUG5ORUtnWFVpUmFEazkyblRiVHNLVlpXTFdKaVZrS3Q5LXdGeEg4QW9ycDV4M0pNNEpCb2xVNjRVdV9XNDVnYXFram9QRWg1YTNGZ193bE44UzR2QUdPamV3Z0JSb285c0M0U09RN29ZdGR0TTdvcEZkcmNJeHFmOENrLXNkMjJzUHFBc2NaSA?oc=5',
+    published_at: '2026-05-14T18:03:51.000Z',
+    discovered_at: '2026-05-15T03:56:36.167Z',
+    summary:
+      'Anthropic and the Gates Foundation have launched a $200 million partnership aimed at utilizing AI in the fields of health and education.',
+    why_it_matters:
+      'This partnership may help advance the application of AI technologies to improve health outcomes and educational opportunities.',
+    category: 'Health',
+    tags: ['ai', 'health', 'education', 'partnership', 'investment'],
+    positivity_score: 76,
+    credibility_score: 81,
+    evidence_notes:
+      'Source: Reuters. Primary or high-credibility source signal found. AI relevance signals: AI. Human-benefit domain: education. Positive impact signals: public-interest AI investment. Evidence signals: foundation.',
+    status: 'published',
+  },
+  {
+    id: 'rss-keiqp5',
+    title: 'New AI system classifies India rainfall better, cutting false alarms and missed heavy rain',
+    source_name: 'Phys.org Environment',
+    source_url: 'https://phys.org/news/2026-05-ai-india-rainfall-false-alarms.html',
+    canonical_url: 'https://phys.org/news/2026-05-ai-india-rainfall-false-alarms.html',
+    published_at: '2026-05-14T17:34:44.000Z',
+    discovered_at: '2026-05-15T03:56:36.167Z',
+    summary:
+      'An AI system has been developed that improves the classification of rainfall in India, leading to more accurate predictions and reducing false alarms as well as missed instances of heavy rain.',
+    why_it_matters:
+      'Improved rainfall prediction can enhance preparedness for weather events, potentially reducing the impact of flooding and other weather-related issues.',
+    category: 'Climate',
+    tags: ['ai', 'rainfall prediction', 'india', 'weather forecasting', 'climate'],
+    positivity_score: 80,
+    credibility_score: 81,
+    evidence_notes:
+      'The findings are reported in the International Journal of Mobile Communications, indicating a credible source for the improvements in forecasting accuracy.',
+    status: 'published',
+  },
+  {
+    id: 'rss-7y3e9o',
+    title: 'AI detects heart disease using DEXA bone scans',
+    source_name: 'Heart Foundation',
+    source_url:
+      'https://news.google.com/rss/articles/CBMijgFBVV95cUxPWHg1ZTc1dWtROHdnZXpPNlBJb21QRE9DWHR2ek9pX29EX1p1U1l3bTl5bjVhSFpVZkx2Z3M2LU9UWTQwOUREdFhMNHlLOE9QTmstM1pmZkFDWS1oLXdMRzZQOC1NdHVGeV9HOEtDYW1vbC1kSUdSZjJ3S3J1R0ZXU0RHYVlkd1J4bmdHOEdB?oc=5',
+    canonical_url:
+      'https://news.google.com/rss/articles/CBMijgFBVV95cUxPWHg1ZTc1dWtROHdnZXpPNlBJb21QRE9DWHR2ek9pX29EX1p1U1l3bTl5bjVhSFpVZkx2Z3M2LU9UWTQwOUREdFhMNHlLOE9QTmstM1pmZkFDWS1oLXdMRzZQOC1NdHVGeV9HOEtDYW1vbC1kSUdSZjJ3S3J1R0ZXU0RHYVlkd1J4bmdHOEdB?oc=5',
+    published_at: '2026-05-14T17:01:35.000Z',
+    discovered_at: '2026-05-15T03:56:36.167Z',
+    summary:
+      'AI is being used to detect heart disease through DEXA bone scans, which may help in identifying the condition earlier.',
+    why_it_matters:
+      'Early detection of heart disease can lead to timely interventions and improved health outcomes for patients.',
+    category: 'Health',
+    tags: ['ai', 'heart disease', 'dexa scans', 'early detection', 'health care'],
+    positivity_score: 72,
+    credibility_score: 81,
+    evidence_notes:
+      'Source: Heart Foundation. Primary or high-credibility source signal found. AI relevance signals: AI. Human-benefit domain: health care. Positive impact signals: detects earlier. Evidence signals: foundation.',
+    status: 'published',
+  },
+  {
+    id: 'rss-urfwv5',
+    title: 'Xcel Energy brings AI-driven wildfire detection to Wisconsin',
+    source_name: 'Xcel Energy Newsroom',
+    source_url:
+      'https://news.google.com/rss/articles/CBMiZEFVX3lxTE5vOWFkd0lvT1IxUUdRM0JVd1JrMFlEbUdsdzRSY0wtTTA3cmZHdko4TG1FdG9pTTZJSWFvOVIybmpxSno3LTE2RENhbTkwd1hKQl9IRnBBUVNXWXdiTEpiS3prZWo?oc=5',
+    canonical_url:
+      'https://news.google.com/rss/articles/CBMiZEFVX3lxTE5vOWFkd0lvT1IxUUdRM0JVd1JrMFlEbUdsdzRSY0wtTTA3cmZHdko4TG1FdG9pTTZJSWFvOVIybmpxSno3LTE2RENhbTkwd1hKQl9IRnBBUVNXWXdiTEpiS3prZWo?oc=5',
+    published_at: '2026-05-14T16:04:36.000Z',
+    discovered_at: '2026-05-15T03:56:36.167Z',
+    summary:
+      'Xcel Energy is implementing AI-driven wildfire detection technology in Wisconsin.',
+    why_it_matters:
+      'This technology may help improve forecasting and enhance safety measures related to wildfire detection.',
+    category: 'Climate',
+    tags: ['ai', 'wildfire detection', 'safety', 'wisconsin'],
+    positivity_score: 92,
+    credibility_score: 76,
+    evidence_notes:
+      'Source: Xcel Energy Newsroom. Primary or high-credibility source signal found. AI relevance signals: AI. Human-benefit domain: climate or energy. Positive impact signals: improves forecasting or safety detection, wildfire safety detection.',
+    status: 'published',
+  },
+  {
     id: 'seed-mattersim-materials-ai',
     title: 'Microsoft Research reports experimental validation for AI materials tool MatterSim',
     source_name: 'Microsoft Research',
