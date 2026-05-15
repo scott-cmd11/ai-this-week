@@ -100,6 +100,14 @@
 - `npm run lint`, `npx tsc --noEmit`, and `npm run build` passed.
 - Local production smoke on `http://localhost:3056/positive-ai` rendered 4 story links, kept the old AlphaFold seed route at `404`, and passed the blocked negative-term check.
 
+## AI Good News Summaries
+
+- User asked why the already-configured OpenAI API key was not being used for AI Good News summaries.
+- Confirmed the positive-AI pipeline still used the MVP fallback summarizer while other site routes already used `OPENAI_API_KEY`.
+- Updated the Good News summarizer to use OpenAI for accepted stories when `OPENAI_API_KEY` is present, while keeping deterministic scoring as the editorial gate and preserving a no-key fallback.
+- Cleaned RSS text handling so entities such as `&nbsp;` and source-name tails do not leak into card summaries.
+- Confirmed `.env.local` has `OPENAI_API_KEY` configured without printing the key.
+- Validation passed: `npm run test -- tests/lib/good-news-summarizer.test.ts tests/lib/good-news-rss.test.ts tests/lib/good-news-scoring.test.ts tests/lib/good-news-dedupe.test.ts tests/lib/good-news-digest.test.ts`, `node scripts/ingest-ai-good-news.mjs --dry-run`, `npm run lint`, `npx tsc --noEmit`, and `npm run build`.
 # Task: Publishing Prevention Guardrails
 
 - [x] Audit how recent publishing failures became possible before code changes.
