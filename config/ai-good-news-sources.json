@@ -140,5 +140,125 @@
     "default_category": "Small Business",
     "focus": ["small business", "local business", "practical tools"],
     "enabled": true
+  },
+  {
+    "name": "Medical Xpress",
+    "type": "rss",
+    "url": "https://medicalxpress.com/rss-feed/",
+    "default_category": "Health",
+    "focus": ["patients", "diagnosis", "medical research", "clinical workflow"],
+    "enabled": true
+  },
+  {
+    "name": "Nature Medicine",
+    "type": "rss",
+    "url": "https://www.nature.com/nm.rss",
+    "default_category": "Health",
+    "focus": ["clinical research", "patients", "medical evidence"],
+    "enabled": true
+  },
+  {
+    "name": "Nature Machine Intelligence",
+    "type": "rss",
+    "url": "https://www.nature.com/natmachintell.rss",
+    "default_category": "Science",
+    "focus": ["peer-reviewed AI research", "scientific discovery", "responsible deployment"],
+    "enabled": true
+  },
+  {
+    "name": "Phys.org Science",
+    "type": "rss",
+    "url": "https://phys.org/rss-feed/science-news/",
+    "default_category": "Science",
+    "focus": ["scientific discovery", "research", "public benefit"],
+    "enabled": true
+  },
+  {
+    "name": "Phys.org Biotechnology",
+    "type": "rss",
+    "url": "https://phys.org/rss-feed/biology-news/biotechnology/",
+    "default_category": "Science",
+    "focus": ["biology", "drug discovery", "medical research"],
+    "enabled": true
+  },
+  {
+    "name": "Phys.org Environment",
+    "type": "rss",
+    "url": "https://phys.org/rss-feed/earth-news/environment/",
+    "default_category": "Climate",
+    "focus": ["climate", "energy", "environment", "resilience"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Health",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(artificial%20intelligence%20OR%20AI)%20(health%20OR%20patients%20OR%20medical%20OR%20clinical)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Health",
+    "discovery_query": "artificial intelligence health patients medical clinical",
+    "focus": ["diagnosis", "patients", "medical research", "care access"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Education",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(artificial%20intelligence%20OR%20AI)%20(education%20OR%20teachers%20OR%20students%20OR%20tutoring)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Education",
+    "discovery_query": "artificial intelligence education teachers students tutoring",
+    "focus": ["teachers", "students", "tutoring", "learning access"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Accessibility",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(artificial%20intelligence%20OR%20AI)%20(accessibility%20OR%20disability%20OR%20assistive%20OR%20translation)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Accessibility",
+    "discovery_query": "artificial intelligence accessibility disability assistive translation",
+    "focus": ["assistive technology", "inclusive design", "translation"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Science",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(artificial%20intelligence%20OR%20AI)%20(science%20OR%20research%20OR%20drug%20discovery%20OR%20materials)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Science",
+    "discovery_query": "artificial intelligence science research drug discovery materials",
+    "focus": ["research", "scientific discovery", "drug discovery", "materials"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Climate",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(artificial%20intelligence%20OR%20AI)%20(climate%20OR%20energy%20OR%20agriculture%20OR%20weather%20OR%20disaster)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Climate",
+    "discovery_query": "artificial intelligence climate energy agriculture weather disaster",
+    "focus": ["climate", "energy", "agriculture", "weather", "disaster response"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Public Good",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(artificial%20intelligence%20OR%20AI)%20(%22public%20service%22%20OR%20government%20OR%20benefits%20OR%20nonprofit%20OR%20humanitarian)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Public Good",
+    "discovery_query": "artificial intelligence public service government benefits nonprofit humanitarian",
+    "focus": ["public service", "government", "benefits access", "humanitarian"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Safety Benefit",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(artificial%20intelligence%20OR%20AI)%20(fraud%20detection%20OR%20cybersecurity%20OR%20patient%20safety%20OR%20medical%20error)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Safety",
+    "discovery_query": "artificial intelligence fraud detection cybersecurity patient safety medical error",
+    "focus": ["fraud detection", "cybersecurity", "patient safety", "risk reduction"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Small Business",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(artificial%20intelligence%20OR%20AI)%20(%22small%20business%22%20OR%20entrepreneur%20OR%20nonprofit%20OR%20creator)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Small Business",
+    "discovery_query": "artificial intelligence small business entrepreneur nonprofit creator",
+    "focus": ["small business", "nonprofit", "creator tools", "local economy"],
+    "enabled": true
   }
 ]

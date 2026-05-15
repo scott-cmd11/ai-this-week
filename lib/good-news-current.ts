@@ -2,7 +2,7 @@ import 'server-only'
 
 import { dedupeGoodNewsStories } from './good-news-dedupe'
 import { ingestConfiguredGoodNewsSources } from './good-news-ingestion'
-import { GOOD_NEWS_CURRENT_WINDOW_HOURS, isGoodNewsStoryCurrent } from './good-news-recency'
+import { GOOD_NEWS_CURRENT_WINDOW_HOURS, GOOD_NEWS_FALLBACK_WINDOW_HOURS, isGoodNewsStoryCurrent } from './good-news-recency'
 import { isHighRelevanceGoodNewsStory } from './good-news-scoring'
 import { getGoodNewsStory, listGoodNewsStories } from './good-news-store'
 import type { GoodNewsCategory, GoodNewsStory } from './good-news-types'
@@ -27,7 +27,7 @@ export async function listCurrentPublishedGoodNewsStories(options: {
   const now = options.now ?? new Date()
   const stored = await listGoodNewsStories({
     status: 'published',
-    publishedWithinHours: GOOD_NEWS_CURRENT_WINDOW_HOURS,
+    publishedWithinHours: GOOD_NEWS_FALLBACK_WINDOW_HOURS,
     now,
     limit: 250,
   })
@@ -36,12 +36,18 @@ export async function listCurrentPublishedGoodNewsStories(options: {
   const supplement = needsSupplement ? await getLiveSupplementStories(now) : []
   const query = options.query?.trim().toLowerCase()
 
-  return dedupeGoodNewsStories([...stored, ...supplement])
+  const qualifiedStories = dedupeGoodNewsStories([...stored, ...supplement])
     .filter(story => story.status === 'published')
-    .filter(story => isGoodNewsStoryCurrent(story, now, GOOD_NEWS_CURRENT_WINDOW_HOURS))
     .filter(isHighRelevanceGoodNewsStory)
     .filter(story => !options.category || story.category === options.category)
     .filter(story => !query || storySearchText(story).includes(query))
+
+  const currentStories = qualifiedStories.filter(story => isGoodNewsStoryCurrent(story, now, GOOD_NEWS_CURRENT_WINDOW_HOURS))
+  const fallbackStories = currentStories.length > 0
+    ? currentStories
+    : qualifiedStories.filter(story => isGoodNewsStoryCurrent(story, now, GOOD_NEWS_FALLBACK_WINDOW_HOURS))
+
+  return fallbackStories
     .sort((a, b) =>
       new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
       || b.credibility_score - a.credibility_score
@@ -54,7 +60,7 @@ export async function getCurrentPublishedGoodNewsStory(id: string, now = new Dat
   const stored = await getGoodNewsStory(id)
   if (
     stored?.status === 'published'
-    && isGoodNewsStoryCurrent(stored, now, GOOD_NEWS_CURRENT_WINDOW_HOURS)
+    && isGoodNewsStoryCurrent(stored, now, GOOD_NEWS_FALLBACK_WINDOW_HOURS)
     && isHighRelevanceGoodNewsStory(stored)
   ) {
     return stored
@@ -78,7 +84,7 @@ async function getLiveSupplementStories(now: Date): Promise<GoodNewsStory[]> {
     })
     const stories = result.stories
       .filter(story => story.status === 'published')
-      .filter(story => isGoodNewsStoryCurrent(story, now, GOOD_NEWS_CURRENT_WINDOW_HOURS))
+      .filter(story => isGoodNewsStoryCurrent(story, now, GOOD_NEWS_FALLBACK_WINDOW_HOURS))
       .filter(isHighRelevanceGoodNewsStory)
 
     liveSupplementCache = {

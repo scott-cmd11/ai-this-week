@@ -51,4 +51,46 @@ describe('AI Good News digest generation', () => {
     expect(digest.story_ids.length).toBeGreaterThanOrEqual(4)
     expect(digest.headline).toMatch(/AI Good News/)
   })
+
+  it('expands to 48 hours only when the strict 24-hour window has no qualifying stories', () => {
+    const digest = generateDailyDigest([
+      story({
+        id: 'fallback-health',
+        title: 'AI helps clinical teams improve patient screening access',
+        published_at: '2026-05-11T03:00:00.000Z',
+        summary: 'A clinical pilot used AI to support patient screening and improve diagnosis review.',
+        category: 'Health',
+      }),
+      story({
+        id: 'too-old',
+        title: 'AI helps public-service teams improve access',
+        published_at: '2026-05-09T03:00:00.000Z',
+      }),
+    ], new Date('2026-05-12T18:00:00.000Z'))
+
+    expect(digest.story_ids).toEqual(['fallback-health'])
+    expect(digest.intro).toMatch(/last 48 hours/)
+  })
+
+  it('keeps the 24-hour window when a qualifying daily story exists', () => {
+    const digest = generateDailyDigest([
+      story({
+        id: 'current-health',
+        title: 'AI helps clinical teams improve patient screening access',
+        published_at: '2026-05-12T03:00:00.000Z',
+        summary: 'A clinical pilot used AI to support patient screening and improve diagnosis review.',
+        category: 'Health',
+      }),
+      story({
+        id: 'fallback-health',
+        title: 'AI helps clinical teams improve patient screening access in another pilot',
+        published_at: '2026-05-11T03:00:00.000Z',
+        summary: 'A clinical pilot used AI to support patient screening and improve diagnosis review.',
+        category: 'Health',
+      }),
+    ], new Date('2026-05-12T18:00:00.000Z'))
+
+    expect(digest.story_ids).toEqual(['current-health'])
+    expect(digest.intro).toMatch(/last 24 hours/)
+  })
 })

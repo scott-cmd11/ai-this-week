@@ -121,4 +121,34 @@ describe('AI Good News scoring', () => {
     expect(score.category).toBe('Public Good')
     expect(score.evidence_notes).toMatch(/Positive impact signals/)
   })
+
+  it('accepts serious public-benefit AI stories that include ordinary caveats', () => {
+    const score = scoreGoodNewsCandidate({
+      title: 'AI tool helps public health teams improve patient screening access',
+      source_name: 'Reuters',
+      source_url: 'https://www.reuters.com/example-health-ai',
+      summary: 'A named public health pilot used artificial intelligence to improve patient screening access, while the article notes normal concerns about bias and job displacement that require oversight.',
+      content_text: 'The deployment reports measured patient screening support from a named public health agency and describes safeguards for clinical staff.',
+      published_at: '2026-05-14T12:00:00.000Z',
+      category: 'Health',
+    })
+
+    expect(score.accepted).toBe(true)
+    expect(score.rejection_reasons).toHaveLength(0)
+  })
+
+  it('accepts public-interest AI partnerships when the benefit is concrete', () => {
+    const score = scoreGoodNewsCandidate({
+      title: 'Anthropic, Gates Foundation launch $200 million partnership for AI in health, education',
+      source_name: 'Reuters',
+      source_url: 'https://news.google.com/rss/articles/example',
+      summary: 'The initiative commits AI technical support and grant funding for health, education, African-language data, teacher support, and medical research.',
+      content_text: 'Named organizations describe a four-year program using artificial intelligence to support teachers, patients, language access, and drug-candidate research.',
+      published_at: '2026-05-14T18:03:51.000Z',
+      category: 'Public Good',
+    })
+
+    expect(score.accepted).toBe(true)
+    expect(score.category).toBe('Public Good')
+  })
 })

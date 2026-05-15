@@ -41,12 +41,14 @@ const BENEFIT_SIGNALS: Array<{ label: string; pattern: RegExp }> = [
   { label: 'supports beneficial workflow', pattern: /\b(supports?|supporting|supported)\b.{0,80}\b(screening|diagnosis|care|learning|teachers?|students?|patients?|researchers?|public service|accessibility)\b/ },
   { label: 'improves outcomes', pattern: /\b(improves?|improving|improved|increase[sd]?|reduces?|reducing|reduced)\b.{0,80}\b(access|accuracy|screening|diagnosis|forecasting|safety|resilience|productivity|learning|care|outcomes?)\b/ },
   { label: 'detects earlier', pattern: /\b(detects?|detection|catch|catches|identify|identifies|screen|screens|triage)\b.{0,80}\b(earlier|patients?|cancer|defects?|cracks?|risks?|disease|infrastructure)\b/ },
+  { label: 'improves forecasting or safety detection', pattern: /\b(predicts?|forecast(?:s|ing)?|classif(?:y|ies|ication)|detects?|detection)\b.{0,100}\b(better|more accurate|reliable|false alarms?|missed heavy rain|wildfire|disaster|patient safety|medical error)\b/ },
   { label: 'accessibility support', pattern: /\b(accessibility|assistive|blind|low vision|disabled|disability|captions?|screen reader|speech recognition)\b/ },
-  { label: 'education access', pattern: /\b(students?|teachers?|learners?|classroom|tutor|tutoring|education|course)\b.{0,80}\b(access|accessible|support|practice|feedback|personalization|personalized|fluency)\b/ },
+  { label: 'education access', pattern: /\b(students?|teachers?|learners?|classroom|tutor|tutoring|education|course)\b.{0,80}\b(access|accessible|support|feedback|personalization|personalized|fluency)\b/ },
   { label: 'scientific discovery', pattern: /\b(researchers?|scientists?|laborator(?:y|ies)|materials?|biology|molecular|drug discovery|open science)\b.{0,100}\b(accelerate|accelerates|simulation|synthesis|screening|prediction|discovery|tool|free access|measured)\b/ },
   { label: 'public benefit', pattern: /\b(public service|public good|government|agency|community|nonprofit|weather|forecast|grid|emergency|infrastructure|roads?|bridges?)\b.{0,100}\b(support|improve|detect|forecast|resilience|safer|safety|decision support)\b/ },
   { label: 'small business benefit', pattern: /\b(small business|local business|smb|entrepreneur|main street)\b.{0,100}\b(productivity|save time|support|access|resilience|practical)\b/ },
   { label: 'human-benefit deployment', pattern: /\b(deployed|implemented|pilot|trial|launched|free access)\b.{0,100}\b(patients?|students?|teachers?|researchers?|public|community|accessibility|small businesses?)\b/ },
+  { label: 'public-interest AI investment', pattern: /\b(partnership|grant|initiative|program|commitment)\b.{0,100}\b(ai|artificial intelligence)\b.{0,120}\b(health|education|accessibility|public good|research|patients?|students?|teachers?|language data|medical)\b/ },
 ]
 
 const EVIDENCE_SIGNALS = [
@@ -98,6 +100,16 @@ const STRONG_SOURCE_SIGNALS = [
   'scaleai.ca',
   'digitalmainstreet.ca',
   'blog.khanacademy.org',
+  'reuters',
+  'associated press',
+  'ap news',
+  'eurekalert',
+  'medical xpress',
+  'phys.org',
+  'nature machine intelligence',
+  'nature medicine',
+  'world economic forum',
+  'nihcm',
 ]
 
 const PROMOTIONAL_SIGNALS = [
@@ -156,6 +168,7 @@ export interface GoodNewsScoreResult {
 export function scoreGoodNewsCandidate(input: GoodNewsCandidateInput): GoodNewsScoreResult {
   const text = sourceAndContentText(input)
   const contentText = editorialText(input)
+  const headlineText = headlineAndSummaryText(input)
   const category = coerceGoodNewsCategory(input.category) ?? inferGoodNewsCategory(input)
   const categorySignals = CATEGORY_SIGNALS[category].filter(signal => contentText.includes(signal))
   const aiSignals = AI_RELEVANCE_SIGNALS.filter(signal => signal.pattern.test(contentText)).map(signal => signal.label)
@@ -164,35 +177,47 @@ export function scoreGoodNewsCandidate(input: GoodNewsCandidateInput): GoodNewsS
   const strongSource = STRONG_SOURCE_SIGNALS.some(signal => text.includes(signal))
   const promotionalSignals = PROMOTIONAL_SIGNALS.filter(signal => contentText.includes(signal))
   const excludedSignals = EXCLUDED_SIGNALS.filter(signal => signal.pattern.test(contentText)).map(signal => signal.label)
+  const dominantExcludedSignals = EXCLUDED_SIGNALS.filter(signal => signal.pattern.test(headlineText)).map(signal => signal.label)
   const humanBenefitDomains = HUMAN_BENEFIT_DOMAIN_SIGNALS.filter(signal => signal.pattern.test(contentText)).map(signal => signal.label)
+  const hasConcretePublicBenefit = aiSignals.length > 0
+    && humanBenefitDomains.length > 0
+    && benefitSignals.length > 0
+    && (strongSource || evidenceSignals.length > 0)
+  const highConfidenceImpact = strongSource
+    && aiSignals.length > 0
+    && humanBenefitDomains.length > 0
+    && benefitSignals.length > 0
+  const likelyPromotionalOnly = promotionalSignals.length > 0 && !hasConcretePublicBenefit
 
   let positivity = 24
   positivity += Math.min(36, benefitSignals.length * 12)
   positivity += Math.min(14, categorySignals.length * 4)
   positivity += aiSignals.length > 0 ? 8 : 0
   positivity += humanBenefitDomains.length > 0 ? 10 : 0
+  positivity += highConfidenceImpact ? 8 : 0
   positivity += input.summary?.trim() ? 8 : 0
-  positivity -= promotionalSignals.length > 0 ? 16 : 0
-  positivity -= excludedSignals.length > 0 ? 55 : 0
+  positivity -= likelyPromotionalOnly ? 16 : 0
+  positivity -= dominantExcludedSignals.length > 0 ? 55 : excludedSignals.length > 0 && !hasConcretePublicBenefit ? 28 : 0
 
   let credibility = 38
   credibility += strongSource ? 22 : 0
   credibility += Math.min(20, evidenceSignals.length * 5)
   credibility += hasValidUrl(input.source_url) ? 10 : 0
   credibility += input.published_at ? 6 : 0
-  credibility -= promotionalSignals.length > 0 ? 10 : 0
+  credibility -= likelyPromotionalOnly ? 10 : 0
   credibility -= input.source_name?.toLowerCase().includes('example') ? 30 : 0
 
   const positivity_score = clampScore(positivity)
   const credibility_score = clampScore(credibility)
   const rejection_reasons = [
-    ...(excludedSignals.length > 0 ? [`Excluded framing: ${dedupeStrings(excludedSignals).join(', ')}`] : []),
+    ...(dominantExcludedSignals.length > 0 ? [`Excluded framing: ${dedupeStrings(dominantExcludedSignals).join(', ')}`] : []),
+    ...(excludedSignals.length > 0 && !hasConcretePublicBenefit ? [`Mixed or negative framing without enough positive evidence: ${dedupeStrings(excludedSignals).join(', ')}`] : []),
     ...(aiSignals.length === 0 ? ['No clear AI relevance signal.'] : []),
     ...(humanBenefitDomains.length === 0 ? ['No clear human-benefit domain.'] : []),
     ...(benefitSignals.length === 0 ? ['No clear positive good-news impact signal.'] : []),
     ...(credibility_score < MINIMUM_PUBLIC_CREDIBILITY_SCORE ? ['Credibility score below positive-good-news threshold.'] : []),
     ...(positivity_score < MINIMUM_PUBLIC_POSITIVITY_SCORE ? ['Positivity score below positive-good-news threshold.'] : []),
-    ...(promotionalSignals.length > 0 ? ['Likely promotional or market-news framing.'] : []),
+    ...(likelyPromotionalOnly ? ['Likely promotional or market-news framing.'] : []),
   ]
 
   return {
@@ -289,6 +314,10 @@ function editorialText(input: GoodNewsCandidateInput): string {
     input.category,
     ...(input.tags ?? []),
   ].filter(Boolean).join(' ').toLowerCase()
+}
+
+function headlineAndSummaryText(input: GoodNewsCandidateInput): string {
+  return input.title.toLowerCase()
 }
 
 function buildEvidenceNotes({

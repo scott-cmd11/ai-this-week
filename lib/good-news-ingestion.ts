@@ -4,37 +4,41 @@ import sourceConfig from '@/config/ai-good-news-sources.json'
 import type { GoodNewsCandidateInput, GoodNewsSourceConfig, GoodNewsStatus, GoodNewsStory } from './good-news-types'
 import { createGoodNewsSummarizer } from './good-news-summarizer'
 import { normalizeGoodNewsUrl } from './good-news-scoring'
-import { GOOD_NEWS_CURRENT_WINDOW_HOURS, isGoodNewsStoryCurrent } from './good-news-recency'
+import { GOOD_NEWS_CURRENT_WINDOW_HOURS, GOOD_NEWS_FALLBACK_WINDOW_HOURS, isGoodNewsStoryCurrent } from './good-news-recency'
+import { parseRssItems, type RssItem } from './good-news-rss'
 import { upsertGoodNewsStories } from './good-news-store'
-
-interface RssItem {
-  title: string
-  link: string
-  publishedAt: string | null
-  description: string
-}
 
 export interface GoodNewsIngestionResult {
   checkedSources: number
   fetchedItems: number
   accepted: number
+  acceptedInPrimaryWindow: number
   rejected: number
   stories: GoodNewsStory[]
   errors: string[]
+  lookbackWindowHours: number
+  expandedToFallback: boolean
 }
 
 export async function ingestConfiguredGoodNewsSources(options: {
   persist?: boolean
   status?: GoodNewsStatus
   limitPerSource?: number
+  lookbackHours?: number
+  fallbackLookbackHours?: number
+  minimumAccepted?: number
 } = {}): Promise<GoodNewsIngestionResult> {
   const sources = (sourceConfig as GoodNewsSourceConfig[]).filter(source => source.enabled)
   const summarizer = createGoodNewsSummarizer()
-  const stories: GoodNewsStory[] = []
+  const acceptedStories: GoodNewsStory[] = []
   const errors: string[] = []
   const now = new Date()
   const status = options.status ?? 'pending'
   const limitPerSource = options.limitPerSource ?? 12
+  const primaryLookbackHours = options.lookbackHours ?? GOOD_NEWS_CURRENT_WINDOW_HOURS
+  const fallbackLookbackHours = options.fallbackLookbackHours ?? GOOD_NEWS_FALLBACK_WINDOW_HOURS
+  const maximumLookbackHours = Math.max(primaryLookbackHours, fallbackLookbackHours)
+  const minimumAccepted = options.minimumAccepted ?? 1
   let fetchedItems = 0
   let rejected = 0
 
@@ -43,13 +47,14 @@ export async function ingestConfiguredGoodNewsSources(options: {
       const items = await fetchRssItems(source)
       fetchedItems += items.length
       for (const item of items.slice(0, limitPerSource)) {
-        if (!isGoodNewsStoryCurrent({ published_at: item.publishedAt }, now, GOOD_NEWS_CURRENT_WINDOW_HOURS)) {
+        if (!isGoodNewsStoryCurrent({ published_at: item.publishedAt }, now, maximumLookbackHours)) {
           rejected++
           continue
         }
+        const sourceName = item.sourceName || source.name
         const input: GoodNewsCandidateInput = {
           title: item.title,
-          source_name: source.name,
+          source_name: sourceName,
           source_url: item.link,
           canonical_url: item.link,
           published_at: item.publishedAt,
@@ -63,10 +68,10 @@ export async function ingestConfiguredGoodNewsSources(options: {
           rejected++
           continue
         }
-        stories.push({
+        acceptedStories.push({
           id: storyIdForUrl(item.link),
           title: item.title,
-          source_name: source.name,
+          source_name: sourceName,
           source_url: item.link,
           canonical_url: normalizeGoodNewsUrl(item.link),
           published_at: item.publishedAt ?? new Date().toISOString(),
@@ -87,15 +92,23 @@ export async function ingestConfiguredGoodNewsSources(options: {
     }
   }
 
-  const saved = options.persist === false ? stories : await upsertGoodNewsStories(stories)
+  const primaryStories = acceptedStories.filter(story => isGoodNewsStoryCurrent(story, now, primaryLookbackHours))
+  const expandedToFallback = primaryStories.length < minimumAccepted
+  const selectedStories = expandedToFallback
+    ? acceptedStories.filter(story => isGoodNewsStoryCurrent(story, now, fallbackLookbackHours))
+    : primaryStories
+  const saved = options.persist === false ? selectedStories : await upsertGoodNewsStories(selectedStories)
 
   return {
     checkedSources: sources.length,
     fetchedItems,
     accepted: saved.length,
+    acceptedInPrimaryWindow: primaryStories.length,
     rejected,
     stories: saved,
     errors,
+    lookbackWindowHours: expandedToFallback ? fallbackLookbackHours : primaryLookbackHours,
+    expandedToFallback,
   }
 }
 
@@ -110,55 +123,6 @@ async function fetchRssItems(source: GoodNewsSourceConfig): Promise<RssItem[]> {
   if (!res.ok) throw new Error(`RSS fetch failed with ${res.status}`)
   const xml = await res.text()
   return parseRssItems(xml)
-}
-
-export function parseRssItems(xml: string): RssItem[] {
-  const itemMatches = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)]
-  const entryMatches = itemMatches.length > 0 ? itemMatches : [...xml.matchAll(/<entry\b[\s\S]*?<\/entry>/gi)]
-  return entryMatches.map(match => {
-    const item = match[0]
-    const link = readTag(item, 'link') || readAtomLink(item)
-    return {
-      title: decodeXml(readTag(item, 'title')),
-      link: decodeXml(link),
-      publishedAt: normalizeRssDate(readTag(item, 'pubDate') || readTag(item, 'published') || readTag(item, 'updated')),
-      description: stripHtml(decodeXml(readTag(item, 'description') || readTag(item, 'summary') || readTag(item, 'content:encoded'))),
-    }
-  }).filter(item => item.title && item.link)
-}
-
-function readTag(xml: string, tagName: string): string {
-  const escaped = tagName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const match = xml.match(new RegExp(`<${escaped}[^>]*>([\\s\\S]*?)<\\/${escaped}>`, 'i'))
-  return match?.[1]?.replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, '').trim() ?? ''
-}
-
-function readAtomLink(xml: string): string {
-  const href = xml.match(/<link[^>]+href=["']([^"']+)["'][^>]*>/i)?.[1]
-  return href?.trim() ?? ''
-}
-
-function normalizeRssDate(value: string): string | null {
-  if (!value) return null
-  const parsed = new Date(decodeXml(value))
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
-}
-
-function decodeXml(value: string): string {
-  return value
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)))
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .trim()
-}
-
-function stripHtml(value: string): string {
-  return value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 function storyIdForUrl(url: string): string {

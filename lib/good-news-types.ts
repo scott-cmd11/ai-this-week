@@ -63,5 +63,6 @@ export interface GoodNewsSourceConfig {
   url: string
   default_category?: GoodNewsCategory
   focus?: string[]
+  discovery_query?: string
   enabled: boolean
 }

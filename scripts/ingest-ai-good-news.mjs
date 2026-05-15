@@ -8,6 +8,7 @@ const outDir = path.join(root, 'tmp', 'ai-good-news-ingest')
 const args = new Set(process.argv.slice(2))
 const dryRun = args.has('--dry-run') || !process.env.AI_GOOD_NEWS_INGEST_URL
 const currentWindowHours = 24
+const fallbackWindowHours = 48
 
 const config = JSON.parse(await fs.readFile(configPath, 'utf8'))
 const sources = config.filter(source => source.enabled)
@@ -25,11 +26,12 @@ for (const source of sources) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const xml = await res.text()
     for (const item of parseItems(xml).slice(0, 12)) {
-      if (hoursSincePublished(item.publishedAt) > currentWindowHours) continue
+      if (hoursSincePublished(item.publishedAt) > fallbackWindowHours) continue
       candidates.push({
         title: item.title,
         url: item.link,
-        source: source.name,
+        source: item.sourceName || source.name,
+        sourceUrl: item.sourceUrl,
         publishedAt: item.publishedAt,
         summary: item.description,
         category: source.default_category,
@@ -42,7 +44,16 @@ for (const source of sources) {
 
 await fs.mkdir(outDir, { recursive: true })
 const outputPath = path.join(outDir, `${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
-await fs.writeFile(outputPath, JSON.stringify({ generatedAt: new Date().toISOString(), candidates, errors }, null, 2))
+const primaryCandidates = candidates.filter(candidate => hoursSincePublished(candidate.publishedAt) <= currentWindowHours)
+const expandedToFallback = primaryCandidates.length === 0
+const selectedCandidates = expandedToFallback ? candidates : primaryCandidates
+await fs.writeFile(outputPath, JSON.stringify({
+  generatedAt: new Date().toISOString(),
+  lookbackWindowHours: expandedToFallback ? fallbackWindowHours : currentWindowHours,
+  expandedToFallback,
+  candidates: selectedCandidates,
+  errors,
+}, null, 2))
 
 if (!dryRun) {
   const res = await fetch(process.env.AI_GOOD_NEWS_INGEST_URL, {
@@ -60,8 +71,9 @@ if (!dryRun) {
 
 console.log(JSON.stringify({
   checkedSources: sources.length,
-  candidates: candidates.length,
-  currentWindowHours,
+  candidates: selectedCandidates.length,
+  currentWindowHours: expandedToFallback ? fallbackWindowHours : currentWindowHours,
+  expandedToFallback,
   errors,
   outputPath,
   dryRun,
@@ -72,9 +84,12 @@ function parseItems(xml) {
   const entries = matches.length > 0 ? matches : [...xml.matchAll(/<entry\b[\s\S]*?<\/entry>/gi)]
   return entries.map(match => {
     const raw = match[0]
+    const source = readSource(raw)
     return {
-      title: decodeXml(readTag(raw, 'title')),
+      title: cleanTitle(decodeXml(readTag(raw, 'title')), source.name),
       link: decodeXml(readTag(raw, 'link') || readAtomLink(raw)),
+      sourceName: source.name,
+      sourceUrl: source.url,
       publishedAt: normalizeDate(readTag(raw, 'pubDate') || readTag(raw, 'published') || readTag(raw, 'updated')),
       description: stripHtml(decodeXml(readTag(raw, 'description') || readTag(raw, 'summary') || readTag(raw, 'content:encoded'))),
     }
@@ -88,6 +103,15 @@ function readTag(xml, tagName) {
 
 function readAtomLink(xml) {
   return xml.match(/<link[^>]+href=["']([^"']+)["'][^>]*>/i)?.[1]?.trim() || ''
+}
+
+function readSource(xml) {
+  const match = xml.match(/<source\b([^>]*)>([\s\S]*?)<\/source>/i)
+  if (!match) return { name: null, url: null }
+  return {
+    name: decodeXml(match[2] || '') || null,
+    url: decodeXml((match[1] || '').match(/\burl=["']([^"']+)["']/i)?.[1] || '') || null,
+  }
 }
 
 function normalizeDate(value) {
@@ -118,4 +142,10 @@ function decodeXml(value) {
 
 function stripHtml(value) {
   return value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function cleanTitle(title, sourceName) {
+  if (!sourceName) return title
+  const suffix = ` - ${sourceName}`
+  return title.endsWith(suffix) ? title.slice(0, -suffix.length).trim() : title
 }

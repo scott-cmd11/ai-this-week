@@ -37,7 +37,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## AI Good News MVP
 
-`/positive-ai` is a self-contained AI Good News MVP inside the AI Today app. It publishes positive, evidence-based AI stories with source links, dates, categories, summaries, why-it-matters notes, credibility scores, positivity scores, and evidence checks. Public reader surfaces only show stories published in the last 24 hours; historical seed examples must stay out of the daily view.
+`/positive-ai` is a self-contained AI Good News MVP inside the AI Today app. It publishes positive, evidence-based AI stories with source links, dates, categories, summaries, why-it-matters notes, credibility scores, positivity scores, and evidence checks. Public reader surfaces prefer stories published in the last 24 hours, with a one-time 48-hour fallback when the strict daily window has no qualifying story; historical seed examples must stay out of the daily view.
 
 ### Local development
 
@@ -67,7 +67,7 @@ The server writes with the service role. Public reads are limited to published A
 
 ### Sources and ingestion
 
-Editable RSS sources live in `config/ai-good-news-sources.json`. Prefer RSS feeds, public APIs, and openly available metadata. Do not add aggressive scraping targets.
+Editable RSS sources live in `config/ai-good-news-sources.json`. Prefer RSS feeds, public APIs, and openly available metadata. Do not add aggressive scraping targets. The current source mix includes direct institutional feeds plus Google News RSS discovery feeds for health, education, accessibility, science, climate, safety, public good, and small business so the desk can search broadly without scraping pages.
 
 The positive-AI source mix intentionally looks for AI at its most useful: health care, accessibility, education, scientific discovery, climate and energy, public service, safety, small business productivity, creativity, and Canadian innovation. Broad feeds are allowed only when the scoring layer can still confirm clear AI relevance; a positive story about technology, accessibility, or small business is not enough unless AI is actually part of the benefit.
 
@@ -77,7 +77,7 @@ Run a safe dry-run:
 node scripts/ingest-ai-good-news.mjs --dry-run
 ```
 
-The admin page can also trigger ingestion and daily digest generation manually. Ingestion and digest generation filter to the last 24 hours.
+The admin page can also trigger ingestion and daily digest generation manually. Ingestion and digest generation prefer the last 24 hours. If that strict window has no qualifying high-confidence story, they expand once to the last 48 hours and keep the story date visible.
 
 ### Editorial rules
 

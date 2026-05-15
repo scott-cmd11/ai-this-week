@@ -1,6 +1,7 @@
 import type { GoodNewsStory } from './good-news-types'
 
 export const GOOD_NEWS_CURRENT_WINDOW_HOURS = 24
+export const GOOD_NEWS_FALLBACK_WINDOW_HOURS = 48
 
 export function isGoodNewsStoryCurrent(
   story: Pick<GoodNewsStory, 'published_at'> | { published_at?: string | null },

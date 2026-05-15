@@ -1,17 +1,22 @@
 import type { GoodNewsDigest, GoodNewsStory } from './good-news-types'
 import { dedupeGoodNewsStories } from './good-news-dedupe'
 import { isHighRelevanceGoodNewsStory, storyQualityScore } from './good-news-scoring'
-import { goodNewsDateId, isGoodNewsStoryCurrent } from './good-news-recency'
+import { GOOD_NEWS_CURRENT_WINDOW_HOURS, GOOD_NEWS_FALLBACK_WINDOW_HOURS, goodNewsDateId, isGoodNewsStoryCurrent } from './good-news-recency'
 
 export function generateDailyDigest(stories: GoodNewsStory[], now = new Date()): GoodNewsDigest {
   const date = goodNewsDateId(now)
-  const currentStories = stories.filter(story =>
+  const eligibleStories = stories.filter(story =>
     story.status === 'published'
-    && isGoodNewsStoryCurrent(story, now)
     && isHighRelevanceGoodNewsStory(story)
   )
-  const topStories = rankDigestStories(currentStories, now).slice(0, 10)
+  const currentStories = eligibleStories.filter(story => isGoodNewsStoryCurrent(story, now, GOOD_NEWS_CURRENT_WINDOW_HOURS))
+  const expandedToFallback = currentStories.length === 0
+  const digestSourceStories = expandedToFallback
+    ? eligibleStories.filter(story => isGoodNewsStoryCurrent(story, now, GOOD_NEWS_FALLBACK_WINDOW_HOURS))
+    : currentStories
+  const topStories = rankDigestStories(digestSourceStories, now).slice(0, 10)
   const categories = Array.from(new Set(topStories.map(story => story.category)))
+  const windowLabel = expandedToFallback ? 'last 48 hours' : 'last 24 hours'
 
   return {
     id: `digest-${date}`,
@@ -20,8 +25,8 @@ export function generateDailyDigest(stories: GoodNewsStory[], now = new Date()):
       ? `Today in AI Good News: ${categories.slice(0, 3).join(', ')}`
       : 'Today in AI Good News',
     intro: topStories.length > 0
-      ? `A concise scan of ${topStories.length} positive, source-linked AI stories across ${categories.length} ${categories.length === 1 ? 'category' : 'categories'}.`
-      : 'No source-linked AI Good News stories from the last 24 hours are available for this digest yet.',
+      ? `A concise scan of ${topStories.length} positive, source-linked AI stories from the ${windowLabel} across ${categories.length} ${categories.length === 1 ? 'category' : 'categories'}.`
+      : 'No source-linked AI Good News stories from the last 48 hours are available for this digest yet.',
     story_ids: topStories.map(story => story.id),
     generated_at: now.toISOString(),
   }

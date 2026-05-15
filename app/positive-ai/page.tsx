@@ -9,7 +9,7 @@ import {
 import { getLatestGoodNewsDigest } from '@/lib/good-news-store'
 import { coerceGoodNewsCategory } from '@/lib/good-news-scoring'
 import { generateDailyDigest } from '@/lib/good-news-digest'
-import { goodNewsDateId } from '@/lib/good-news-recency'
+import { GOOD_NEWS_CURRENT_WINDOW_HOURS, isGoodNewsStoryCurrent, goodNewsDateId } from '@/lib/good-news-recency'
 import { listCurrentPublishedGoodNewsStories } from '@/lib/good-news-current'
 
 export const revalidate = 300
@@ -51,6 +51,8 @@ export default async function PositiveAiPage({ searchParams }: Props) {
     .map(id => stories.find(story => story.id === id))
     .filter((story): story is GoodNewsStory => Boolean(story))
   const visibleStories = stories.slice(0, 12)
+  const hasStrictWindowStories = stories.some(story => isGoodNewsStoryCurrent(story, now, GOOD_NEWS_CURRENT_WINDOW_HOURS))
+  const storyWindowLabel = hasStrictWindowStories ? 'Last-24h stories' : 'Last-48h fallback'
 
   return (
     <>
@@ -76,7 +78,7 @@ export default async function PositiveAiPage({ searchParams }: Props) {
           </div>
 
           <dl className="good-news-hero-file" aria-label="AI Good News file">
-            <HeroMetric label="Last-24h stories" value={String(stories.length)} />
+            <HeroMetric label={storyWindowLabel} value={String(stories.length)} />
             <HeroMetric label="Digest date" value={digest.date} />
             <HeroMetric label="Standard" value="Positive, verifiable, source-linked." />
           </dl>
@@ -110,7 +112,7 @@ export default async function PositiveAiPage({ searchParams }: Props) {
             </ol>
           ) : (
             <p className="text-[15px] leading-[1.55] text-ws-muted">
-              No high-confidence positive AI stories from the last 24 hours are ready yet.
+              No high-confidence positive AI stories from the last 48 hours are ready yet.
             </p>
           )}
         </div>
@@ -120,7 +122,7 @@ export default async function PositiveAiPage({ searchParams }: Props) {
 
       {visibleStories.length === 0 ? (
         <div className="border-y border-ws-border py-6">
-          <p className="type-card-title">No high-confidence positive AI stories from the last 24 hours match this filter yet.</p>
+          <p className="type-card-title">No high-confidence positive AI stories from the last 48 hours match this filter yet.</p>
           <p className="type-body mt-2 max-w-2xl">
             The desk is holding the line: fewer stories are better than weak, mixed, or fear-framed AI coverage.
           </p>

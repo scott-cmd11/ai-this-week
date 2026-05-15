@@ -40,11 +40,11 @@ export default async function GoodNewsArchivePage({ searchParams }: Props) {
           <div>
             <h1 className="type-page-title mb-4">Browse the useful AI progress file</h1>
             <p className="type-lede max-w-3xl">
-              Filter the last 24 hours by category, source, and tags. Every published story keeps its original source link and evidence note.
+              Filter the daily AI Good News file by category, source, and tags. If the strict 24-hour window has no qualifying story, the desk can fall back once to the last 48 hours.
             </p>
           </div>
           <aside className="border-y border-ws-border py-4">
-            <p className="type-meta text-ws-accent">Last-24h count</p>
+            <p className="type-meta text-ws-accent">Current count</p>
             <p className="mt-3 font-[family-name:var(--font-display)] text-[2rem] font-semibold leading-none text-ws-black">
               {stories.length}
             </p>

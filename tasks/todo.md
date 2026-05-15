@@ -61,6 +61,34 @@
 - Validation: `node --check scripts/publishing-preflight.mjs`, `git diff --check`, `npm run preflight:publishing -- --api-base https://aitoday.vercel.app --date 2026-05-13 --warn-only`, `npm run test -- tests/lib/publishing-preflight.test.ts tests/api/publishing-pipeline.test.ts`, `npm run lint`, and `npm run build` passed. The preflight now explicitly reports: `Daily assemble has material but no draft exists.`
 - Live action note: a non-forced manual validation run of the evening Google Alerts workflow landed during the 7 PM Winnipeg window on May 14, so it correctly ran the importer and added 35 fresh May 14 candidates to the live inbox. May 13 remains unmodified and unpublished.
 
+# Task: Daily AI Good News Discovery Reliability
+
+- [x] Audit current source coverage and why the digest sometimes has no qualifying story.
+- [x] Add broader respectful RSS discovery across health, education, accessibility, science, climate, safety, public good, work, creativity, and small business.
+- [x] Support a 48-hour fallback only when the strict last-24-hour window has zero high-confidence stories.
+- [x] Keep the positive-good-news gate strict, but allow serious beneficial stories that include ordinary caveats.
+- [x] Improve source parsing so discovery feeds preserve the original publisher signal when available.
+- [x] Add tests for 24-hour preference, 48-hour fallback, source parsing, and caveat handling.
+- [x] Run ingestion dry-run, focused tests, lint, TypeScript, build, and local smoke checks.
+
+## Daily Discovery Audit
+
+- Current dry-run checked 16 enabled sources but found only 2 raw last-24-hour RSS candidates, neither a strong positive AI story.
+- The source mix is too dependent on institutional/blog RSS feeds that do not publish daily AI-good-news material.
+- The stricter good-news gate is correct, but the discovery layer needs broader search-style RSS feeds and science/health feed coverage so it has enough credible candidates to evaluate.
+- The previous hard rejection of any risk/regulation/funding terms can overblock serious public-benefit stories that mention caveats; the gate should reject negative-first framing, not normal caveat language.
+
+## Daily Discovery Validation
+
+- `node scripts/ingest-ai-good-news.mjs --dry-run` passed with 30 enabled sources, 101 recent raw candidates, 0 source errors, and no 48-hour expansion needed.
+- Candidate scoring check found 2 accepted current stories from the dry-run set: Reuters/Gates Foundation health-education partnership and Phys.org rainfall forecasting.
+- `npm run test -- tests/lib/good-news-scoring.test.ts tests/lib/good-news-digest.test.ts tests/lib/good-news-dedupe.test.ts tests/lib/good-news-rss.test.ts` passed: 4 files, 16 tests.
+- `npm run lint` passed.
+- `npx tsc --noEmit` passed.
+- `npm run build` passed after clearing a local `.next` file lock.
+- Local production smoke on `http://localhost:3052` passed for `/positive-ai`, `/positive-ai/archive`, `/positive-ai/about`, and a story detail. The old AlphaFold seed route returned `404`.
+- Local story-surface check passed: 2 qualifying stories rendered and blocked negative/story terms did not appear.
+
 # Task: Publishing Prevention Guardrails
 
 - [x] Audit how recent publishing failures became possible before code changes.
