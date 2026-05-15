@@ -15,7 +15,8 @@ const REQUIRED_WORKFLOWS = [
 
 const REQUIRED_CRONS = [
   { path: '/api/cron/daily-assemble', schedule: '0 23 * * *', label: 'Daily assemble' },
-  { path: '/api/cron/autopublish', schedule: '30 1 * * *', label: 'Nightly autopublish' },
+  { path: '/api/cron/autopublish', schedule: '30 1 * * *', label: 'Nightly autopublish primary' },
+  { path: '/api/cron/autopublish', schedule: '30 2 * * *', label: 'Nightly autopublish fallback' },
 ]
 
 function parseArgs(argv) {
@@ -336,21 +337,22 @@ function checkVercelCrons() {
 
   const crons = Array.isArray(parsed.crons) ? parsed.crons : []
   const checks = REQUIRED_CRONS.map(required => {
-    const match = crons.find(cron => cron.path === required.path)
+    const match = crons.find(cron => cron.path === required.path && cron.schedule === required.schedule)
+    const pathMatch = crons.find(cron => cron.path === required.path)
     if (!match) {
+      if (pathMatch) {
+        return {
+          ...required,
+          status: 'warn',
+          detail: `${required.label} cron exists for ${required.path} but not at expected schedule ${required.schedule}.`,
+          nextAction: 'Confirm the schedule still matches the 8 PM Winnipeg publishing routine and fallback window.',
+        }
+      }
       return {
         ...required,
         status: 'fail',
         detail: `${required.label} cron is missing from vercel.json.`,
         nextAction: 'Restore the required Vercel cron entry before deploy.',
-      }
-    }
-    if (match.schedule !== required.schedule) {
-      return {
-        ...required,
-        status: 'warn',
-        detail: `${required.label} cron exists with schedule ${match.schedule}; expected ${required.schedule}.`,
-        nextAction: 'Confirm the schedule still matches the 8 PM Winnipeg publishing routine.',
       }
     }
     return {

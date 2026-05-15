@@ -22,7 +22,7 @@ The site now has a nightly autopublish controller for nights when no editor is a
 
 ## Nightly Autopublish
 
-- Vercel runs `/api/cron/autopublish` at `30 1 * * *`, after the evening candidate intake window.
+- Vercel runs `/api/cron/autopublish` at `30 1 * * *` and again at `30 2 * * *`. The second slot is an idempotent fallback: if the issue is already published, it skips.
 - Autopublish assembles the draft, fills it with high-score active candidates when needed, rechecks readiness, and publishes only when source freshness is current and the draft has at least the minimum article count.
 - It fails closed for missing drafts, stale or missing source runs, very thin drafts, readiness blockers, stale source warnings, weak titles, and similar-topic warnings.
 - It can tolerate normal editorial polish warnings such as missing images, uneven section balance, held candidates, or old imported-candidate traceability warnings when the issue is otherwise publishable.
