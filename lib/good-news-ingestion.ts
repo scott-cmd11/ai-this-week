@@ -6,6 +6,7 @@ import { createGoodNewsSummarizer } from './good-news-summarizer'
 import { normalizeGoodNewsUrl } from './good-news-scoring'
 import { GOOD_NEWS_CURRENT_WINDOW_HOURS, GOOD_NEWS_FALLBACK_WINDOW_HOURS, isGoodNewsStoryCurrent } from './good-news-recency'
 import { parseRssItems, type RssItem } from './good-news-rss'
+import { dedupeGoodNewsStories } from './good-news-dedupe'
 import { upsertGoodNewsStories } from './good-news-store'
 
 export interface GoodNewsIngestionResult {
@@ -34,7 +35,7 @@ export async function ingestConfiguredGoodNewsSources(options: {
   const errors: string[] = []
   const now = new Date()
   const status = options.status ?? 'pending'
-  const limitPerSource = options.limitPerSource ?? 12
+  const limitPerSource = options.limitPerSource ?? 20
   const primaryLookbackHours = options.lookbackHours ?? GOOD_NEWS_CURRENT_WINDOW_HOURS
   const fallbackLookbackHours = options.fallbackLookbackHours ?? GOOD_NEWS_FALLBACK_WINDOW_HOURS
   const maximumLookbackHours = Math.max(primaryLookbackHours, fallbackLookbackHours)
@@ -97,7 +98,8 @@ export async function ingestConfiguredGoodNewsSources(options: {
   const selectedStories = expandedToFallback
     ? acceptedStories.filter(story => isGoodNewsStoryCurrent(story, now, fallbackLookbackHours))
     : primaryStories
-  const saved = options.persist === false ? selectedStories : await upsertGoodNewsStories(selectedStories)
+  const dedupedSelectedStories = dedupeGoodNewsStories(selectedStories)
+  const saved = options.persist === false ? dedupedSelectedStories : await upsertGoodNewsStories(dedupedSelectedStories)
 
   return {
     checkedSources: sources.length,

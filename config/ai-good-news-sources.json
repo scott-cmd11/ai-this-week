@@ -260,5 +260,50 @@
     "discovery_query": "artificial intelligence small business entrepreneur nonprofit creator",
     "focus": ["small business", "nonprofit", "creator tools", "local economy"],
     "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Helps",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(%22AI%20helps%22%20OR%20%22artificial%20intelligence%20helps%22%20OR%20%22AI%20tool%20helps%22)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Public Good",
+    "discovery_query": "AI helps artificial intelligence helps AI tool helps",
+    "focus": ["human benefit", "practical deployment", "public benefit"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Improves or Detects",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(%22AI%20improves%22%20OR%20%22AI%20improve%22%20OR%20%22AI%20cuts%22%20OR%20%22AI%20detects%22)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Public Good",
+    "discovery_query": "AI improves AI detects AI cuts",
+    "focus": ["measurable improvement", "detection", "risk reduction"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Health Outcomes",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(%22AI%22%20OR%20%22artificial%20intelligence%22)%20(%22diagnosis%22%20OR%20%22screening%22%20OR%20%22drug%20discovery%22%20OR%20%22patient%20safety%22)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Health",
+    "discovery_query": "AI diagnosis screening drug discovery patient safety",
+    "focus": ["diagnosis", "screening", "drug discovery", "patient safety"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Climate and Safety Outcomes",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(%22AI%22%20OR%20%22artificial%20intelligence%22)%20(%22wildfire%20detection%22%20OR%20%22weather%20forecast%22%20OR%20%22disaster%20response%22)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Climate",
+    "discovery_query": "AI wildfire detection weather forecast disaster response",
+    "focus": ["wildfire detection", "weather forecasting", "disaster response"],
+    "enabled": true
+  },
+  {
+    "name": "Google News Discovery - AI Accessibility Outcomes",
+    "type": "rss",
+    "url": "https://news.google.com/rss/search?q=(%22AI%22%20OR%20%22artificial%20intelligence%22)%20(%22blindness%22%20OR%20%22disability%22%20OR%20%22accessibility%22%20OR%20%22assistive%22)%20when:2d&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "Accessibility",
+    "discovery_query": "AI blindness disability accessibility assistive",
+    "focus": ["blindness", "disability", "assistive tools", "accessibility"],
+    "enabled": true
   }
 ]

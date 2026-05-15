@@ -25,7 +25,7 @@ for (const source of sources) {
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const xml = await res.text()
-    for (const item of parseItems(xml).slice(0, 12)) {
+    for (const item of parseItems(xml).slice(0, 20)) {
       if (hoursSincePublished(item.publishedAt) > fallbackWindowHours) continue
       candidates.push({
         title: item.title,

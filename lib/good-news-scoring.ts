@@ -40,9 +40,10 @@ const BENEFIT_SIGNALS: Array<{ label: string; pattern: RegExp }> = [
   { label: 'helps mission team', pattern: /\bhelps?\b.{0,80}\b(clinical|health|care|public-service|research|education|accessibility|weather|safety)\b.{0,40}\b(teams?|staff|workers?|groups?)\b/ },
   { label: 'supports beneficial workflow', pattern: /\b(supports?|supporting|supported)\b.{0,80}\b(screening|diagnosis|care|learning|teachers?|students?|patients?|researchers?|public service|accessibility)\b/ },
   { label: 'improves outcomes', pattern: /\b(improves?|improving|improved|increase[sd]?|reduces?|reducing|reduced)\b.{0,80}\b(access|accuracy|screening|diagnosis|forecasting|safety|resilience|productivity|learning|care|outcomes?)\b/ },
-  { label: 'detects earlier', pattern: /\b(detects?|detection|catch|catches|identify|identifies|screen|screens|triage)\b.{0,80}\b(earlier|patients?|cancer|defects?|cracks?|risks?|disease|infrastructure)\b/ },
+  { label: 'detects earlier', pattern: /\b(detects?|detection|catch|catches|identify|identifies|screen|screens|triage)\b.{0,80}\b(earlier|patients?|cancer|defects?|cracks?|risks?|disease|heart disease|infrastructure)\b/ },
   { label: 'improves forecasting or safety detection', pattern: /\b(predicts?|forecast(?:s|ing)?|classif(?:y|ies|ication)|detects?|detection)\b.{0,100}\b(better|more accurate|reliable|false alarms?|missed heavy rain|wildfire|disaster|patient safety|medical error)\b/ },
-  { label: 'accessibility support', pattern: /\b(accessibility|assistive|blind|low vision|disabled|disability|captions?|screen reader|speech recognition)\b/ },
+  { label: 'wildfire safety detection', pattern: /\b(wildfire|firestorms?|disaster)\b.{0,80}\b(ai[- ]driven|ai[- ]enabled|detection|detects?|forecasting|warning)\b/ },
+  { label: 'accessibility support', pattern: /\b(accessibility|assistive|blind|blindness|low vision|disabled|disability|captions?|screen reader|speech recognition)\b/ },
   { label: 'education access', pattern: /\b(students?|teachers?|learners?|classroom|tutor|tutoring|education|course)\b.{0,80}\b(access|accessible|support|feedback|personalization|personalized|fluency)\b/ },
   { label: 'scientific discovery', pattern: /\b(researchers?|scientists?|laborator(?:y|ies)|materials?|biology|molecular|drug discovery|open science)\b.{0,100}\b(accelerate|accelerates|simulation|synthesis|screening|prediction|discovery|tool|free access|measured)\b/ },
   { label: 'public benefit', pattern: /\b(public service|public good|government|agency|community|nonprofit|weather|forecast|grid|emergency|infrastructure|roads?|bridges?)\b.{0,100}\b(support|improve|detect|forecast|resilience|safer|safety|decision support)\b/ },
@@ -110,6 +111,8 @@ const STRONG_SOURCE_SIGNALS = [
   'nature medicine',
   'world economic forum',
   'nihcm',
+  'heart foundation',
+  'xcel energy newsroom',
 ]
 
 const PROMOTIONAL_SIGNALS = [
@@ -142,8 +145,8 @@ const EXCLUDED_SIGNALS: Array<{ label: string; pattern: RegExp }> = [
 ]
 
 const HUMAN_BENEFIT_DOMAIN_SIGNALS: Array<{ label: string; pattern: RegExp }> = [
-  { label: 'health care', pattern: /\b(health care|healthcare|medical|medicine|patients?|clinical|cancer|screening|diagnosis|hospital|mammograms?)\b/ },
-  { label: 'accessibility', pattern: /\b(accessibility|assistive|blind|low vision|disabled|disability|captions?|screen reader|speech recognition)\b/ },
+  { label: 'health care', pattern: /\b(health care|healthcare|medical|medicine|patients?|clinical|cancer|screening|diagnosis|hospital|mammograms?|heart disease)\b/ },
+  { label: 'accessibility', pattern: /\b(accessibility|assistive|blind|blindness|low vision|disabled|disability|captions?|screen reader|speech recognition)\b/ },
   { label: 'education', pattern: /\b(education|students?|teachers?|classroom|learners?|tutor|tutoring|course|ai fluency)\b/ },
   { label: 'science', pattern: /\b(science|researchers?|scientists?|materials?|biology|molecular|laboratory|drug discovery|open science)\b/ },
   { label: 'climate or energy', pattern: /\b(climate|weather|forecast|energy grid|renewable|wildfire|emissions|resilience)\b/ },
@@ -194,7 +197,7 @@ export function scoreGoodNewsCandidate(input: GoodNewsCandidateInput): GoodNewsS
   positivity += Math.min(14, categorySignals.length * 4)
   positivity += aiSignals.length > 0 ? 8 : 0
   positivity += humanBenefitDomains.length > 0 ? 10 : 0
-  positivity += highConfidenceImpact ? 8 : 0
+  positivity += highConfidenceImpact ? 10 : 0
   positivity += input.summary?.trim() ? 8 : 0
   positivity -= likelyPromotionalOnly ? 16 : 0
   positivity -= dominantExcludedSignals.length > 0 ? 55 : excludedSignals.length > 0 && !hasConcretePublicBenefit ? 28 : 0
@@ -311,7 +314,6 @@ function editorialText(input: GoodNewsCandidateInput): string {
     input.title,
     input.summary,
     input.content_text,
-    input.category,
     ...(input.tags ?? []),
   ].filter(Boolean).join(' ').toLowerCase()
 }
