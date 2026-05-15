@@ -88,7 +88,6 @@
 - `npm run build` passed after clearing a local `.next` file lock.
 - Local production smoke on `http://localhost:3052` passed for `/positive-ai`, `/positive-ai/archive`, `/positive-ai/about`, and a story detail. The old AlphaFold seed route returned `404`.
 - Local story-surface check passed: 2 qualifying stories rendered and blocked negative/story terms did not appear.
-
 # Task: Publishing Prevention Guardrails
 
 - [x] Audit how recent publishing failures became possible before code changes.
@@ -974,3 +973,28 @@ The backend is structurally healthier than the old Notion publishing model: Supa
 - `npm run build` passed after clearing a local Windows/OneDrive `.next` file lock and rerunning.
 - `npx tsc --noEmit` passed.
 - `node --check scripts/publishing-preflight.mjs` passed.
+
+# Task: Section-Balanced Autopublish
+
+- [x] Audit why the May 14 forced issue collapsed mostly into `Canada`.
+- [x] Change category inference so Canadian stories can land in Policy, Government, Industry, Sectors, or Research when that is the stronger section.
+- [x] Make unattended autopublish select toward section targets instead of only highest overall score.
+- [x] Add an unattended AI-relevance filter so off-topic Canadian stories do not fill section quotas.
+- [x] Add focused tests for Canadian topical categorization, section-balanced candidate selection, and off-topic rejection.
+- [x] Validate locally without mutating live production data.
+
+## Section Balance Findings
+
+- The May 14 live issue rendered 10 article headings under `Canada` and 1 under `Research`.
+- `categoryForArticle()` currently returns `Canada` immediately when `isCanadaMention(input)` is true, before considering policy, government, sector, industry, or research signals.
+- `inferCandidateCategory()` has the same Canada-first behaviour, so a Canadian source or `.ca` URL can flatten candidate categories before autopublish ever selects articles.
+- Autopublish currently fills a single overall target from highest-ranked candidates. It does not reserve space for policy, government, industry, sectors, or research.
+
+## Section Balance Review
+
+- `categoryForArticle()` now checks topical signals before using `Canada` as a fallback, so Canadian policy, government, industry, sector, and research stories can land in those sections.
+- `inferCandidateCategory()` now uses the same topical categorization path as the import/publish flow.
+- Autopublish now targets a larger unattended issue size and section mix: 24 articles total, aiming for 4 articles in each major section. The unattended minimum is now 18 articles, separate from the lower manual emergency guardrail.
+- Candidate import now recalculates the selection category before writing, so existing rows previously stored as `Canada` can still be imported into the stronger topical section.
+- Autopublish rejects the weak failure shape where a candidate has high Canadian score but AI is only a navigation/sidebar/snippet artifact, including the Eurovision and generic company-award patterns.
+- Validation passed after the stricter minimum: `npm run test -- tests/lib/category-mapping.test.ts tests/lib/article-candidates.test.ts tests/lib/autopublish-policy.test.ts tests/api/autopublish.test.ts`, `npm run lint`, `npx tsc --noEmit`, and `npm run build`.

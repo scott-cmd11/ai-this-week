@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { DAILY_PUBLISH_ARTICLE_TARGET } from '@/lib/admin-readiness'
 import { buildIssueReadiness, getAdminRunSummaries } from '@/lib/admin-issue-readiness'
-import { evaluateAutopublishDecision } from '@/lib/autopublish-policy'
+import { AUTOPUBLISH_MIN_ARTICLES, AUTOPUBLISH_TARGET_ARTICLES, evaluateAutopublishDecision } from '@/lib/autopublish-policy'
 import type { ArticleCandidate } from '@/lib/article-candidates'
+import { CATEGORY_ORDER, categoryForArticle, type Category } from '@/lib/category-mapping'
 import { isArticleCandidateStoreConfigured, listArticleCandidates } from '@/lib/article-candidate-store'
 import { issueDateFor } from '@/lib/issue-date'
 import { getIssueBlocks, getIssueByDate, publishIssue } from '@/lib/issue-store'
 import { buildIssuePublishSummary } from '@/lib/issue-publish-summary'
-import { MIN_DAILY_ISSUE_ARTICLES } from '@/lib/publish-policy'
 
 export const dynamic = 'force-dynamic'
 
-const DEFAULT_MAX_CANDIDATE_IMPORTS = 12
+const DEFAULT_MAX_CANDIDATE_IMPORTS = 24
 const MIN_AUTOPUBLISH_CANDIDATE_SCORE = 70
 const MANUAL_AUTOPUBLISH_CONFIRMATION = 'RUN AUTOPUBLISH'
+const SECTION_TARGETS: Partial<Record<Category, number>> = {
+  'Canada': 4,
+  'Policy & Regulation': 4,
+  'Government & Public Sector': 4,
+  'Industry & Models': 4,
+  'Sectors & Applications': 4,
+  'Research': 4,
+}
 
 interface AutopublishOperation {
   type: 'assemble' | 'candidate_import' | 'candidate_mark_imported' | 'publish'
@@ -42,6 +49,7 @@ interface Snapshot {
   readiness: Awaited<ReturnType<typeof buildIssueReadiness>>['readiness']
   eveningBriefing: Awaited<ReturnType<typeof buildIssueReadiness>>['eveningBriefing']
   draftSummary: Awaited<ReturnType<typeof buildIssueReadiness>>['draftSummary']
+  articles: Awaited<ReturnType<typeof buildIssueReadiness>>['articles']
 }
 
 function parsePositiveInt(value: string | null | undefined, fallback: number, min: number, max: number): number {
@@ -100,7 +108,7 @@ async function getSnapshot(issueDate: string): Promise<Snapshot> {
   const draft = await getIssueByDate(issueDate, false)
   const blocks = draft ? await getIssueBlocks(draft.id) : []
   const { candidates, automation, candidateError } = await getAdminRunSummaries()
-  const { readiness, eveningBriefing, draftSummary } = await buildIssueReadiness({
+  const { articles, readiness, eveningBriefing, draftSummary } = await buildIssueReadiness({
     issueDate,
     draft,
     blocks,
@@ -117,6 +125,7 @@ async function getSnapshot(issueDate: string): Promise<Snapshot> {
     readiness,
     eveningBriefing,
     draftSummary,
+    articles,
   }
 }
 
@@ -126,25 +135,86 @@ function candidateStatusRank(candidate: ArticleCandidate): number {
   return 2
 }
 
+function articleSectionCounts(articles: Snapshot['articles']): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const article of articles) {
+    const category = article.category?.trim()
+    if (!category) continue
+    counts.set(category, (counts.get(category) ?? 0) + 1)
+  }
+  return counts
+}
+
+function hasFocusedAiSignal(candidate: ArticleCandidate): boolean {
+  const title = candidate.title.toLowerCase()
+  const summaryStart = candidate.summary.toLowerCase().replace(/\s+/g, ' ').slice(0, 220)
+  const aiPattern = /\b(ai|artificial intelligence|machine learning|generative ai|llm|large language model|foundation model|ai workforce|ai governance)\b/
+  if (aiPattern.test(title)) return true
+  if (!aiPattern.test(summaryStart)) return false
+  if (summaryStart.includes(' · ') || summaryStart.includes('... artificial intelligence')) return false
+  return true
+}
+
+function hasAutopublishExclusion(candidate: ArticleCandidate): boolean {
+  const title = candidate.title.toLowerCase()
+  if (title.includes('eurovision') || title.includes('song contest')) return true
+  if (!/\b(ai|artificial intelligence|machine learning|generative ai|llm)\b/.test(title)
+    && /\b(best managed companies|named one of|award|recognition)\b/.test(title)) {
+    return true
+  }
+  return false
+}
+
+function isAutopublishCandidate(candidate: ArticleCandidate): boolean {
+  return candidate.score >= MIN_AUTOPUBLISH_CANDIDATE_SCORE
+    && hasFocusedAiSignal(candidate)
+    && !hasAutopublishExclusion(candidate)
+}
+
+function candidateSelectionCategory(candidate: ArticleCandidate): Category {
+  return categoryForArticle({
+    title: candidate.title,
+    summary: candidate.summary,
+    url: candidate.url,
+    source: candidate.source,
+    category: candidate.category,
+  }, candidate.category)
+}
+
 function selectAutopublishCandidates(
   candidates: ArticleCandidate[],
   neededArticles: number,
   maxCandidateImports: number,
+  existingSectionCounts = new Map<string, number>(),
 ): ArticleCandidate[] {
   if (neededArticles <= 0 || maxCandidateImports <= 0) return []
   const importBudget = Math.min(maxCandidateImports, neededArticles + 4)
-  const ranked = [...candidates].sort((a, b) =>
+  const ranked = candidates.filter(isAutopublishCandidate).sort((a, b) =>
     candidateStatusRank(a) - candidateStatusRank(b)
     || b.score - a.score
     || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     || a.title.localeCompare(b.title)
   )
-  const strong = ranked.filter(candidate => candidate.score >= MIN_AUTOPUBLISH_CANDIDATE_SCORE)
-  const selected = strong.slice(0, importBudget)
+  const selected: ArticleCandidate[] = []
+  const selectedIds = new Set<string>()
+  const selectedSectionCounts = new Map(existingSectionCounts)
 
-  if (selected.length >= Math.min(neededArticles, importBudget)) return selected
+  for (const category of CATEGORY_ORDER) {
+    const target = SECTION_TARGETS[category] ?? 0
+    if (target <= 0) continue
+    const current = selectedSectionCounts.get(category) ?? 0
+    const categoryNeed = Math.max(0, target - current)
+    if (categoryNeed <= 0) continue
+    for (const candidate of ranked) {
+      if (selected.length >= importBudget) break
+      if (selectedIds.has(candidate.id) || candidateSelectionCategory(candidate) !== category) continue
+      selected.push(candidate)
+      selectedIds.add(candidate.id)
+      selectedSectionCounts.set(category, (selectedSectionCounts.get(category) ?? 0) + 1)
+      if ((selectedSectionCounts.get(category) ?? 0) >= target) break
+    }
+  }
 
-  const selectedIds = new Set(selected.map(candidate => candidate.id))
   for (const candidate of ranked) {
     if (selected.length >= importBudget) break
     if (selectedIds.has(candidate.id)) continue
@@ -160,7 +230,7 @@ function candidateImportPayload(candidate: ArticleCandidate) {
     title: candidate.title,
     summary: candidate.summary,
     url: candidate.url,
-    category: candidate.category,
+    category: candidateSelectionCategory(candidate),
   }
 }
 
@@ -299,7 +369,12 @@ async function runAutopublish(request: NextRequest, opts: AutopublishRequestOpti
 
   if (neededArticles > 0 && isArticleCandidateStoreConfigured() && canImportCandidatesForDate) {
     const candidates = await listArticleCandidates({ statuses: ['approved', 'shortlisted', 'new'], limit: 150 })
-    selectedCandidates = selectAutopublishCandidates(candidates, neededArticles, opts.maxCandidateImports)
+    selectedCandidates = selectAutopublishCandidates(
+      candidates,
+      neededArticles,
+      opts.maxCandidateImports,
+      articleSectionCounts(snapshot.articles),
+    )
 
     if (selectedCandidates.length > 0) {
       if (opts.dryRun) {
@@ -315,7 +390,7 @@ async function runAutopublish(request: NextRequest, opts: AutopublishRequestOpti
               title: candidate.title,
               score: candidate.score,
               status: candidate.status,
-              category: candidate.category,
+              category: candidateSelectionCategory(candidate),
             })),
           },
         })
@@ -387,7 +462,7 @@ async function runAutopublish(request: NextRequest, opts: AutopublishRequestOpti
         title: candidate.title,
         score: candidate.score,
         status: candidate.status,
-        category: candidate.category,
+        category: candidateSelectionCategory(candidate),
       })),
       eveningBriefing: snapshot.eveningBriefing,
       candidateError: snapshot.candidateError,
@@ -432,15 +507,15 @@ export async function GET(request: NextRequest) {
   const dateOverride = url.searchParams.get('date') ?? undefined
   const minimumArticleCount = parsePositiveInt(
     url.searchParams.get('minimumArticleCount'),
-    MIN_DAILY_ISSUE_ARTICLES,
-    MIN_DAILY_ISSUE_ARTICLES,
+    AUTOPUBLISH_MIN_ARTICLES,
+    AUTOPUBLISH_MIN_ARTICLES,
     20,
   )
   const targetArticles = parsePositiveInt(
     url.searchParams.get('targetArticles'),
-    DAILY_PUBLISH_ARTICLE_TARGET,
+    AUTOPUBLISH_TARGET_ARTICLES,
     minimumArticleCount,
-    20,
+    30,
   )
   const maxCandidateImports = parsePositiveInt(
     url.searchParams.get('maxCandidateImports'),
@@ -492,12 +567,12 @@ export async function POST(request: NextRequest) {
   }
 
   const minimumArticleCount = Math.max(
-    MIN_DAILY_ISSUE_ARTICLES,
-    Math.min(20, Math.round(body.minimumArticleCount ?? MIN_DAILY_ISSUE_ARTICLES)),
+    AUTOPUBLISH_MIN_ARTICLES,
+    Math.min(20, Math.round(body.minimumArticleCount ?? AUTOPUBLISH_MIN_ARTICLES)),
   )
   const targetArticles = Math.max(
     minimumArticleCount,
-    Math.min(20, Math.round(body.targetArticles ?? DAILY_PUBLISH_ARTICLE_TARGET)),
+    Math.min(30, Math.round(body.targetArticles ?? AUTOPUBLISH_TARGET_ARTICLES)),
   )
 
   return runAutopublish(request, {

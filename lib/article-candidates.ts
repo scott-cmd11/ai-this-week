@@ -1,4 +1,4 @@
-import { CATEGORY_ORDER, isCanadaMention, type Category } from './category-mapping'
+import { CATEGORY_ORDER, categoryForArticle, isCanadaMention, type Category } from './category-mapping'
 import { normalizeUrl } from './url-normalize'
 
 export type CandidateStatus = 'new' | 'shortlisted' | 'approved' | 'rejected' | 'imported'
@@ -116,27 +116,6 @@ const GOVERNMENT_SIGNALS = [
   'minister',
 ]
 
-const RESEARCH_SIGNALS = [
-  'research',
-  'paper',
-  'benchmark',
-  'arxiv',
-  'study',
-  'measuring',
-]
-
-const SECTOR_SIGNALS = [
-  'agriculture',
-  'grain',
-  'crop',
-  'wheat',
-  'health',
-  'medical',
-  'education',
-  'legal',
-  'mining',
-]
-
 function coerceStatus(value: CandidateStatus | null | undefined): CandidateStatus {
   return value && VALID_STATUSES.has(value) ? value : 'new'
 }
@@ -169,13 +148,7 @@ export function isCanadaRelevant(
 export function inferCandidateCategory(
   input: Pick<IncomingArticleCandidate, 'title' | 'summary' | 'source' | 'sourceType' | 'category'>,
 ): Category {
-  const text = candidateText(input)
-  if (isCanadaRelevant(input)) return 'Canada'
-  if (hasAnySignal(text, SECTOR_SIGNALS)) return 'Sectors & Applications'
-  if (hasAnySignal(text, POLICY_SIGNALS)) return 'Policy & Regulation'
-  if (hasAnySignal(text, GOVERNMENT_SIGNALS)) return 'Government & Public Sector'
-  if (hasAnySignal(text, RESEARCH_SIGNALS) || coerceSourceType(input.sourceType) === 'research') return 'Research'
-  return 'Industry & Models'
+  return categoryForArticle(input, input.category)
 }
 
 function daysOld(publishedAt: string | null, now: Date): number | null {

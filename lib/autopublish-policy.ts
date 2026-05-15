@@ -1,9 +1,7 @@
 import type { AdminCheckItem, AdminDraftSummary, AdminEveningBriefingSummary, AdminReadiness } from './admin-readiness'
-import { DAILY_PUBLISH_ARTICLE_TARGET } from './admin-readiness'
-import { MIN_DAILY_ISSUE_ARTICLES } from './publish-policy'
 
-export const AUTOPUBLISH_TARGET_ARTICLES = DAILY_PUBLISH_ARTICLE_TARGET
-export const AUTOPUBLISH_MIN_ARTICLES = MIN_DAILY_ISSUE_ARTICLES
+export const AUTOPUBLISH_TARGET_ARTICLES = 24
+export const AUTOPUBLISH_MIN_ARTICLES = 18
 
 const TOLERATED_WARNING_CODES = new Set<AdminCheckItem['code']>([
   'missing_image',

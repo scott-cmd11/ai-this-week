@@ -9,7 +9,7 @@ function draft(overrides: Partial<AdminDraftSummary> = {}): AdminDraftSummary {
     issueId: 'issue-1',
     issueNumber: 1,
     issueDate: '2026-05-14',
-    articleCount: 8,
+    articleCount: 24,
     sections: ['Canada', 'Policy & Regulation', 'Research'],
     missingSummaryCount: 0,
     missingTitleCount: 0,
@@ -42,7 +42,7 @@ function evening(overrides: Partial<AdminEveningBriefingSummary> = {}): AdminEve
     candidateTarget: 35,
     strongCandidateTarget: 8,
     publishArticleTarget: 8,
-    minimumArticleCount: 5,
+    minimumArticleCount: 18,
     state: 'ready',
     headline: 'Tonight is ready',
     explanation: 'The briefing is ready.',
@@ -93,7 +93,7 @@ describe('evaluateAutopublishDecision', () => {
 
   it('blocks drafts below the minimum article count', () => {
     const decision = evaluateAutopublishDecision({
-      draft: draft({ articleCount: 4 }),
+      draft: draft({ articleCount: 17 }),
       readiness: readiness({
         blockers: [{ code: 'low_article_count', label: 'Very low article count', count: 1, severity: 'blocker' }],
       }),
@@ -102,12 +102,12 @@ describe('evaluateAutopublishDecision', () => {
 
     expect(decision.publishable).toBe(false)
     expect(decision.reason).toBe('low_article_count')
-    expect(decision.minimumArticleCount).toBe(5)
+    expect(decision.minimumArticleCount).toBe(18)
   })
 
   it('can publish above the minimum when volume is low but the issue is otherwise healthy', () => {
     const decision = evaluateAutopublishDecision({
-      draft: draft({ articleCount: 6 }),
+      draft: draft({ articleCount: 19 }),
       readiness: readiness(),
       eveningBriefing: evening({
         state: 'low_volume',

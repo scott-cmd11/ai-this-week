@@ -23,7 +23,7 @@ describe('article candidates', () => {
     expect(candidate.canonicalUrl).toBe('https://canada.ca/en/example')
     expect(candidate.source).toBe('Unknown source')
     expect(candidate.status).toBe('new')
-    expect(candidate.category).toBe('Canada')
+    expect(candidate.category).toBe('Government & Public Sector')
     expect(candidate.score).toBeGreaterThan(40)
   })
 
@@ -83,10 +83,10 @@ describe('article candidates', () => {
     }
 
     expect(isCanadaRelevant(input)).toBe(true)
-    expect(inferCandidateCategory(input)).toBe('Canada')
+    expect(inferCandidateCategory(input)).toBe('Policy & Regulation')
   })
 
-  it('keeps Canadian items in Canada even when source automation labels them as policy', () => {
+  it('lets Canadian items keep stronger topical categories', () => {
     const candidate = normalizeArticleCandidate({
       title: 'Canadian privacy commissioners release AI safety findings',
       url: 'https://example.com/canadian-ai-privacy',
@@ -95,7 +95,7 @@ describe('article candidates', () => {
       category: 'Policy & Regulation',
     })
 
-    expect(candidate.category).toBe('Canada')
+    expect(candidate.category).toBe('Policy & Regulation')
   })
 
   it('sorts Canadian candidates before non-Canadian candidates with higher raw scores', () => {

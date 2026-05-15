@@ -35,6 +35,8 @@ const issuePublishSummary = await import('@/lib/issue-publish-summary')
 const candidateStore = await import('@/lib/article-candidate-store')
 const autopublishRoute = await import('@/app/api/cron/autopublish/route')
 
+type TestCandidate = Awaited<ReturnType<typeof candidateStore.listArticleCandidates>>[number]
+
 const baseDraft = {
   id: 'issue-14',
   title: 'AI Today - May 14, 2026',
@@ -147,6 +149,35 @@ function readinessResult({
   }
 }
 
+function candidate(
+  id: string,
+  title: string,
+  summary: string,
+  category = 'Canada',
+  score = 86,
+): TestCandidate {
+  return {
+    id,
+    title,
+    url: `https://example.ca/${id}`,
+    canonicalUrl: `https://example.ca/${id}`,
+    summary,
+    source: 'Google Alerts Current RSS',
+    sourceType: 'google_alerts',
+    publishedAt: '2026-05-14T20:00:00.000Z',
+    category: category as TestCandidate['category'],
+    status: 'new',
+    score,
+    scoreReasons: ['Test candidate'],
+    reviewedAt: null,
+    importedAt: null,
+    importedIssue: null,
+    createdAt: '2026-05-15T00:30:00.000Z',
+    updatedAt: '2026-05-15T00:30:00.000Z',
+    rejectionReason: null,
+  }
+}
+
 describe('/api/cron/autopublish', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -196,10 +227,58 @@ describe('/api/cron/autopublish', () => {
     expect(issueStore.publishIssue).not.toHaveBeenCalled()
   })
 
+  it('dry-run candidate fill is section-balanced and excludes weak off-topic Canadian matches', async () => {
+    vi.mocked(issueStore.getIssueByDate).mockResolvedValue(null)
+    vi.mocked(adminIssueReadiness.buildIssueReadiness).mockResolvedValue(readinessResult({
+      exists: false,
+      articleCount: 0,
+      eveningState: 'ready',
+    }))
+    vi.mocked(candidateStore.isArticleCandidateStoreConfigured).mockReturnValue(true)
+    vi.mocked(candidateStore.listArticleCandidates).mockResolvedValue([
+      candidate('policy-1', 'Canadian privacy commissioners release AI safety findings', 'Federal and provincial privacy officials reviewed AI safety controls.'),
+      candidate('policy-2', 'AI governance guidance lands for universities', 'Canadian universities are updating AI governance and ethics rules.'),
+      candidate('gov-1', 'Bank of Canada says AI is lifting productivity', 'The central bank links artificial intelligence adoption to productivity.'),
+      candidate('industry-1', 'Montreal firm expands AI data centre investment', 'The company is investing in AI compute infrastructure.'),
+      candidate('sector-1', 'Ontario doctors test AI notetakers in clinics', 'Doctors are using AI notetakers in patient care workflows.'),
+      candidate('research-1', 'NSERC publishes AI research meeting report', 'Researchers released an artificial intelligence research agenda.'),
+      candidate('canada-1', 'Canadian AI council releases regional update', 'Canada-focused AI coordination work continues across provinces.'),
+      candidate('weak-bbc', "'Door is open' for Canada to join Eurovision, says contest director - BBC", 'Prime Minister Mark Carney floated Canada joining the song contest ... Artificial Intelligence · Intelligence Revolution · AI v', 'Canada', 90),
+      candidate('weak-adastra', "Adastra Corporation named one of Canada's Best Managed Companies", 'Recognition as an Emerging Visionary in Gartner generative AI consulting validates the firm.', 'Canada', 90),
+    ])
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      date: '2026-05-14',
+      dryRun: true,
+      parsed: 12,
+      imported: 6,
+      sources: [],
+    }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await autopublishRoute.POST(jsonRequest('https://example.test/api/cron/autopublish', {
+      adminPassword: 'test-admin',
+      dryRun: true,
+      date: '2026-05-14',
+    }) as never)
+    const body = await response.json()
+    const selected = body.selectedCandidates as Array<{ id: string; category: string }>
+    const selectedIds = selected.map(item => item.id)
+
+    expect(response.status).toBe(200)
+    expect(selectedIds).toContain('policy-1')
+    expect(selectedIds).toContain('gov-1')
+    expect(selectedIds).toContain('industry-1')
+    expect(selectedIds).toContain('sector-1')
+    expect(selectedIds).toContain('research-1')
+    expect(selectedIds).not.toContain('weak-bbc')
+    expect(selectedIds).not.toContain('weak-adastra')
+    expect(new Set(selected.map(item => item.category)).size).toBeGreaterThanOrEqual(5)
+  })
+
   it('publishes a healthy draft with only autopilot-safe warnings', async () => {
     vi.mocked(issueStore.getIssueByDate).mockResolvedValue(baseDraft)
     vi.mocked(adminIssueReadiness.buildIssueReadiness).mockResolvedValue(readinessResult({
-      articleCount: 8,
+      articleCount: 24,
       warnings: [{ code: 'missing_image', label: 'Missing image', count: 2, severity: 'warning' }],
     }))
     vi.mocked(issuePublishSummary.buildIssuePublishSummary).mockResolvedValue('Daily summary.')
@@ -215,7 +294,7 @@ describe('/api/cron/autopublish', () => {
       published: true,
       reason: 'ready',
       issueId: 'issue-14',
-      articleCount: 8,
+      articleCount: 24,
     })
     expect(issueStore.publishIssue).toHaveBeenCalledWith('issue-14', { summary: 'Daily summary.' })
   })
@@ -223,7 +302,7 @@ describe('/api/cron/autopublish', () => {
   it('refuses to publish when the evening source signal is stale', async () => {
     vi.mocked(issueStore.getIssueByDate).mockResolvedValue(baseDraft)
     vi.mocked(adminIssueReadiness.buildIssueReadiness).mockResolvedValue(readinessResult({
-      articleCount: 8,
+      articleCount: 24,
       eveningState: 'stale',
     }))
 
@@ -237,7 +316,7 @@ describe('/api/cron/autopublish', () => {
       publishable: false,
       skipped: true,
       reason: 'source_freshness',
-      articleCount: 8,
+      articleCount: 24,
     })
     expect(issueStore.publishIssue).not.toHaveBeenCalled()
   })

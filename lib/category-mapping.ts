@@ -54,6 +54,87 @@ const CANADA_ARTICLE_SIGNALS = [
   'sencanada',
 ]
 
+const RESEARCH_SIGNALS = [
+  'research',
+  'paper',
+  'arxiv',
+  'benchmark',
+  'nserc',
+  'natural sciences and engineering research council',
+]
+
+const POLICY_SIGNALS = [
+  'regulation',
+  'regulator',
+  'policy',
+  'privacy',
+  'governance',
+  'ethic',
+  'copyright',
+  'intellectual property',
+  'cybersecurity',
+  'cyber security',
+  'data breach',
+  'privilege',
+  'audit',
+  'public interest',
+]
+
+const GOVERNMENT_SIGNALS = [
+  'public sector',
+  'government',
+  'federal',
+  'municipal',
+  'provincial',
+  'sovereign',
+  'minister',
+  'bank of canada',
+  'canada.ca',
+  'gc.ca',
+]
+
+const SECTOR_SIGNALS = [
+  'agricultur',
+  'grain',
+  'crop',
+  'wheat',
+  'oilseed',
+  'livestock',
+  'environment',
+  'climate',
+  'job',
+  'workforce',
+  'health',
+  'doctor',
+  'medical',
+  'education',
+  'universit',
+  'legal',
+]
+
+const INDUSTRY_SIGNALS = [
+  'data centre',
+  'data center',
+  'compute',
+  'infrastructure',
+  'investment',
+  'funding',
+  'company',
+  'startup',
+  'enterprise',
+  'productivity',
+  'model',
+  'llm',
+  'agent',
+  'coding',
+  'developer',
+  'm&a',
+  'merger',
+  'acquisition',
+  'chip',
+  'gpu',
+]
+
 interface ArticleCategoryInput {
   title?: string | null
   summary?: string | null
@@ -90,6 +171,20 @@ function hasCanadianHost(url: string | null | undefined): boolean {
   }
 }
 
+function hasAnySignal(text: string, signals: string[]): boolean {
+  return signals.some(signal => text.includes(signal))
+}
+
+function topicalCategoryForArticle(input: ArticleCategoryInput): Category | null {
+  const text = articleCategoryText(input)
+  if (hasAnySignal(text, RESEARCH_SIGNALS)) return 'Research'
+  if (hasAnySignal(text, POLICY_SIGNALS)) return 'Policy & Regulation'
+  if (hasAnySignal(text, GOVERNMENT_SIGNALS)) return 'Government & Public Sector'
+  if (hasAnySignal(text, SECTOR_SIGNALS)) return 'Sectors & Applications'
+  if (hasAnySignal(text, INDUSTRY_SIGNALS)) return 'Industry & Models'
+  return null
+}
+
 export function isCanadaMention(input: ArticleCategoryInput): boolean {
   const text = articleCategoryText(input)
   return hasCanadianHost(input.url) || CANADA_ARTICLE_SIGNALS.some(signal => text.includes(signal))
@@ -99,8 +194,12 @@ export function categoryForArticle(
   input: ArticleCategoryInput,
   fallbackCategory?: Category | string | null,
 ): Category {
+  const topicalCategory = topicalCategoryForArticle(input)
+  if (topicalCategory) return topicalCategory
+  const validFallback = validCategory(fallbackCategory) ?? validCategory(input.category)
+  if (validFallback && validFallback !== 'Canada') return validFallback
   if (isCanadaMention(input)) return 'Canada'
-  return validCategory(fallbackCategory) ?? validCategory(input.category) ?? 'Industry & Models'
+  return validFallback ?? 'Industry & Models'
 }
 
 // ─── Section name alternates ────────────────────────────────────────────────────
@@ -148,8 +247,6 @@ export function categorize(sourceLabel: string, sectionName: string): Category {
   // "government" stories elsewhere. Trade-off: a "Canadian AI Research"
   // section will land under Canada (not Research), which is usually right
   // for editorial framing. Use the per-article override when it isn't.
-  if (s.includes('canad')) return 'Canada'
-
   // Research sources and benchmark/paper sections should not be hidden in
   // the broader Industry & Models bucket.
   if (
@@ -251,5 +348,6 @@ export function categorize(sourceLabel: string, sectionName: string): Category {
   // Default catch-all — anything that didn't match above. With the rules
   // expanded this should be rare; when it happens, the editor can always
   // pick a different category via the per-article override.
+  if (s.includes('canad')) return 'Canada'
   return 'Industry & Models'
 }
