@@ -15,7 +15,7 @@ const REQUIRED_WORKFLOWS = [
 
 const REQUIRED_CRONS = [
   { path: '/api/cron/daily-assemble', schedule: '0 23 * * *', label: 'Daily assemble' },
-  { path: '/api/cron/autopublish', schedule: '30 2 * * *', label: 'Nightly autopublish' },
+  { path: '/api/cron/autopublish', schedule: '30 1 * * *', label: 'Nightly autopublish' },
 ]
 
 function parseArgs(argv) {
