@@ -109,6 +109,12 @@
 - Cleaned RSS text handling so entities such as `&nbsp;` and source-name tails do not leak into card summaries.
 - Confirmed `.env.local` has `OPENAI_API_KEY` configured without printing the key.
 - Validation passed: `npm run test -- tests/lib/good-news-summarizer.test.ts tests/lib/good-news-rss.test.ts tests/lib/good-news-scoring.test.ts tests/lib/good-news-dedupe.test.ts tests/lib/good-news-digest.test.ts`, `node scripts/ingest-ai-good-news.mjs --dry-run`, `npm run lint`, `npx tsc --noEmit`, and `npm run build`.
+
+## AI Good News Published Summary Backfill
+
+- Production was later overwritten by the `main` deployment, which did not include the OpenAI Good News summarizer fix.
+- Cherry-picked the Good News outcome-discovery and OpenAI summarizer commits onto the current production branch.
+- Added an admin-only ingest option to save accepted current stories as `published`, so already-visible Good News stories can be regenerated and persisted with OpenAI-written summaries instead of only appearing as live supplements.
 # Task: Publishing Prevention Guardrails
 
 - [x] Audit how recent publishing failures became possible before code changes.
