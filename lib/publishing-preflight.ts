@@ -236,14 +236,6 @@ export function buildPublishingPreflight(input: PublishingPreflightInput): Publi
       firstWorkflow?.detail ?? 'No required scheduled publishing workflows were configured.',
       firstWorkflow?.nextAction ?? 'Add a required workflow check before relying on source automation.',
     ))
-  } else {
-    checks.push(preflightCheck(
-      'default_branch_workflow',
-      'Scheduled source workflow',
-      'unknown',
-      'Default-branch GitHub workflow state has not been checked in this request.',
-      'Run `npm run preflight:publishing` before publishing or after deploy.',
-    ))
   }
 
   if (eveningBriefing.state === 'source_error') {
@@ -315,6 +307,16 @@ export function buildPublishingPreflight(input: PublishingPreflightInput): Publi
       'pass',
       `Issue #${draft.issueNumber ?? 'unknown'} is already published with ${draft.articleCount} articles.`,
       'Use Issue Desk only for repair, correction, or additional coverage.',
+    ))
+  } else if (!draft.exists) {
+    checks.push(preflightCheck(
+      'draft_publish_gate',
+      'Draft publish gate',
+      'warn',
+      'No draft exists for this issue date yet.',
+      candidates.totalActive > 0
+        ? `Review ${candidates.totalActive} candidates and assemble the draft before publishing.`
+        : 'Run or retry source intake, then assemble the draft before publishing.',
     ))
   } else if (readiness.blockers.length > 0) {
     checks.push(preflightCheck(

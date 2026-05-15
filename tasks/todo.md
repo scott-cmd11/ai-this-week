@@ -39,7 +39,7 @@
 - [x] Inspect admin status, candidate freshness, GitHub source workflow runs, and dry-run assemble/publish checks.
 - [x] Patch the evening Google Alerts workflow so delayed GitHub scheduled runners do not skip the intended 7 PM Winnipeg import.
 - [x] Extend the publishing preflight script so it catches "assemble has source material, but no draft exists."
-- [ ] Push the workflow/preflight fix to GitHub.
+- [x] Push the workflow/preflight fix to GitHub.
 - [ ] Decide whether to mutate live data to backfill the May 13 issue.
 
 ## May 13 Incident Evidence
@@ -57,7 +57,9 @@
 - Updated `.github/workflows/evening-google-alerts-candidates.yml` so schedule gating uses the intended scheduled cron slot mapped into America/Winnipeg time. If GitHub starts the runner late, the correct 7 PM slot still imports.
 - Kept the two UTC cron slots for DST coverage: `15 0 * * *` maps to 7:15 PM Winnipeg during daylight time, and `15 1 * * *` maps to 7:15 PM during standard time.
 - Updated `scripts/publishing-preflight.mjs` to call daily assemble in read-only dry-run mode. It now fails the preflight when assemble has importable source material but no draft exists, which is exactly the May 13 failure shape.
-- Validation: `node --check scripts/publishing-preflight.mjs`, `git diff --check`, and `npm run preflight:publishing -- --api-base https://aitoday.vercel.app --date 2026-05-13 --warn-only` passed as executable checks. The preflight now explicitly reports: `Daily assemble has material but no draft exists.`
+- Updated `lib/publishing-preflight.ts` so the in-app admin preflight no longer holds only because the app cannot verify GitHub state itself. The CLI preflight remains responsible for default-branch workflow verification, while the admin preflight now clearly says when no draft exists yet.
+- Validation: `node --check scripts/publishing-preflight.mjs`, `git diff --check`, `npm run preflight:publishing -- --api-base https://aitoday.vercel.app --date 2026-05-13 --warn-only`, `npm run test -- tests/lib/publishing-preflight.test.ts tests/api/publishing-pipeline.test.ts`, `npm run lint`, and `npm run build` passed. The preflight now explicitly reports: `Daily assemble has material but no draft exists.`
+- Live action note: a non-forced manual validation run of the evening Google Alerts workflow landed during the 7 PM Winnipeg window on May 14, so it correctly ran the importer and added 35 fresh May 14 candidates to the live inbox. May 13 remains unmodified and unpublished.
 
 # Task: Publishing Prevention Guardrails
 
